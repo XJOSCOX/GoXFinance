@@ -35,3 +35,18 @@ it('collects a reason and proposed assignments while leaving balance changes in 
   await waitFor(() => expect(save).toHaveBeenCalledTimes(2))
   expect(save.mock.calls[1][2]).toBe(save.mock.calls[0][2])
 })
+
+it('preserves existing optional account details when their sections stay collapsed', async () => {
+  const save = vi.fn().mockResolvedValue(undefined)
+  const close = vi.fn()
+  const existing = { ...debt, originalBalanceCents: 140000, minimumPaymentCents: 5000,
+    interestRateApr: '7.5', dueDay: 15, openedDate: '2024-02-01', notes: 'Existing lender note' }
+  render(<DebtFormDialog debt={existing} members={members} debts={[existing]} role="owner" onSave={save} onClose={close}/>)
+  expect(screen.getByLabelText('APR (%)').closest('details')?.open).toBe(false)
+  fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Updated label' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save debt' }))
+  await waitFor(() => expect(save).toHaveBeenCalledOnce())
+  expect(save.mock.calls[0][0]).toMatchObject({ accountNickname: 'Updated label', originalBalanceCents: 140000,
+    minimumPaymentCents: 5000, interestRateApr: '7.5', dueDay: 15, openedDate: '2024-02-01', notes: 'Existing lender note' })
+  expect(close).toHaveBeenCalledOnce()
+})

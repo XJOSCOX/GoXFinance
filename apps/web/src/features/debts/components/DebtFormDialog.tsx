@@ -3,6 +3,10 @@ import { accountStatusLabels, debtTypeLabels, paymentStatusLabels, type Debt, ty
 import { Button, Input } from '../../../components/ui'
 import { Modal } from '../../../components/ui/Modal'
 import { errorMessage } from '../../../lib/api'
+import { DebtFormSection } from './DebtFormSection'
+import { DebtMemberFields } from './DebtMemberFields'
+
+const dateFields = [['nextDueDate', 'Next due date'], ['lastPaymentDate', 'Last payment date'], ['openedDate', 'Opened date'], ['closedDate', 'Closed date'], ['chargedOffDate', 'Charged-off date']] as const
 
 const moneyFields = ['originalBalanceCents', 'currentBalanceCents', 'pastDueAmountCents', 'creditLimitCents', 'minimumPaymentCents'] as const
 type MoneyField = typeof moneyFields[number]
@@ -55,33 +59,52 @@ export function DebtFormDialog({ debt, members, debts, role, currentMemberId, on
     catch (failure) { setError(errorMessage(failure)) }
     finally { setBusy(false) }
   }
-  return <Modal title={requestMode ? 'Request account changes' : debt ? 'Edit debt' : 'Add debt'} onClose={onClose}><form onSubmit={event => void submit(event)} className="space-y-5">
-    {requestMode && <p className="text-sm text-slate-400">Changes take effect only after the household Owner approves.</p>}
-    <div className="grid gap-3 sm:grid-cols-2">
-      <label className="sm:col-span-2"><span className={label}>Creditor *</span><Input required maxLength={160} value={form.creditorName} onChange={event => set('creditorName', event.target.value)} /></label>
-      <label><span className={label}>Nickname</span><Input value={form.accountNickname ?? ''} onChange={event => set('accountNickname', event.target.value || null)} /></label>
-      <label><span className={label}>Type</span><select className={select} value={form.accountType} onChange={event => set('accountType', event.target.value as DebtInput['accountType'])}>{Object.entries(debtTypeLabels).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
-      {moneyFields.map(field => <label key={field}><span className={label}>{moneyLabels[field]} ($)</span><Input inputMode="decimal" value={money[field]} disabled={Boolean(debt) && field === 'currentBalanceCents'} onChange={event => setMoney(current => ({ ...current, [field]: event.target.value }))} placeholder="Unknown" /></label>)}
-      <label><span className={label}>APR (%)</span><Input inputMode="decimal" value={form.interestRateApr ?? ''} onChange={event => set('interestRateApr', event.target.value || null)} /></label>
-      <label><span className={label}>Due day (1–31)</span><Input type="number" min={1} max={31} value={form.dueDay ?? ''} onChange={event => set('dueDay', event.target.value ? Number(event.target.value) : null)} /></label>
-      <label><span className={label}>Account status</span><select className={select} value={form.accountStatus} onChange={event => set('accountStatus', event.target.value as DebtInput['accountStatus'])}>{Object.entries(accountStatusLabels).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
-      <label><span className={label}>Payment status</span><select className={select} value={form.paymentStatus} onChange={event => set('paymentStatus', event.target.value as DebtInput['paymentStatus'])}>{Object.entries(paymentStatusLabels).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
-      <label><span className={label}>Confidence</span><select className={select} value={form.confidence} onChange={event => set('confidence', event.target.value as DebtInput['confidence'])}><option value="confirmed">Confirmed</option><option value="estimated">Estimated</option><option value="unverified">Unverified</option></select></label>
-      <label><span className={label}>Balance verified on</span><Input type="date" disabled={Boolean(debt)} value={form.balanceVerifiedAt?.slice(0, 10) ?? ''} onChange={event => set('balanceVerifiedAt', event.target.value ? `${event.target.value}T00:00:00.000Z` : null)} /></label>
-      {(['nextDueDate', 'lastPaymentDate', 'openedDate', 'closedDate', 'chargedOffDate'] as const).map(field => <label key={field}><span className={label}>{field.replace(/([A-Z])/g, ' $1')}</span><Input type="date" value={form[field] ?? ''} onChange={event => set(field, event.target.value || null)} /></label>)}
+  function amountField(field: MoneyField) {
+    return <label><span className={label}>{moneyLabels[field]} ($)</span><Input inputMode="decimal" value={money[field]} disabled={Boolean(debt) && field === 'currentBalanceCents'} onChange={event => setMoney(current => ({ ...current, [field]: event.target.value }))} placeholder="Unknown" className="tabular-nums"/></label>
+  }
+  return <Modal title={requestMode ? 'Request account changes' : debt ? 'Edit debt' : 'Add debt'} onClose={onClose} framed className="max-w-2xl"><form onSubmit={event => void submit(event)} className="flex min-h-0 flex-1 flex-col">
+    <div className="min-h-0 overflow-y-auto px-5 py-5 sm:px-7">
+      <p className="mb-6 text-sm leading-5 text-slate-400">{requestMode ? 'Propose changes for the household Owner to review.' : 'Start with the account and who is responsible. Add other details when you have them.'}</p>
+      <section aria-label="Account details" className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-[1.5fr_1fr]">
+          <label><span className={label}>Creditor *</span><Input required maxLength={160} placeholder="Bank or lender name" value={form.creditorName} onChange={event => set('creditorName', event.target.value)}/></label>
+          <label><span className={label}>Type</span><select className={select} value={form.accountType} onChange={event => set('accountType', event.target.value as DebtInput['accountType'])}>{Object.entries(debtTypeLabels).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
+        </div>
+        <label className="block"><span className={label}>Nickname</span><Input placeholder="Optional account label" value={form.accountNickname ?? ''} onChange={event => set('accountNickname', event.target.value || null)}/></label>
+        <div className="grid gap-4 sm:grid-cols-2">{amountField('currentBalanceCents')}{amountField('minimumPaymentCents')}</div>
+        <p className="text-xs leading-5 text-slate-500">{debt ? 'Change the current balance in Balance History to keep a record of each update.' : 'Leave unavailable amounts blank. A balance is the amount owed; a minimum is a monthly payment.'}</p>
+      </section>
+      <DebtMemberFields form={form} set={set} members={members} role={role} currentMemberId={currentMemberId} editing={Boolean(debt)} requestMode={requestMode}/>
+      {requestMode && <div className="mt-5"><label className="block"><span className={label}>Reason for Owner approval *</span><textarea required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} className={select + ' h-20 py-2'}/></label><p className="mt-2 text-xs text-slate-500">Nothing changes until the Owner approves.</p></div>}
+      <div className="mt-6 space-y-2 border-t border-white/[.08] pt-5">
+        <p className="mb-3 text-[10px] font-medium uppercase tracking-[.16em] text-slate-500">Additional details · optional</p>
+        <DebtFormSection title="Balances & status" description="Limits, interest and account standing">
+          <div className="grid gap-4 sm:grid-cols-2">{amountField('originalBalanceCents')}{amountField('pastDueAmountCents')}{amountField('creditLimitCents')}
+            <label><span className={label}>APR (%)</span><Input inputMode="decimal" placeholder="Unknown" value={form.interestRateApr ?? ''} onChange={event => set('interestRateApr', event.target.value || null)}/></label>
+            <label><span className={label}>Account status</span><select className={select} value={form.accountStatus} onChange={event => set('accountStatus', event.target.value as DebtInput['accountStatus'])}>{Object.entries(accountStatusLabels).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
+            <label><span className={label}>Payment status</span><select className={select} value={form.paymentStatus} onChange={event => set('paymentStatus', event.target.value as DebtInput['paymentStatus'])}>{Object.entries(paymentStatusLabels).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
+            <label><span className={label}>Confidence</span><select className={select} value={form.confidence} onChange={event => set('confidence', event.target.value as DebtInput['confidence'])}><option value="confirmed">Confirmed</option><option value="estimated">Estimated</option><option value="unverified">Unverified</option></select></label>
+          </div>
+        </DebtFormSection>
+        <DebtFormSection title="Dates & payment schedule" description="Due dates and account history">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label><span className={label}>Due day (1–31)</span><Input type="number" min={1} max={31} placeholder="Unknown" value={form.dueDay ?? ''} onChange={event => set('dueDay', event.target.value ? Number(event.target.value) : null)}/></label>
+            <label><span className={label}>Balance verified on</span><Input type="date" style={{ colorScheme: 'dark' }} disabled={Boolean(debt)} value={form.balanceVerifiedAt?.slice(0, 10) ?? ''} onChange={event => set('balanceVerifiedAt', event.target.value ? event.target.value + 'T00:00:00.000Z' : null)}/></label>
+            {dateFields.map(([field, name]) => <label key={field}><span className={label}>{name}</span><Input type="date" style={{ colorScheme: 'dark' }} value={form[field] ?? ''} onChange={event => set(field, event.target.value || null)}/></label>)}
+          </div>
+        </DebtFormSection>
+        <DebtFormSection title="Collections & linked accounts" description="Agency details and duplicate records">
+          <div className="grid gap-4 sm:grid-cols-2"><label><span className={label}>Collection agency</span><Input value={form.collectionAgency ?? ''} onChange={event => set('collectionAgency', event.target.value || null)}/></label><label><span className={label}>Original creditor</span><Input value={form.originalCreditor ?? ''} onChange={event => set('originalCreditor', event.target.value || null)}/></label>
+            <label className="sm:col-span-2"><span className={label}>Linked original account</span><select className={select} value={form.linkedOriginalDebtId ?? ''} onChange={event => set('linkedOriginalDebtId', event.target.value || null)}><option value="">None</option>{debts.filter(item => !item.isArchived && item.id !== debt?.id).map(item => <option key={item.id} value={item.id}>{item.creditorName}{item.accountNickname ? ' · ' + item.accountNickname : ''}</option>)}</select></label>
+            <label className="sm:col-span-2 flex items-start gap-2 text-xs leading-5 text-slate-400"><input type="checkbox" className="mt-1 accent-[#b1beb0]" checked={form.duplicateLinkVerified ?? false} onChange={event => set('duplicateLinkVerified', event.target.checked)}/>Verify these records represent the same obligation</label>
+          </div>
+        </DebtFormSection>
+        <DebtFormSection title="Notes" description="Anything else to keep with this account"><label className="block"><span className={label}>Notes</span><textarea className={select + ' h-24 py-2'} maxLength={4000} value={form.notes ?? ''} onChange={event => set('notes', event.target.value || null)}/></label></DebtFormSection>
+      </div>
     </div>
-    {debt && <p className="text-xs text-slate-400">Update the current balance through the account’s Balance History tab.</p>}
-    <fieldset className="border-t border-white/10 pt-4"><legend className="text-sm font-semibold">Responsible members *</legend><div className="mt-2 space-y-2">{members.filter(member => member.status === 'active' && (requestMode || role !== 'editor' || member.id === currentMemberId) && (requestMode || role === 'owner' || member.accessRole !== 'owner')).map(member => {
-      const assignment = form.memberAssignments?.find(item => item.memberId === member.id)
-      return <div key={member.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(assignment)} disabled={Boolean(debt) && role !== 'owner' && !requestMode} onChange={event => set('memberAssignments', event.target.checked ? [...(form.memberAssignments ?? []), { memberId: member.id, responsibility: 'primary' }] : (form.memberAssignments ?? []).filter(item => item.memberId !== member.id))}/>{member.fullName}</label>{assignment && <select aria-label={`${member.fullName} responsibility`} className={select + ' w-auto'} value={assignment.responsibility} disabled={Boolean(debt) && role !== 'owner' && !requestMode} onChange={event => set('memberAssignments', (form.memberAssignments ?? []).map(item => item.memberId === member.id ? { ...item, responsibility: event.target.value as typeof item.responsibility } : item))}><option value="primary">Primary</option><option value="joint">Joint</option><option value="authorized_user">Authorized user</option><option value="other">Other</option></select>}</div>
-    })}</div></fieldset>
-    <div className="grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2"><label><span className={label}>Collection agency</span><Input value={form.collectionAgency ?? ''} onChange={event => set('collectionAgency', event.target.value || null)}/></label><label><span className={label}>Original creditor</span><Input value={form.originalCreditor ?? ''} onChange={event => set('originalCreditor', event.target.value || null)}/></label>
-      <label className="sm:col-span-2"><span className={label}>Linked original account</span><select className={select} value={form.linkedOriginalDebtId ?? ''} onChange={event => set('linkedOriginalDebtId', event.target.value || null)}><option value="">None</option>{debts.filter(item => !item.isArchived && item.id !== debt?.id).map(item => <option key={item.id} value={item.id}>{item.creditorName}{item.accountNickname ? ` · ${item.accountNickname}` : ''}</option>)}</select></label>
-      <label className="sm:col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.duplicateLinkVerified ?? false} onChange={event => set('duplicateLinkVerified', event.target.checked)}/>Verify these records represent the same obligation</label>
-    </div>
-    <label className="block"><span className={label}>Notes</span><textarea className={select + ' h-24 py-2'} maxLength={4000} value={form.notes ?? ''} onChange={event => set('notes', event.target.value || null)}/></label>
-    {requestMode && <label className="block"><span className={label}>Reason for Owner approval *</span><textarea required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} className={select + ' h-24 py-2'}/></label>}
-    {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
-    <div className="flex justify-end gap-2"><Button type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : requestMode ? 'Request approval' : 'Save debt'}</Button></div>
+    <footer className="shrink-0 border-t border-white/[.08] bg-[#1b1d1c] px-5 py-4 sm:px-7">
+      {error && <p role="alert" className="mb-3 text-sm text-rose-300">{error}</p>}
+      <div className="flex items-center justify-between gap-3"><span className="text-[11px] text-slate-500">* Required</span><div className="flex gap-2"><Button type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : requestMode ? 'Request approval' : 'Save debt'}</Button></div></div>
+    </footer>
   </form></Modal>
 }
