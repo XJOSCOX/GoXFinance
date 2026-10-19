@@ -6,6 +6,7 @@ import type { DebtSummary } from './debt-calculations'
 import type { Expense, ExpenseCategory } from './expenses'
 export type HouseholdOverview = {
   payments: ReturnType<typeof overviewPayments>
+  income: { confirmedCents: number; netRecordedCashFlowCents: number }
   month: string
   debts: { debts: Debt[]; summary: DebtSummary }
   bills: ReturnType<typeof calculateBillSummary>

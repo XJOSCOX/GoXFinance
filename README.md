@@ -1,6 +1,6 @@
 # GoXFinance
 
-GoXFinance is a local website with authentication, household management, debts and payment history, recurring/one-time bills, everyday expenses, and a household Overview. All records live in SQLite. There is no cloud integration.
+GoXFinance is a local website with authentication, household management, debts and payment history, recurring/one-time bills, everyday expenses, income tracking, and a household Overview. All records live in SQLite. There is no cloud integration.
 
 ## Run locally
 
@@ -13,7 +13,7 @@ npm run dev
 
 Open **http://localhost:1420**. Vite serves the website and forwards `/api` requests to Fastify at `http://127.0.0.1:3001`. The API creates and migrates `data/goxfinance_web.sqlite` on startup. Migrations are additive; existing accounts, sessions, households, and members stay in place. The `data/` directory and SQLite WAL/SHM files are ignored by Git. The prior Tauri database, if present in the OS app data directory, is not opened, migrated, or deleted.
 
-Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, `/households/:householdId/members`, `/households/:householdId/debts`, `/households/:householdId/bills`, and `/households/:householdId/expenses`.
+Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, `/households/:householdId/members`, `/households/:householdId/debts`, `/households/:householdId/bills`, `/households/:householdId/expenses`, and `/households/:householdId/income`.
 
 ## Households
 
@@ -39,9 +39,13 @@ Owners can open **Database recovery** on the Household page. Full-database opera
 
 **Expenses** records everyday purchases with a responsible member, payment method, searchable merchant/description, date and category filters, optional category splits, corrections, and audited voiding. Monthly summaries show category and member spending. No bank balance is changed.
 
-**Overview** shows known debt balances, monthly expected obligations, actual purchase spending, confirmed cash paid, upcoming/overdue bills, and missing information. Credit-card repayments do not count as a second purchase, and linked bills/debts are counted once. Income, Trading, available-cash projections, and advanced charts are not included.
+**Overview** shows known debt balances, monthly expected obligations, actual purchase spending, confirmed cash paid, upcoming/overdue bills, and missing information. Credit-card repayments do not count as a second purchase, and linked bills/debts are counted once. Confirmed income and net recorded cash flow are included. Trading accounts, available-cash projections, and advanced charts are not included.
 
 See [Bills & Expenses guide](docs/bills-expenses.md) for workflows, accounting rules, migration safety, and current limitations. New code uses shared UI components and formatting; run `npm run format -- <files>` to format named files.
+
+## Income
+
+**Income** supports multiple earning members and sources, variable hourly work, configurable paydays and overtime multipliers, actual deposit confirmation, versioned corrections/cancellations, and audit history. Source estimates and pending paychecks never count as received income. The Overview uses confirmed deposits minus confirmed cash outflows for net recorded cash flow, not a bank balance. See [Income workflows and limits](docs/income.md).
 
 ## Security and storage
 

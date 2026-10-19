@@ -24,3 +24,7 @@ For future Supabase PostgreSQL support, define a separate Drizzle PostgreSQL sch
 Bills and everyday expenses use separate normalized tables and services. The Overview service composes the shared expected-obligation and actual-outflow calculations; route handlers contain no database queries. Bill approvals reuse the debt workflow conventions, and linked debt payment writes also check bill permissions. See [bills-expenses.md](bills-expenses.md) for accounting rules, migrations, permissions, and limits. A shared Prettier configuration and reusable UI primitives keep new modules readable without a feature-specific CSS layer.
 
 Payment forms share amount selectors, optional breakdown fields, clearance review, and exact decimal parsing. Bill payment status/allocation storage is extended by migration `0013`; historical identifiers and links are preserved. Completed debt creation also checks Owner-linked modification permissions. See [payment-options.md](payment-options.md).
+
+## Income
+
+`features/income` composes source management, work/receipt forms, history, and summaries. The API income module separates routes, service transactions, ownership authorization, repository SQL, and paycheck value validation. Shared income contracts and decimal-safe calculations contain no database dependencies. Migration 0014 adds source, transaction, and audit tables with scoped foreign keys and idempotency/active-paycheck uniqueness. See [Income](income.md) for financial rules, revision semantics, and PostgreSQL mappings.

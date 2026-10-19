@@ -1,3 +1,7 @@
+import { incomeRepository } from './modules/income/income.repository'
+import { incomeService } from './modules/income/income.service'
+import { incomePermissions } from './modules/income/income.permissions'
+import { registerIncomeRoutes } from './modules/income/income.routes'
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
@@ -99,8 +103,17 @@ export async function buildApp(options: AppOptions) {
     debts,
   )
   registerBillRoutes(app, auth, bills, billRequestsService(billStore, bills, billAccess))
+  const income = incomeService(
+    incomeRepository(db),
+    incomePermissions(financialAccess(householdStore, memberStore)),
+  )
+  registerIncomeRoutes(app, auth, income)
   registerExpenseRoutes(app, auth, expenses)
-  registerOverviewRoutes(app, auth, overviewService(overviewRepository(db), debts, bills, expenses))
+  registerOverviewRoutes(
+    app,
+    auth,
+    overviewService(overviewRepository(db), debts, bills, expenses, income),
+  )
   registerPaymentRoutes(app, auth, payments)
   registerChangeRoutes(
     app,

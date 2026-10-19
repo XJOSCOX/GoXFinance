@@ -33,6 +33,18 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
           detail="Confirmed payments; excludes credit purchases"
         />
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SummaryStat
+          label="Confirmed income received"
+          amount={formatMoney(data.income.confirmedCents)}
+          detail="Actual net deposits in reporting month"
+        />
+        <SummaryStat
+          label="Net recorded cash flow"
+          amount={formatMoney(data.income.netRecordedCashFlowCents)}
+          detail="Confirmed income minus confirmed cash outflows. Not a bank balance or available cash."
+        />
+      </div>
       <OverviewPayments payments={data.payments} home={home} />
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <Card className="p-5">
@@ -101,7 +113,8 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
             )}
             <p>{data.bills.estimatedRecurringCount} variable bills use budget estimates.</p>
             <p>
-              Available cash is not calculated: income and bank account tracking are not set up.
+              Recorded cash flow excludes opening balances and transactions not entered in
+              GoXFinance. It is not available cash.
             </p>
           </div>
         </Card>

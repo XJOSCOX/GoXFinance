@@ -1,6 +1,8 @@
+import type { IncomeService } from '../income/income.service'
 import {
   calculateBillSummary,
   overviewPayments,
+  incomeSummary,
   cashOutflows,
   localBillDate,
   sumCents,
@@ -16,6 +18,7 @@ export function overviewService(
   debts: DebtService,
   bills: BillService,
   expenses: ReturnType<typeof expenseService>,
+  income: IncomeService,
 ) {
   return {
     get(user: PublicUser, householdId: string, month: string) {
@@ -28,7 +31,14 @@ export function overviewService(
         billList.flatMap((item) => item.payments),
         payments,
       ).filter((item) => item.date.startsWith(month))
+      const received = incomeSummary(
+        income.list(user, householdId).transactions,
+        month,
+        localBillDate(),
+      ).confirmedCents
+      const paid = sumCents(outflows.map((item) => item.cashOutflowCents))
       return {
+        income: { confirmedCents: received, netRecordedCashFlowCents: sumCents([received, -paid]) },
         month,
         payments: overviewPayments(billList, debtList.debts, payments, month),
         debts: debtList,

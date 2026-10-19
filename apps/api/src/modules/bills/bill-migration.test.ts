@@ -21,7 +21,7 @@ afterEach(() => {
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true })
 })
 
-it.each([9, 10, 13])(
+it.each([9, 10, 13, 14])(
   'preserves populated records when upgrading from %s applied migrations',
   (count) => {
     const folder = mkdtempSync(join(tmpdir(), 'gox-bill-migration-'))
@@ -140,7 +140,7 @@ it.each([9, 10, 13])(
           now,
         )
     }
-    if (count === 13) {
+    if (count >= 13) {
       sqlite.prepare('UPDATE bill_periods SET billing_period=due_date').run()
       sqlite
         .prepare(
