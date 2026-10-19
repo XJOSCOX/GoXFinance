@@ -1,70 +1,9 @@
 import { Link } from 'react-router-dom'
-import type { Goal } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
-import { StatusBadge } from '../../../components/ui/StatusBadge'
-import { toneStyles, type SemanticTone } from '../../../components/ui/semantic-tones'
-import { formatMoney } from '../../../lib/money'
+import { toneStyles } from '../../../components/ui/semantic-tones'
+import { OverviewGoalRow } from './OverviewGoalRow'
+import { WeeklyGoalSummary } from './WeeklyGoalSummary'
 import { useGoals } from '../../goals/hooks/useGoals'
-
-function GoalRow({ goal }: { goal: Goal }) {
-  const p = goal.progress
-  const tone: SemanticTone = p.notStarted
-    ? 'info'
-    : p.incomplete || p.actualCents === null
-      ? 'warning'
-      : p.met
-        ? 'positive'
-        : goal.direction === 'at_most'
-          ? 'negative'
-          : 'info'
-  const percent =
-    p.actualCents === null || goal.targetCents === 0
-      ? 0
-      : Math.min(100, Math.max(0, (p.actualCents / goal.targetCents) * 100))
-  const label = p.notStarted
-    ? 'Not started'
-    : p.incomplete || p.actualCents === null
-      ? 'Incomplete data'
-      : p.met
-        ? goal.direction === 'at_most'
-          ? 'Within limit'
-          : 'Target met'
-        : goal.direction === 'at_most'
-          ? 'Limit exceeded'
-          : 'In progress'
-  return (
-    <li className="py-3 first:pt-0 last:pb-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="min-w-0 break-words text-sm font-medium">{goal.name}</h3>
-        <StatusBadge status="goal progress" tone={tone} label={label} />
-      </div>
-      <p className="mt-1 text-xs text-slate-500">
-        <span className="capitalize">{goal.period}</span> · {p.startDate} – {p.endDate}
-      </p>
-      <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs">
-        <span className={toneStyles[tone].text}>
-          {p.notStarted ? `Starts ${p.startDate}` : `${formatMoney(p.actualCents)} recorded`}
-        </span>
-        <span>Target {formatMoney(goal.targetCents)}</span>
-      </div>
-      <div
-        role="progressbar"
-        aria-label={`${goal.name} progress`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={p.notStarted || p.actualCents === null ? undefined : percent}
-        aria-valuetext={
-          p.notStarted
-            ? `Not started; starts ${p.startDate}`
-            : `${formatMoney(p.actualCents)} of ${formatMoney(goal.targetCents)}`
-        }
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.07]"
-      >
-        <div className={`h-full ${toneStyles[tone].bar}`} style={{ width: `${percent}%` }} />
-      </div>
-    </li>
-  )
-}
 
 export function OverviewGoals({ home }: { home: string }) {
   const { data, error } = useGoals(home)
@@ -93,11 +32,18 @@ export function OverviewGoals({ home }: { home: string }) {
         ) : goals.length === 0 ? (
           <p className="mt-3 text-sm text-slate-400">No active goals yet.</p>
         ) : (
-          <ul className="mt-3 max-h-80 divide-y divide-white/[.07] overflow-y-auto pr-1">
-            {goals.map((goal) => (
-              <GoalRow key={goal.id} goal={goal} />
-            ))}
-          </ul>
+          <div className="mt-3">
+            <WeeklyGoalSummary goals={goals} />
+            <p className="mb-3 text-[11px] text-slate-500">
+              Daily average = weekly net P&amp;L � 5 planned trading days, including losses and
+              fees. Unrecorded days do not reduce the divisor.
+            </p>
+            <ul className="max-h-80 divide-y divide-white/[.07] overflow-y-auto pr-1">
+              {goals.map((goal) => (
+                <OverviewGoalRow key={goal.id} goal={goal} />
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </Card>

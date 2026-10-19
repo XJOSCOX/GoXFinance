@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Goal } from '@goxfinance/shared'
 import { useGoals } from '../../goals/hooks/useGoals'
@@ -104,4 +104,51 @@ it('handles empty, loading and failed goal requests without displaying fake tota
   )
   expect(screen.getByRole('alert').textContent).toContain('Unavailable')
   expect(screen.queryByText('Target $250.00')).toBeNull()
+})
+
+it('displays actual daily averages, remaining weekly amounts, and combined progress for three accounts', () => {
+  const rows = [200000, 125000, -50000].map((actualCents, index) => ({
+    ...goal,
+    id: `goal-${index}`,
+    tradingAccountId: `account-${index}`,
+    name: `Account ${index + 1}`,
+    goalType: 'trading_profit' as const,
+    targetCents: 125000,
+    progress: {
+      ...goal.progress,
+      notStarted: false,
+      incomplete: false,
+      actualCents,
+      met: actualCents >= 125000,
+    },
+  }))
+  show(rows)
+  const combined = within(screen.getByRole('region', { name: 'Combined weekly trading goals' }))
+  expect(combined.getByText('Combined · 3 accounts')).toBeTruthy()
+  expect(combined.getByText('$550.00')).toBeTruthy()
+  expect(combined.getByText('$1,000.00')).toBeTruthy()
+  expect(combined.getByText(/2 of 3 individual account targets met/)).toBeTruthy()
+  expect(Number(combined.getByRole('progressbar').getAttribute('aria-valuenow'))).toBeCloseTo(
+    73.3333,
+  )
+  expect(screen.getByText('-$100.00')).toBeTruthy()
+  expect(screen.getByText('$1,750.00')).toBeTruthy()
+  expect(screen.getByText('$750.00')).toBeTruthy() // First account's profit above its target.
+})
+
+it('shows planned combined targets before the start without inventing averages', () => {
+  show(
+    [0, 1, 2].map((index) => ({
+      ...goal,
+      id: `goal-${index}`,
+      tradingAccountId: `account-${index}`,
+      goalType: 'trading_profit' as const,
+      targetCents: 125000,
+    })),
+  )
+  const combined = within(screen.getByRole('region', { name: 'Combined weekly trading goals' }))
+  expect(combined.getByText(/\$3,750.00 weekly target/)).toBeTruthy()
+  expect(combined.getByRole('progressbar').getAttribute('aria-valuenow')).toBeNull()
+  expect(combined.getAllByText('Not started')).toHaveLength(3)
+  expect(combined.queryByText('$0.00')).toBeNull()
 })
