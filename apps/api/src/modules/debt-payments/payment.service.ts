@@ -9,7 +9,8 @@ export class PaymentError extends Error {
   constructor(message: string, public statusCode: number) { super(message) }
 }
 
-export function paymentService(debts: DebtService, repository: PaymentRepository) {
+export function paymentService(debts: DebtService, repository: PaymentRepository,
+  authorizeLinkedPayment?: (user: PublicUser, householdId: string, debtId: string, paymentId: string) => void) {
   function get(user: PublicUser, householdId: string, debtId: string, paymentId: string) {
     debts.authorizePayment(user, householdId, debtId, 'view')
     const payment = repository.find(householdId, debtId, paymentId)
@@ -58,17 +59,20 @@ export function paymentService(debts: DebtService, repository: PaymentRepository
       }
     },
     update(user: PublicUser, householdId: string, debtId: string, paymentId: string, input: unknown) {
+      authorizeLinkedPayment?.(user, householdId, debtId, paymentId)
       debts.authorizePayment(user, householdId, debtId, 'modify')
       const values = previewEdit(user, householdId, debtId, paymentId, input)
       return repository.update(householdId, debtId, paymentId, user.id, values, 'edited')
     },
     cancel(user: PublicUser, householdId: string, debtId: string, paymentId: string) {
+      authorizeLinkedPayment?.(user, householdId, debtId, paymentId)
       debts.authorizePayment(user, householdId, debtId, 'modify')
       const current = get(user, householdId, debtId, paymentId)
       if (current.paymentStatus === 'cancelled') throw new PaymentError('Payment is already cancelled', 409)
       return repository.update(householdId, debtId, paymentId, user.id, { paymentStatus: 'cancelled' }, 'cancelled')
     },
     confirm(user: PublicUser, householdId: string, debtId: string, paymentId: string) {
+      authorizeLinkedPayment?.(user, householdId, debtId, paymentId)
       debts.authorizePayment(user, householdId, debtId, 'modify')
       const current = get(user, householdId, debtId, paymentId)
       if (current.paymentStatus !== 'scheduled' && current.paymentStatus !== 'pending') {

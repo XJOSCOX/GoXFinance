@@ -33,5 +33,5 @@ if (!persistent) {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => {
   void app.close().then(() => { if (!persistent) rmSync(directory, { recursive: true, force: true }); process.exit() })
 })
-await app.listen({ host: '127.0.0.1', port: 1421 })
+await app.listen({ host: '::1', port: 1421 })
 console.info(persistent ? 'Empty/manual QA site: http://localhost:1421 (dedicated qa.sqlite retained)' : 'Isolated QA site: http://localhost:1421 — owner@example.com / admin@example.com; password: long test password')

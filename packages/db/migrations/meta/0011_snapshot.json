@@ -1,0 +1,3787 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "1de450c1-b140-440a-bfcf-dd72aed283e7",
+  "prevId": "40db39d5-03f0-4d78-b714-3942dfe125a0",
+  "tables": {
+    "sessions": {
+      "name": "sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "sessions_token_hash_unique": {
+          "name": "sessions_token_hash_unique",
+          "columns": [
+            "token_hash"
+          ],
+          "isUnique": true
+        },
+        "sessions_user_id_idx": {
+          "name": "sessions_user_id_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "sessions_expires_at_idx": {
+          "name": "sessions_expires_at_idx",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "households": {
+      "name": "households",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "move_in_date": {
+          "name": "move_in_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "households_creator_idx": {
+          "name": "households_creator_idx",
+          "columns": [
+            "created_by_user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "households_created_by_user_id_users_id_fk": {
+          "name": "households_created_by_user_id_users_id_fk",
+          "tableFrom": "households",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "households_name_length": {
+          "name": "households_name_length",
+          "value": "length(\"households\".\"name\") between 1 and 120"
+        }
+      }
+    },
+    "household_members": {
+      "name": "household_members",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "linked_user_id": {
+          "name": "linked_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "relationship": {
+          "name": "relationship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "planned_access_role": {
+          "name": "planned_access_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'viewer'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "household_members_household_idx": {
+          "name": "household_members_household_idx",
+          "columns": [
+            "household_id"
+          ],
+          "isUnique": false
+        },
+        "household_members_linked_user_idx": {
+          "name": "household_members_linked_user_idx",
+          "columns": [
+            "linked_user_id"
+          ],
+          "isUnique": false
+        },
+        "household_members_linked_user_unique": {
+          "name": "household_members_linked_user_unique",
+          "columns": [
+            "household_id",
+            "linked_user_id"
+          ],
+          "isUnique": true
+        },
+        "household_members_id_household_unique": {
+          "name": "household_members_id_household_unique",
+          "columns": [
+            "id",
+            "household_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "household_members_household_id_households_id_fk": {
+          "name": "household_members_household_id_households_id_fk",
+          "tableFrom": "household_members",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "household_members_linked_user_id_users_id_fk": {
+          "name": "household_members_linked_user_id_users_id_fk",
+          "tableFrom": "household_members",
+          "tableTo": "users",
+          "columnsFrom": [
+            "linked_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "household_members_name_length": {
+          "name": "household_members_name_length",
+          "value": "length(\"household_members\".\"full_name\") between 1 and 120"
+        },
+        "household_members_relationship_check": {
+          "name": "household_members_relationship_check",
+          "value": "\"household_members\".\"relationship\" in ('self','spouse','child','parent','other')"
+        },
+        "household_members_status_check": {
+          "name": "household_members_status_check",
+          "value": "\"household_members\".\"status\" in ('active','inactive')"
+        },
+        "household_members_planned_role_check": {
+          "name": "household_members_planned_role_check",
+          "value": "\"household_members\".\"planned_access_role\" in ('admin','editor','viewer')"
+        }
+      }
+    },
+    "household_user_roles": {
+      "name": "household_user_roles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "household_user_roles_unique": {
+          "name": "household_user_roles_unique",
+          "columns": [
+            "household_id",
+            "user_id"
+          ],
+          "isUnique": true
+        },
+        "household_user_roles_user_idx": {
+          "name": "household_user_roles_user_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "household_user_roles_household_id_households_id_fk": {
+          "name": "household_user_roles_household_id_households_id_fk",
+          "tableFrom": "household_user_roles",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "household_user_roles_user_id_users_id_fk": {
+          "name": "household_user_roles_user_id_users_id_fk",
+          "tableFrom": "household_user_roles",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "household_user_roles_role_check": {
+          "name": "household_user_roles_role_check",
+          "value": "\"household_user_roles\".\"role\" in ('owner','admin','editor','viewer')"
+        }
+      }
+    },
+    "household_invitations": {
+      "name": "household_invitations",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "member_id": {
+          "name": "member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "active_member_id": {
+          "name": "active_member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "code_hash": {
+          "name": "code_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "redeemed_by_user_id": {
+          "name": "redeemed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "redeemed_at": {
+          "name": "redeemed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "household_invitations_code_unique": {
+          "name": "household_invitations_code_unique",
+          "columns": [
+            "code_hash"
+          ],
+          "isUnique": true
+        },
+        "household_invitations_active_member_unique": {
+          "name": "household_invitations_active_member_unique",
+          "columns": [
+            "active_member_id"
+          ],
+          "isUnique": true
+        },
+        "household_invitations_household_member_idx": {
+          "name": "household_invitations_household_member_idx",
+          "columns": [
+            "household_id",
+            "member_id"
+          ],
+          "isUnique": false
+        },
+        "household_invitations_status_expiry_idx": {
+          "name": "household_invitations_status_expiry_idx",
+          "columns": [
+            "status",
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "household_invitations_household_id_households_id_fk": {
+          "name": "household_invitations_household_id_households_id_fk",
+          "tableFrom": "household_invitations",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "household_invitations_created_by_user_id_users_id_fk": {
+          "name": "household_invitations_created_by_user_id_users_id_fk",
+          "tableFrom": "household_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "household_invitations_redeemed_by_user_id_users_id_fk": {
+          "name": "household_invitations_redeemed_by_user_id_users_id_fk",
+          "tableFrom": "household_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "redeemed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "household_invitations_member_id_household_id_household_members_id_household_id_fk": {
+          "name": "household_invitations_member_id_household_id_household_members_id_household_id_fk",
+          "tableFrom": "household_invitations",
+          "tableTo": "household_members",
+          "columnsFrom": [
+            "member_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "household_invitations_role_check": {
+          "name": "household_invitations_role_check",
+          "value": "\"household_invitations\".\"role\" in ('admin','editor','viewer')"
+        },
+        "household_invitations_status_check": {
+          "name": "household_invitations_status_check",
+          "value": "\"household_invitations\".\"status\" in ('pending','redeemed','revoked','expired')"
+        },
+        "household_invitations_active_check": {
+          "name": "household_invitations_active_check",
+          "value": "(\"household_invitations\".\"status\" = 'pending' and \"household_invitations\".\"active_member_id\" is not null and \"household_invitations\".\"active_member_id\" = \"household_invitations\".\"member_id\") or (\"household_invitations\".\"status\" <> 'pending' and \"household_invitations\".\"active_member_id\" is null)"
+        }
+      }
+    },
+    "household_member_requests": {
+      "name": "household_member_requests",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "proposed_by_user_id": {
+          "name": "proposed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "relationship": {
+          "name": "relationship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reviewed_by_user_id": {
+          "name": "reviewed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "member_requests_household_status_idx": {
+          "name": "member_requests_household_status_idx",
+          "columns": [
+            "household_id",
+            "status"
+          ],
+          "isUnique": false
+        },
+        "member_requests_pending_unique": {
+          "name": "member_requests_pending_unique",
+          "columns": [
+            "household_id",
+            "proposed_by_user_id",
+            "full_name",
+            "relationship"
+          ],
+          "isUnique": true,
+          "where": "\"household_member_requests\".\"status\" = 'pending'"
+        }
+      },
+      "foreignKeys": {
+        "household_member_requests_household_id_households_id_fk": {
+          "name": "household_member_requests_household_id_households_id_fk",
+          "tableFrom": "household_member_requests",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "household_member_requests_proposed_by_user_id_users_id_fk": {
+          "name": "household_member_requests_proposed_by_user_id_users_id_fk",
+          "tableFrom": "household_member_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "proposed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "household_member_requests_reviewed_by_user_id_users_id_fk": {
+          "name": "household_member_requests_reviewed_by_user_id_users_id_fk",
+          "tableFrom": "household_member_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "member_requests_status_check": {
+          "name": "member_requests_status_check",
+          "value": "\"household_member_requests\".\"status\" in ('pending','approved','rejected','cancelled')"
+        },
+        "member_requests_name_length": {
+          "name": "member_requests_name_length",
+          "value": "length(\"household_member_requests\".\"full_name\") between 1 and 120"
+        }
+      }
+    },
+    "household_audit": {
+      "name": "household_audit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "target_member_id": {
+          "name": "target_member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "target_request_id": {
+          "name": "target_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "previous_role": {
+          "name": "previous_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "new_role": {
+          "name": "new_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "household_audit_household_time_idx": {
+          "name": "household_audit_household_time_idx",
+          "columns": [
+            "household_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "household_audit_member_idx": {
+          "name": "household_audit_member_idx",
+          "columns": [
+            "target_member_id"
+          ],
+          "isUnique": false
+        },
+        "household_audit_request_idx": {
+          "name": "household_audit_request_idx",
+          "columns": [
+            "target_request_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "household_audit_household_id_households_id_fk": {
+          "name": "household_audit_household_id_households_id_fk",
+          "tableFrom": "household_audit",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "household_audit_target_member_id_household_members_id_fk": {
+          "name": "household_audit_target_member_id_household_members_id_fk",
+          "tableFrom": "household_audit",
+          "tableTo": "household_members",
+          "columnsFrom": [
+            "target_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "household_audit_target_request_id_household_member_requests_id_fk": {
+          "name": "household_audit_target_request_id_household_member_requests_id_fk",
+          "tableFrom": "household_audit",
+          "tableTo": "household_member_requests",
+          "columnsFrom": [
+            "target_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "household_audit_actor_user_id_users_id_fk": {
+          "name": "household_audit_actor_user_id_users_id_fk",
+          "tableFrom": "household_audit",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "household_audit_action_check": {
+          "name": "household_audit_action_check",
+          "value": "\"household_audit\".\"action\" in ('role_changed','planned_role_changed','request_submitted','request_approved','request_rejected','request_cancelled')"
+        }
+      }
+    },
+    "debts": {
+      "name": "debts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "creditor_name": {
+          "name": "creditor_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_nickname": {
+          "name": "account_nickname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "account_type": {
+          "name": "account_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_status": {
+          "name": "account_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unknown'"
+        },
+        "payment_status": {
+          "name": "payment_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unknown'"
+        },
+        "original_balance_cents": {
+          "name": "original_balance_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "current_balance_cents": {
+          "name": "current_balance_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "past_due_amount_cents": {
+          "name": "past_due_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "credit_limit_cents": {
+          "name": "credit_limit_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "interest_rate_apr": {
+          "name": "interest_rate_apr",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "minimum_payment_cents": {
+          "name": "minimum_payment_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "due_day": {
+          "name": "due_day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "next_due_date": {
+          "name": "next_due_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_payment_date": {
+          "name": "last_payment_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "opened_date": {
+          "name": "opened_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "closed_date": {
+          "name": "closed_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "charged_off_date": {
+          "name": "charged_off_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "collection_agency": {
+          "name": "collection_agency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "original_creditor": {
+          "name": "original_creditor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "linked_original_debt_id": {
+          "name": "linked_original_debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "duplicate_link_verified": {
+          "name": "duplicate_link_verified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "balance_verified_at": {
+          "name": "balance_verified_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unverified'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_archived": {
+          "name": "is_archived",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debts_id_household_unique": {
+          "name": "debts_id_household_unique",
+          "columns": [
+            "id",
+            "household_id"
+          ],
+          "isUnique": true
+        },
+        "debts_household_archived_idx": {
+          "name": "debts_household_archived_idx",
+          "columns": [
+            "household_id",
+            "is_archived"
+          ],
+          "isUnique": false
+        },
+        "debts_household_status_idx": {
+          "name": "debts_household_status_idx",
+          "columns": [
+            "household_id",
+            "payment_status"
+          ],
+          "isUnique": false
+        },
+        "debts_original_idx": {
+          "name": "debts_original_idx",
+          "columns": [
+            "linked_original_debt_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "debts_household_id_households_id_fk": {
+          "name": "debts_household_id_households_id_fk",
+          "tableFrom": "debts",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debts_created_by_user_id_users_id_fk": {
+          "name": "debts_created_by_user_id_users_id_fk",
+          "tableFrom": "debts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debts_original_household_fk": {
+          "name": "debts_original_household_fk",
+          "tableFrom": "debts",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "linked_original_debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debts_original_not_self": {
+          "name": "debts_original_not_self",
+          "value": "\"debts\".\"linked_original_debt_id\" is null or \"debts\".\"linked_original_debt_id\" <> \"debts\".\"id\""
+        },
+        "debts_verified_link": {
+          "name": "debts_verified_link",
+          "value": "\"debts\".\"duplicate_link_verified\" = 0 or \"debts\".\"linked_original_debt_id\" is not null"
+        },
+        "debts_due_day": {
+          "name": "debts_due_day",
+          "value": "\"debts\".\"due_day\" is null or \"debts\".\"due_day\" between 1 and 31"
+        },
+        "debts_original_balance": {
+          "name": "debts_original_balance",
+          "value": "\"debts\".\"original_balance_cents\" is null or \"debts\".\"original_balance_cents\" >= 0"
+        },
+        "debts_current_balance": {
+          "name": "debts_current_balance",
+          "value": "\"debts\".\"current_balance_cents\" is null or \"debts\".\"current_balance_cents\" >= 0"
+        },
+        "debts_past_due": {
+          "name": "debts_past_due",
+          "value": "\"debts\".\"past_due_amount_cents\" is null or \"debts\".\"past_due_amount_cents\" >= 0"
+        },
+        "debts_limit": {
+          "name": "debts_limit",
+          "value": "\"debts\".\"credit_limit_cents\" is null or \"debts\".\"credit_limit_cents\" >= 0"
+        },
+        "debts_minimum": {
+          "name": "debts_minimum",
+          "value": "\"debts\".\"minimum_payment_cents\" is null or \"debts\".\"minimum_payment_cents\" >= 0"
+        },
+        "debts_confidence": {
+          "name": "debts_confidence",
+          "value": "\"debts\".\"confidence\" in ('confirmed','estimated','unverified')"
+        }
+      }
+    },
+    "debt_members": {
+      "name": "debt_members",
+      "columns": {
+        "debt_id": {
+          "name": "debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_member_id": {
+          "name": "household_member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "responsibility": {
+          "name": "responsibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debt_members_household_member_idx": {
+          "name": "debt_members_household_member_idx",
+          "columns": [
+            "household_id",
+            "household_member_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "debt_members_household_id_households_id_fk": {
+          "name": "debt_members_household_id_households_id_fk",
+          "tableFrom": "debt_members",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_members_debt_household_fk": {
+          "name": "debt_members_debt_household_fk",
+          "tableFrom": "debt_members",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "debt_members_member_household_fk": {
+          "name": "debt_members_member_household_fk",
+          "tableFrom": "debt_members",
+          "tableTo": "household_members",
+          "columnsFrom": [
+            "household_member_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "debt_members_debt_id_household_member_id_pk": {
+          "columns": [
+            "debt_id",
+            "household_member_id"
+          ],
+          "name": "debt_members_debt_id_household_member_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debt_members_responsibility": {
+          "name": "debt_members_responsibility",
+          "value": "\"debt_members\".\"responsibility\" in ('primary','joint','authorized_user','other')"
+        }
+      }
+    },
+    "debt_payment_audit": {
+      "name": "debt_payment_audit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "debt_id": {
+          "name": "debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "before_json": {
+          "name": "before_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "after_json": {
+          "name": "after_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debt_payment_audit_payment_idx": {
+          "name": "debt_payment_audit_payment_idx",
+          "columns": [
+            "payment_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "debt_payment_audit_household_id_households_id_fk": {
+          "name": "debt_payment_audit_household_id_households_id_fk",
+          "tableFrom": "debt_payment_audit",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_payment_audit_actor_user_id_users_id_fk": {
+          "name": "debt_payment_audit_actor_user_id_users_id_fk",
+          "tableFrom": "debt_payment_audit",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_payment_audit_payment_fk": {
+          "name": "debt_payment_audit_payment_fk",
+          "tableFrom": "debt_payment_audit",
+          "tableTo": "debt_payments",
+          "columnsFrom": [
+            "payment_id",
+            "household_id",
+            "debt_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id",
+            "debt_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debt_payment_audit_action": {
+          "name": "debt_payment_audit_action",
+          "value": "\"debt_payment_audit\".\"action\" in ('created','edited','cancelled','confirmed')"
+        }
+      }
+    },
+    "debt_payments": {
+      "name": "debt_payments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "debt_id": {
+          "name": "debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_date": {
+          "name": "payment_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_status": {
+          "name": "payment_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "principal_amount_cents": {
+          "name": "principal_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "interest_amount_cents": {
+          "name": "interest_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fees_amount_cents": {
+          "name": "fees_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reference_number": {
+          "name": "reference_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debt_payments_id_household_debt_unique": {
+          "name": "debt_payments_id_household_debt_unique",
+          "columns": [
+            "id",
+            "household_id",
+            "debt_id"
+          ],
+          "isUnique": true
+        },
+        "debt_payments_idempotency_unique": {
+          "name": "debt_payments_idempotency_unique",
+          "columns": [
+            "household_id",
+            "debt_id",
+            "idempotency_key"
+          ],
+          "isUnique": true
+        },
+        "debt_payments_debt_date_idx": {
+          "name": "debt_payments_debt_date_idx",
+          "columns": [
+            "household_id",
+            "debt_id",
+            "payment_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "debt_payments_household_id_households_id_fk": {
+          "name": "debt_payments_household_id_households_id_fk",
+          "tableFrom": "debt_payments",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_payments_created_by_user_id_users_id_fk": {
+          "name": "debt_payments_created_by_user_id_users_id_fk",
+          "tableFrom": "debt_payments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_payments_debt_household_fk": {
+          "name": "debt_payments_debt_household_fk",
+          "tableFrom": "debt_payments",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debt_payments_amount_positive": {
+          "name": "debt_payments_amount_positive",
+          "value": "\"debt_payments\".\"amount_cents\" > 0"
+        },
+        "debt_payments_principal_nonnegative": {
+          "name": "debt_payments_principal_nonnegative",
+          "value": "\"debt_payments\".\"principal_amount_cents\" is null or \"debt_payments\".\"principal_amount_cents\" >= 0"
+        },
+        "debt_payments_interest_nonnegative": {
+          "name": "debt_payments_interest_nonnegative",
+          "value": "\"debt_payments\".\"interest_amount_cents\" is null or \"debt_payments\".\"interest_amount_cents\" >= 0"
+        },
+        "debt_payments_fees_nonnegative": {
+          "name": "debt_payments_fees_nonnegative",
+          "value": "\"debt_payments\".\"fees_amount_cents\" is null or \"debt_payments\".\"fees_amount_cents\" >= 0"
+        },
+        "debt_payments_allocation": {
+          "name": "debt_payments_allocation",
+          "value": "coalesce(\"debt_payments\".\"principal_amount_cents\",0) + coalesce(\"debt_payments\".\"interest_amount_cents\",0) + coalesce(\"debt_payments\".\"fees_amount_cents\",0) <= \"debt_payments\".\"amount_cents\""
+        },
+        "debt_payments_status": {
+          "name": "debt_payments_status",
+          "value": "\"debt_payments\".\"payment_status\" in ('scheduled','pending','completed','failed','cancelled')"
+        },
+        "debt_payments_method": {
+          "name": "debt_payments_method",
+          "value": "\"debt_payments\".\"payment_method\" in ('bank_transfer','debit_card','credit_card','cash','check','other')"
+        }
+      }
+    },
+    "debt_balance_history": {
+      "name": "debt_balance_history",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "debt_id": {
+          "name": "debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "balance_cents": {
+          "name": "balance_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "effective_date": {
+          "name": "effective_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recorded_by_user_id": {
+          "name": "recorded_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_key": {
+          "name": "request_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debt_balance_history_date_idx": {
+          "name": "debt_balance_history_date_idx",
+          "columns": [
+            "household_id",
+            "debt_id",
+            "effective_date"
+          ],
+          "isUnique": false
+        },
+        "debt_balance_history_request_key": {
+          "name": "debt_balance_history_request_key",
+          "columns": [
+            "household_id",
+            "debt_id",
+            "request_key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "debt_balance_history_household_id_households_id_fk": {
+          "name": "debt_balance_history_household_id_households_id_fk",
+          "tableFrom": "debt_balance_history",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_balance_history_recorded_by_user_id_users_id_fk": {
+          "name": "debt_balance_history_recorded_by_user_id_users_id_fk",
+          "tableFrom": "debt_balance_history",
+          "tableTo": "users",
+          "columnsFrom": [
+            "recorded_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_balance_history_debt_household_fk": {
+          "name": "debt_balance_history_debt_household_fk",
+          "tableFrom": "debt_balance_history",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debt_balance_history_balance": {
+          "name": "debt_balance_history_balance",
+          "value": "\"debt_balance_history\".\"balance_cents\" >= 0"
+        },
+        "debt_balance_history_source": {
+          "name": "debt_balance_history_source",
+          "value": "\"debt_balance_history\".\"source\" in ('initial','creditor_statement','manual_adjustment','reconciliation')"
+        }
+      }
+    },
+    "debt_change_audit": {
+      "name": "debt_change_audit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debt_change_audit_request": {
+          "name": "debt_change_audit_request",
+          "columns": [
+            "request_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "debt_change_audit_request_id_debt_change_requests_id_fk": {
+          "name": "debt_change_audit_request_id_debt_change_requests_id_fk",
+          "tableFrom": "debt_change_audit",
+          "tableTo": "debt_change_requests",
+          "columnsFrom": [
+            "request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_change_audit_actor_user_id_users_id_fk": {
+          "name": "debt_change_audit_actor_user_id_users_id_fk",
+          "tableFrom": "debt_change_audit",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debt_change_audit_action": {
+          "name": "debt_change_audit_action",
+          "value": "\"debt_change_audit\".\"action\" in ('submitted','approved','rejected','cancelled')"
+        }
+      }
+    },
+    "debt_change_requests": {
+      "name": "debt_change_requests",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "debt_id": {
+          "name": "debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "proposed_by_user_id": {
+          "name": "proposed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payload_json": {
+          "name": "payload_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "original_json": {
+          "name": "original_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "base_hash": {
+          "name": "base_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "active_target": {
+          "name": "active_target",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "reviewed_by_user_id": {
+          "name": "reviewed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "review_note": {
+          "name": "review_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "debt_change_request_key": {
+          "name": "debt_change_request_key",
+          "columns": [
+            "household_id",
+            "proposed_by_user_id",
+            "idempotency_key"
+          ],
+          "isUnique": true
+        },
+        "debt_change_pending_target": {
+          "name": "debt_change_pending_target",
+          "columns": [
+            "household_id",
+            "debt_id",
+            "proposed_by_user_id",
+            "active_target"
+          ],
+          "isUnique": true
+        },
+        "debt_change_household_status": {
+          "name": "debt_change_household_status",
+          "columns": [
+            "household_id",
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "debt_change_requests_proposed_by_user_id_users_id_fk": {
+          "name": "debt_change_requests_proposed_by_user_id_users_id_fk",
+          "tableFrom": "debt_change_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "proposed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_change_requests_reviewed_by_user_id_users_id_fk": {
+          "name": "debt_change_requests_reviewed_by_user_id_users_id_fk",
+          "tableFrom": "debt_change_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_change_requests_debt_id_household_id_debts_id_household_id_fk": {
+          "name": "debt_change_requests_debt_id_household_id_debts_id_household_id_fk",
+          "tableFrom": "debt_change_requests",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "debt_change_requests_payment_id_household_id_debt_id_debt_payments_id_household_id_debt_id_fk": {
+          "name": "debt_change_requests_payment_id_household_id_debt_id_debt_payments_id_household_id_debt_id_fk",
+          "tableFrom": "debt_change_requests",
+          "tableTo": "debt_payments",
+          "columnsFrom": [
+            "payment_id",
+            "household_id",
+            "debt_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id",
+            "debt_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "debt_change_status": {
+          "name": "debt_change_status",
+          "value": "\"debt_change_requests\".\"status\" in ('pending','approved','rejected','cancelled')"
+        },
+        "debt_change_action": {
+          "name": "debt_change_action",
+          "value": "\"debt_change_requests\".\"action\" in ('edit_payment','cancel_payment','confirm_payment','verify_balance','edit_account','archive_account','restore_account')"
+        },
+        "debt_change_target": {
+          "name": "debt_change_target",
+          "value": "(\"debt_change_requests\".\"action\" in ('verify_balance','edit_account','archive_account','restore_account') and \"debt_change_requests\".\"payment_id\" is null) or (\"debt_change_requests\".\"action\" in ('edit_payment','cancel_payment','confirm_payment') and \"debt_change_requests\".\"payment_id\" is not null)"
+        },
+        "debt_change_review": {
+          "name": "debt_change_review",
+          "value": "(\"debt_change_requests\".\"status\" = 'pending' and \"debt_change_requests\".\"active_target\" is not null and \"debt_change_requests\".\"reviewed_by_user_id\" is null) or (\"debt_change_requests\".\"status\" <> 'pending' and \"debt_change_requests\".\"active_target\" is null and \"debt_change_requests\".\"reviewed_by_user_id\" is not null)"
+        }
+      }
+    },
+    "bill_audit": {
+      "name": "bill_audit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "before_json": {
+          "name": "before_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "after_json": {
+          "name": "after_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bill_audit_target": {
+          "name": "bill_audit_target",
+          "columns": [
+            "household_id",
+            "bill_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "bill_audit_actor_user_id_users_id_fk": {
+          "name": "bill_audit_actor_user_id_users_id_fk",
+          "tableFrom": "bill_audit",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_audit_bill_id_household_id_bills_id_household_id_fk": {
+          "name": "bill_audit_bill_id_household_id_bills_id_household_id_fk",
+          "tableFrom": "bill_audit",
+          "tableTo": "bills",
+          "columnsFrom": [
+            "bill_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "bill_change_requests": {
+      "name": "bill_change_requests",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "proposed_by_user_id": {
+          "name": "proposed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "proposal_json": {
+          "name": "proposal_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "original_json": {
+          "name": "original_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "base_hash": {
+          "name": "base_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "active_target": {
+          "name": "active_target",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "reviewed_by_user_id": {
+          "name": "reviewed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "review_note": {
+          "name": "review_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bill_request_key": {
+          "name": "bill_request_key",
+          "columns": [
+            "household_id",
+            "proposed_by_user_id",
+            "idempotency_key"
+          ],
+          "isUnique": true
+        },
+        "bill_request_pending": {
+          "name": "bill_request_pending",
+          "columns": [
+            "household_id",
+            "bill_id",
+            "proposed_by_user_id",
+            "active_target"
+          ],
+          "isUnique": true
+        },
+        "bill_request_household_status": {
+          "name": "bill_request_household_status",
+          "columns": [
+            "household_id",
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "bill_change_requests_proposed_by_user_id_users_id_fk": {
+          "name": "bill_change_requests_proposed_by_user_id_users_id_fk",
+          "tableFrom": "bill_change_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "proposed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_change_requests_reviewed_by_user_id_users_id_fk": {
+          "name": "bill_change_requests_reviewed_by_user_id_users_id_fk",
+          "tableFrom": "bill_change_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_change_requests_bill_id_household_id_bills_id_household_id_fk": {
+          "name": "bill_change_requests_bill_id_household_id_bills_id_household_id_fk",
+          "tableFrom": "bill_change_requests",
+          "tableTo": "bills",
+          "columnsFrom": [
+            "bill_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "bill_request_status": {
+          "name": "bill_request_status",
+          "value": "\"bill_change_requests\".\"status\" in ('pending','approved','rejected','cancelled')"
+        },
+        "bill_request_review": {
+          "name": "bill_request_review",
+          "value": "(\"bill_change_requests\".\"status\"='pending' and \"bill_change_requests\".\"active_target\" is not null and \"bill_change_requests\".\"reviewed_by_user_id\" is null) or (\"bill_change_requests\".\"status\"<>'pending' and \"bill_change_requests\".\"active_target\" is null and \"bill_change_requests\".\"reviewed_by_user_id\" is not null)"
+        }
+      }
+    },
+    "bill_members": {
+      "name": "bill_members",
+      "columns": {
+        "bill_id": {
+          "name": "bill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "member_id": {
+          "name": "member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bill_members_unique": {
+          "name": "bill_members_unique",
+          "columns": [
+            "bill_id",
+            "member_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "bill_members_bill_id_household_id_bills_id_household_id_fk": {
+          "name": "bill_members_bill_id_household_id_bills_id_household_id_fk",
+          "tableFrom": "bill_members",
+          "tableTo": "bills",
+          "columnsFrom": [
+            "bill_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_members_member_id_household_id_household_members_id_household_id_fk": {
+          "name": "bill_members_member_id_household_id_household_members_id_household_id_fk",
+          "tableFrom": "bill_members",
+          "tableTo": "household_members",
+          "columnsFrom": [
+            "member_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "bill_payments": {
+      "name": "bill_payments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "period_id": {
+          "name": "period_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_date": {
+          "name": "payment_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "debt_id": {
+          "name": "debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "debt_payment_id": {
+          "name": "debt_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bill_payment_key": {
+          "name": "bill_payment_key",
+          "columns": [
+            "household_id",
+            "idempotency_key"
+          ],
+          "isUnique": true
+        },
+        "bill_payment_debt_link": {
+          "name": "bill_payment_debt_link",
+          "columns": [
+            "debt_payment_id"
+          ],
+          "isUnique": true
+        },
+        "bill_payment_period": {
+          "name": "bill_payment_period",
+          "columns": [
+            "household_id",
+            "bill_id",
+            "period_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "bill_payments_created_by_user_id_users_id_fk": {
+          "name": "bill_payments_created_by_user_id_users_id_fk",
+          "tableFrom": "bill_payments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_payments_period_id_household_id_bill_id_bill_periods_id_household_id_bill_id_fk": {
+          "name": "bill_payments_period_id_household_id_bill_id_bill_periods_id_household_id_bill_id_fk",
+          "tableFrom": "bill_payments",
+          "tableTo": "bill_periods",
+          "columnsFrom": [
+            "period_id",
+            "household_id",
+            "bill_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id",
+            "bill_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_payments_debt_id_household_id_debts_id_household_id_fk": {
+          "name": "bill_payments_debt_id_household_id_debts_id_household_id_fk",
+          "tableFrom": "bill_payments",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_payments_debt_payment_id_household_id_debt_id_debt_payments_id_household_id_debt_id_fk": {
+          "name": "bill_payments_debt_payment_id_household_id_debt_id_debt_payments_id_household_id_debt_id_fk",
+          "tableFrom": "bill_payments",
+          "tableTo": "debt_payments",
+          "columnsFrom": [
+            "debt_payment_id",
+            "household_id",
+            "debt_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id",
+            "debt_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "bill_payment_link": {
+          "name": "bill_payment_link",
+          "value": "\"bill_payments\".\"debt_payment_id\" is null or \"bill_payments\".\"debt_id\" is not null"
+        },
+        "bill_payment_amount": {
+          "name": "bill_payment_amount",
+          "value": "\"bill_payments\".\"amount_cents\">0"
+        },
+        "bill_payment_status": {
+          "name": "bill_payment_status",
+          "value": "\"bill_payments\".\"status\" in ('pending','completed','cancelled')"
+        },
+        "bill_payment_confirmed": {
+          "name": "bill_payment_confirmed",
+          "value": "\"bill_payments\".\"status\" <> 'completed' or \"bill_payments\".\"confirmed_at\" is not null"
+        },
+        "bill_payment_method": {
+          "name": "bill_payment_method",
+          "value": "\"bill_payments\".\"method\" in ('bank_transfer','debit_card','credit_card','cash','check','other')"
+        }
+      }
+    },
+    "bill_periods": {
+      "name": "bill_periods",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bill_id": {
+          "name": "bill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "estimated_amount_cents": {
+          "name": "estimated_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "linked_debt_id": {
+          "name": "linked_debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "credit_cents": {
+          "name": "credit_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bill_period_due": {
+          "name": "bill_period_due",
+          "columns": [
+            "household_id",
+            "bill_id",
+            "due_date"
+          ],
+          "isUnique": true
+        },
+        "bill_period_scope": {
+          "name": "bill_period_scope",
+          "columns": [
+            "id",
+            "household_id",
+            "bill_id"
+          ],
+          "isUnique": true
+        },
+        "bill_period_household_due": {
+          "name": "bill_period_household_due",
+          "columns": [
+            "household_id",
+            "due_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "bill_periods_bill_id_household_id_bills_id_household_id_fk": {
+          "name": "bill_periods_bill_id_household_id_bills_id_household_id_fk",
+          "tableFrom": "bill_periods",
+          "tableTo": "bills",
+          "columnsFrom": [
+            "bill_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bill_periods_linked_debt_id_household_id_debts_id_household_id_fk": {
+          "name": "bill_periods_linked_debt_id_household_id_debts_id_household_id_fk",
+          "tableFrom": "bill_periods",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "linked_debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "bill_period_amount": {
+          "name": "bill_period_amount",
+          "value": "(\"bill_periods\".\"amount_cents\" is null or \"bill_periods\".\"amount_cents\" >= 0) and (\"bill_periods\".\"estimated_amount_cents\" is null or \"bill_periods\".\"estimated_amount_cents\" >= 0) and \"bill_periods\".\"credit_cents\" >= 0"
+        }
+      }
+    },
+    "bills": {
+      "name": "bills",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_type": {
+          "name": "amount_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "estimated_amount_cents": {
+          "name": "estimated_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "frequency": {
+          "name": "frequency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "next_due_date": {
+          "name": "next_due_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "auto_pay": {
+          "name": "auto_pay",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "linked_debt_id": {
+          "name": "linked_debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bills_id_household": {
+          "name": "bills_id_household",
+          "columns": [
+            "id",
+            "household_id"
+          ],
+          "isUnique": true
+        },
+        "bills_household_status_due": {
+          "name": "bills_household_status_due",
+          "columns": [
+            "household_id",
+            "status",
+            "next_due_date"
+          ],
+          "isUnique": false
+        },
+        "bills_active_debt": {
+          "name": "bills_active_debt",
+          "columns": [
+            "household_id",
+            "linked_debt_id"
+          ],
+          "isUnique": true,
+          "where": "\"bills\".\"status\" = 'active'"
+        }
+      },
+      "foreignKeys": {
+        "bills_household_id_households_id_fk": {
+          "name": "bills_household_id_households_id_fk",
+          "tableFrom": "bills",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bills_created_by_user_id_users_id_fk": {
+          "name": "bills_created_by_user_id_users_id_fk",
+          "tableFrom": "bills",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bills_linked_debt_id_household_id_debts_id_household_id_fk": {
+          "name": "bills_linked_debt_id_household_id_debts_id_household_id_fk",
+          "tableFrom": "bills",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "linked_debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "bill_kind": {
+          "name": "bill_kind",
+          "value": "\"bills\".\"kind\" in ('recurring','one_time')"
+        },
+        "bill_amount_type": {
+          "name": "bill_amount_type",
+          "value": "\"bills\".\"amount_type\" in ('fixed','variable')"
+        },
+        "bill_amount_nonnegative": {
+          "name": "bill_amount_nonnegative",
+          "value": "(\"bills\".\"amount_cents\" is null or \"bills\".\"amount_cents\" >= 0) and (\"bills\".\"estimated_amount_cents\" is null or \"bills\".\"estimated_amount_cents\" >= 0)"
+        },
+        "bill_schedule": {
+          "name": "bill_schedule",
+          "value": "(\"bills\".\"kind\"='recurring' and \"bills\".\"frequency\" in ('weekly','biweekly','monthly','quarterly','annually') and \"bills\".\"status\" in ('active','inactive')) or (\"bills\".\"kind\"='one_time' and \"bills\".\"frequency\" is null and \"bills\".\"linked_debt_id\" is null and \"bills\".\"end_date\" is null and \"bills\".\"status\" in ('active','cancelled'))"
+        },
+        "bill_end_date": {
+          "name": "bill_end_date",
+          "value": "\"bills\".\"end_date\" is null or \"bills\".\"end_date\" >= \"bills\".\"next_due_date\""
+        }
+      }
+    },
+    "expense_category_allocations": {
+      "name": "expense_category_allocations",
+      "columns": {
+        "expense_id": {
+          "name": "expense_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "expense_allocation_unique": {
+          "name": "expense_allocation_unique",
+          "columns": [
+            "expense_id",
+            "category_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "expense_category_allocations_expense_id_household_id_expenses_id_household_id_fk": {
+          "name": "expense_category_allocations_expense_id_household_id_expenses_id_household_id_fk",
+          "tableFrom": "expense_category_allocations",
+          "tableTo": "expenses",
+          "columnsFrom": [
+            "expense_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expense_category_allocations_category_id_household_id_expense_categories_id_household_id_fk": {
+          "name": "expense_category_allocations_category_id_household_id_expense_categories_id_household_id_fk",
+          "tableFrom": "expense_category_allocations",
+          "tableTo": "expense_categories",
+          "columnsFrom": [
+            "category_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "expense_allocation_amount": {
+          "name": "expense_allocation_amount",
+          "value": "\"expense_category_allocations\".\"amount_cents\" > 0"
+        }
+      }
+    },
+    "expense_audit": {
+      "name": "expense_audit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expense_id": {
+          "name": "expense_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "before_json": {
+          "name": "before_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "after_json": {
+          "name": "after_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "expense_audit_record": {
+          "name": "expense_audit_record",
+          "columns": [
+            "household_id",
+            "expense_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "expense_audit_actor_user_id_users_id_fk": {
+          "name": "expense_audit_actor_user_id_users_id_fk",
+          "tableFrom": "expense_audit",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expense_audit_expense_id_household_id_expenses_id_household_id_fk": {
+          "name": "expense_audit_expense_id_household_id_expenses_id_household_id_fk",
+          "tableFrom": "expense_audit",
+          "tableTo": "expenses",
+          "columnsFrom": [
+            "expense_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "expense_categories": {
+      "name": "expense_categories",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "expense_category_name": {
+          "name": "expense_category_name",
+          "columns": [
+            "household_id",
+            "name"
+          ],
+          "isUnique": true
+        },
+        "expense_category_scope": {
+          "name": "expense_category_scope",
+          "columns": [
+            "id",
+            "household_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "expense_categories_household_id_households_id_fk": {
+          "name": "expense_categories_household_id_households_id_fk",
+          "tableFrom": "expense_categories",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "expenses": {
+      "name": "expenses",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "responsible_member_id": {
+          "name": "responsible_member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "merchant": {
+          "name": "merchant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "transaction_date": {
+          "name": "transaction_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "linked_debt_id": {
+          "name": "linked_debt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "voided": {
+          "name": "voided",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "expense_scope": {
+          "name": "expense_scope",
+          "columns": [
+            "id",
+            "household_id"
+          ],
+          "isUnique": true
+        },
+        "expense_submission": {
+          "name": "expense_submission",
+          "columns": [
+            "household_id",
+            "idempotency_key"
+          ],
+          "isUnique": true
+        },
+        "expense_household_date": {
+          "name": "expense_household_date",
+          "columns": [
+            "household_id",
+            "transaction_date"
+          ],
+          "isUnique": false
+        },
+        "expense_member": {
+          "name": "expense_member",
+          "columns": [
+            "household_id",
+            "responsible_member_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "expenses_household_id_households_id_fk": {
+          "name": "expenses_household_id_households_id_fk",
+          "tableFrom": "expenses",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expenses_created_by_user_id_users_id_fk": {
+          "name": "expenses_created_by_user_id_users_id_fk",
+          "tableFrom": "expenses",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expenses_responsible_member_id_household_id_household_members_id_household_id_fk": {
+          "name": "expenses_responsible_member_id_household_id_household_members_id_household_id_fk",
+          "tableFrom": "expenses",
+          "tableTo": "household_members",
+          "columnsFrom": [
+            "responsible_member_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expenses_linked_debt_id_household_id_debts_id_household_id_fk": {
+          "name": "expenses_linked_debt_id_household_id_debts_id_household_id_fk",
+          "tableFrom": "expenses",
+          "tableTo": "debts",
+          "columnsFrom": [
+            "linked_debt_id",
+            "household_id"
+          ],
+          "columnsTo": [
+            "id",
+            "household_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "expense_amount": {
+          "name": "expense_amount",
+          "value": "\"expenses\".\"amount_cents\" > 0"
+        },
+        "expense_credit_link": {
+          "name": "expense_credit_link",
+          "value": "\"expenses\".\"linked_debt_id\" is null or \"expenses\".\"payment_method\" = 'credit_card'"
+        },
+        "expense_method": {
+          "name": "expense_method",
+          "value": "\"expenses\".\"payment_method\" in ('bank_transfer','debit_card','credit_card','cash','check','other')"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

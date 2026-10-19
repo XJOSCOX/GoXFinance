@@ -64,6 +64,34 @@
       "when": 1792396212994,
       "tag": "0008_slow_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792398313012,
+      "tag": "0009_bent_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792398362485,
+      "tag": "0010_thankful_morg",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792398610315,
+      "tag": "0011_lethal_kang",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792399069709,
+      "tag": "0012_simple_night_thrasher",
+      "breakpoints": true
     }
   ]
 }

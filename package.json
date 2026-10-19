@@ -7,7 +7,9 @@
     "apps/*",
     "packages/*"
   ],
-  "overrides": { "esbuild": "^0.28.2" },
+  "overrides": {
+    "esbuild": "^0.28.2"
+  },
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "tsx watch apps/api/src/server.ts",
@@ -15,6 +17,7 @@
     "start:api": "node apps/api/dist/server.js",
     "typecheck": "tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "lint": "eslint apps packages",
+    "format": "prettier --write",
     "test": "vitest run --config vitest.config.ts",
     "build": "npm run typecheck && tsup apps/api/src/server.ts --tsconfig apps/api/tsconfig.json --format esm --platform node --out-dir apps/api/dist --external better-sqlite3 --external argon2 && vite build apps/web --config apps/web/vite.config.ts",
     "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts"
@@ -53,6 +56,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
     "jsdom": "^29.1.1",
+    "prettier": "^3.9.10",
     "tailwindcss": "^4.1.14",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",
