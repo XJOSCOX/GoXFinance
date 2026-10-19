@@ -1,5 +1,14 @@
 import type { TradingRule } from './trading'
 
+export function latestSavedRule<T extends TradingRule & { id: string; createdAt: string }>(
+  rules: T[],
+) {
+  const replaced = new Set(rules.map((r) => r.supersedesRuleId).filter(Boolean))
+  return rules
+    .filter((r) => !replaced.has(r.id))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))[0]
+}
+
 export function payoutSplitEstimate(
   amountCents: number | null,
   traderShareBps: number | null | undefined,
@@ -23,8 +32,12 @@ export function ruleForPayout<T extends TradingRule & { createdAt: string; id: s
   date: string,
   recordedAt?: string,
 ) {
-  return rules
-    .filter((r) => r.effectiveDate <= date && (!recordedAt || r.createdAt <= recordedAt))
+  const known = rules.filter(
+    (r) => r.effectiveDate <= date && (!recordedAt || r.createdAt <= recordedAt),
+  )
+  const replaced = new Set(known.map((r) => r.supersedesRuleId).filter(Boolean))
+  return known
+    .filter((r) => !replaced.has(r.id) && r.effectiveDate <= date)
     .sort(
       (a, b) =>
         b.effectiveDate.localeCompare(a.effectiveDate) ||

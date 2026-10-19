@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import { tradingAccountRulesBatchSchema, type TradingAccount } from '@goxfinance/shared'
+import {
+  tradingAccountRulesBatchSchema,
+  latestSavedRule,
+  type TradingAccount,
+} from '@goxfinance/shared'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { AmountField } from '../../../components/financial/EntryFields'
 import { FormField } from '../../../components/ui/FormField'
@@ -13,12 +17,14 @@ export function AccountRulesForm({
   accounts,
   save,
   close,
+  selectAll = false,
 }: {
   accounts: TradingAccount[]
   save: (body: unknown) => Promise<void>
   close: () => void
+  selectAll?: boolean
 }) {
-  const [selected, setSelected] = useState<string[]>([]),
+  const [selected, setSelected] = useState<string[]>(selectAll ? accounts.map((a) => a.id) : []),
     first = accounts[0]
   return (
     <FinancialEditor
@@ -37,15 +43,19 @@ export function AccountRulesForm({
               tierCents: readMoney(data, 'tierCents'),
               maximumLossCents: readMoney(data, 'maximumLossCents'),
               dailyLossCents: readMoney(data, 'dailyLossCents'),
-              ruleSnapshot: readTradingRule(data),
+              ruleSnapshot: {
+                ...readTradingRule(data),
+                ...(latestSavedRule(a.ruleSnapshots)
+                  ? { supersedesRuleId: latestSavedRule(a.ruleSnapshots)!.id }
+                  : {}),
+              },
             })),
         )
       }
     >
       <p className="text-xs text-slate-400">
-        Apply the reviewed setup and a new rule snapshot to selected accounts. Existing balances,
-        stages, payout paths, results and deposits are preserved. Earlier rule snapshots remain in
-        history.
+        Edit the reviewed setup and saved rules for selected accounts. Existing balances, stages,
+        payout paths, results and deposits are preserved. Earlier rule snapshots remain in history.
       </p>
       <AccountSelectionToolbar accounts={accounts} selected={selected} onChange={setSelected} />
       <div className="grid gap-2 sm:grid-cols-2">
@@ -80,7 +90,7 @@ export function AccountRulesForm({
           value={first?.dailyLossCents}
         />
       </div>
-      <TradingRuleFields rule={first?.ruleSnapshots.at(-1)} />
+      <TradingRuleFields rule={first ? latestSavedRule(first.ruleSnapshots) : undefined} />
       <FormField label="Reason for update">
         <Input name="reason" required maxLength={2000} />
       </FormField>

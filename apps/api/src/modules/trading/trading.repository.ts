@@ -120,15 +120,15 @@ export function tradingRepository(db: DatabaseConnection) {
       else db.insert(tradingPayouts).values(values).run()
     },
     addRule(home: string, accountId: string, rules: unknown) {
-      db.insert(tradingRuleSnapshots)
-        .values({
-          id: randomUUID(),
-          householdId: home,
-          accountId,
-          rulesJson: JSON.stringify(rules),
-          createdAt: new Date().toISOString(),
-        })
-        .run()
+      const row = {
+        id: randomUUID(),
+        householdId: home,
+        accountId,
+        rulesJson: JSON.stringify(rules),
+        createdAt: new Date().toISOString(),
+      }
+      db.insert(tradingRuleSnapshots).values(row).run()
+      return row
     },
     audit(
       home: string,

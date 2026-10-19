@@ -38,7 +38,7 @@ export function Card({ className, children, ...props }: HTMLAttributes<HTMLDivEl
     <div
       {...props}
       className={cn(
-        'surface-card rounded-xl border border-white/[.09] bg-[#1b1d1c] shadow-[0_12px_30px_-24px_rgba(0,0,0,.8)]',
+        'rounded-xl border border-white/[.09] bg-[#1b1d1c] shadow-[0_12px_30px_-24px_rgba(0,0,0,.8)]',
         className,
       )}
     >

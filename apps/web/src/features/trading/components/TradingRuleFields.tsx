@@ -12,7 +12,17 @@ export function TradingRuleFields({ rule }: { rule?: TradingRule }) {
           <Input name="ruleLabel" defaultValue={rule?.label} required maxLength={120} />
         </FormField>
         <DateField name="ruleDate" label="Effective date" value={rule?.effectiveDate} required />
+        <DateField
+          name="ruleProgressStart"
+          label="Progress period starts (optional)"
+          value={rule?.progressStartDate}
+        />
       </div>
+      <p className="text-xs text-slate-400">
+        Progress starts on this date, otherwise activation date or rule effective date. Adjust it
+        for a new provider-confirmed payout cycle; withdrawals do not automatically reset winning
+        days.
+      </p>
       {['Payout rules', 'Evaluation and plan'].map((group) => (
         <details
           key={group}

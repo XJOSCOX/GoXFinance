@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   tradingAccountSchema,
   tradingAccountBatchSchema,
+  latestSavedRule,
   type TradingAccount,
   type HouseholdMember,
 } from '@goxfinance/shared'
@@ -231,7 +232,9 @@ export function AccountForm({
         <input type="checkbox" checked={rules} onChange={(e) => setRules(e.target.checked)} />
         Add a payout-rule snapshot (advisory only)
       </label>
-      {rules && <TradingRuleFields rule={account?.ruleSnapshots.at(-1)} />}
+      {rules && (
+        <TradingRuleFields rule={account ? latestSavedRule(account.ruleSnapshots) : undefined} />
+      )}
     </FinancialEditor>
   )
 }

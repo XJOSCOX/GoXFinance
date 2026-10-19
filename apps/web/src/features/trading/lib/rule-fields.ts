@@ -104,6 +104,7 @@ export const ruleFields: {
 export function readTradingRule(data: FormData) {
   return tradingRuleSchema.parse({
     version: 2,
+    progressStartDate: optionalText(data, 'ruleProgressStart'),
     label: text(data, 'ruleLabel'),
     effectiveDate: text(data, 'ruleDate'),
     notes: optionalText(data, 'ruleNotes'),

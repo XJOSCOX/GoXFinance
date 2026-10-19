@@ -57,6 +57,10 @@ export function registerTradingRoutes(
   app.post(base + '/accounts/rules', (r) => ({
     records: trading.saveAccountRules(user(r), params.parse(r.params).householdId, r.body),
   }))
+  app.patch(base + '/accounts/:id/rules/:ruleId', (r) => {
+    const p = z.object({ householdId: z.uuid(), id: z.uuid(), ruleId: z.uuid() }).parse(r.params)
+    return { record: trading.correctRule(user(r), p.householdId, p.id, p.ruleId, r.body) }
+  })
   app.post(base + '/results', (r, reply) =>
     reply
       .code(201)

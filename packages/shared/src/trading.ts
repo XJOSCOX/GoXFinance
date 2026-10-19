@@ -23,6 +23,8 @@ export const tradingRuleSchema = z
     profitShareBps: z.number().int().min(0).max(10000).nullable(),
     notes: z.string().trim().max(2000).nullable(),
     version: z.literal(2).optional(),
+    supersedesRuleId: z.uuid().optional(),
+    progressStartDate: z.iso.date().nullable().optional(),
     profitTargetCents: positive.nullable().optional(),
     combineConsistencyBps: z.number().int().min(0).max(10000).nullable().optional(),
     payoutConsistencyBps: z.number().int().min(0).max(10000).nullable().optional(),

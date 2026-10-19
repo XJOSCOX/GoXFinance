@@ -21,7 +21,6 @@ button { cursor: pointer; }
 @media (max-width: 639px) { .app-main { padding-inline: 1rem; } }
 .dashboard-hero { background: radial-gradient(circle at 90% 15%, rgba(162, 183, 161, .17), transparent 34%), linear-gradient(115deg, #212522, #1a1e1b 72%); }
 .section-heading { border-bottom: 1px solid rgba(255, 255, 255, .08); padding-bottom: 1.6rem; }
-.surface-card { backdrop-filter: blur(4px); }
 .app-shell .text-slate-300 { color: #c7cac5; }
 .app-shell .text-slate-400 { color: #a0a59f; }
 .app-shell .text-slate-500 { color: #777f78; }

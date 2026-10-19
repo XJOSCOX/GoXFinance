@@ -15,7 +15,7 @@ import { FinancialError } from '../households/financial-access'
 import { checkRevision, type TradingPermissions } from './trading.permissions'
 import type { TradingRepository } from './trading.repository'
 import { createAccounts } from './account-batch.service'
-import { updateAccountRules } from './account-rules.service'
+import { updateAccountRules, correctAccountRule } from './account-rules.service'
 import { saveTradingBatch } from './trading-batch'
 export function tradingService(store: TradingRepository, permissions: TradingPermissions) {
   function account(user: PublicUser, home: string, id: string) {
@@ -143,6 +143,22 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         body,
       )
     },
+    correctRule(
+      user: PublicUser,
+      home: string,
+      id: string,
+      ruleId: string,
+      body: unknown,
+    ): TradingAccount {
+      return correctAccountRule(
+        { store, permissions, account, accountView, saveAccount: this.saveAccount },
+        user,
+        home,
+        id,
+        ruleId,
+        body,
+      )
+    },
     saveAccount(user: PublicUser, home: string, body: unknown, id?: string) {
       return store.atomic(() => {
         const parsed = id
@@ -189,6 +205,20 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         }
         const { ruleSnapshot, ...fields } = values,
           now = new Date().toISOString()
+        if (ruleSnapshot?.supersedesRuleId) {
+          const snapshots = old ? store.rules(home, old.id) : []
+          if (!snapshots.some((r) => r.id === ruleSnapshot.supersedesRuleId))
+            throw new FinancialError('Rule not found for this account', 404)
+          if (
+            snapshots.some(
+              (r) => JSON.parse(r.rulesJson).supersedesRuleId === ruleSnapshot.supersedesRuleId,
+            )
+          )
+            throw new FinancialError(
+              'This rule was already edited. Refresh before editing it again.',
+              409,
+            )
+        }
         const row = {
           ...old,
           ...fields,
@@ -203,7 +233,22 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           revision: (old?.revision ?? 0) + 1,
         }
         store.writeAccount(row, !!old)
-        if (ruleSnapshot) store.addRule(home, row.id, ruleSnapshot)
+        if (ruleSnapshot) {
+          const previous = ruleSnapshot.supersedesRuleId
+            ? store.rules(home, row.id).find((r) => r.id === ruleSnapshot.supersedesRuleId)
+            : undefined
+          const saved = store.addRule(home, row.id, ruleSnapshot)
+          if (previous)
+            store.audit(
+              home,
+              user.id,
+              'rule_corrected',
+              previous.id,
+              { ...JSON.parse(previous.rulesJson), id: previous.id },
+              { ...ruleSnapshot, id: saved.id, createdAt: saved.createdAt },
+              ruleSnapshot,
+            )
+        }
         store.audit(
           home,
           user.id,

@@ -21,6 +21,8 @@ import { saveTrading, removeTradingAccount } from '../api/tradingClient'
 import { AccountRemovalDialog } from '../components/AccountRemovalDialog'
 import { AccountForm } from '../components/AccountForm'
 import { AccountRulesForm } from '../components/AccountRulesForm'
+import { EditRuleForm } from '../components/EditRuleForm'
+import { CombinedPayoutProgress } from '../components/CombinedPayoutProgress'
 import { ResultForm } from '../components/ResultForm'
 import { DailyResultsForm } from '../components/DailyResultsForm'
 import { PayoutForm } from '../components/PayoutForm'
@@ -37,7 +39,7 @@ type Editor =
   | { kind: 'groups'; record?: CopyGroup }
   | { kind: 'events'; record?: CopyEvent }
   | { kind: 'batches'; record?: undefined }
-  | { kind: 'accounts/rules'; record?: undefined }
+  | { kind: 'accounts/rules'; record?: undefined; accounts?: TradingAccount[] }
 export function TradingPage() {
   const { householdId: home = '' } = useParams(),
     { data, members, income, error, refresh } = useTrading(home),
@@ -49,6 +51,10 @@ export function TradingPage() {
     [audit, setAudit] = useState('')
   const [showDeleted, setShowDeleted] = useState(false)
   const [removal, setRemoval] = useState<TradingAccount | null>(null)
+  const [ruleEditor, setRuleEditor] = useState<{
+    account: TradingAccount
+    rule: TradingAccount['ruleSnapshots'][number]
+  } | null>(null)
   const household = households.find((h) => h.id === home)
   useEffect(() => {
     if (household && selected?.id !== home) select(home)
@@ -145,6 +151,7 @@ export function TradingPage() {
               </Button>
             ))}
           </div>
+          {tab === 'accounts' && <CombinedPayoutProgress data={data} />}
           {managed.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               <Button size="small" onClick={() => setEditor({ kind: 'accounts/rules' })}>
@@ -184,11 +191,14 @@ export function TradingPage() {
               <TradingAccounts
                 accounts={accounts.filter((a) => showDeleted || !a.deletedAt)}
                 results={data.results}
+                payouts={data.payouts}
                 members={members}
                 onEdit={(record) => setEditor({ kind: 'accounts', record })}
                 onDuplicate={(template) => setEditor({ kind: 'accounts', template })}
                 onRemove={setRemoval}
                 onAudit={setAudit}
+                onEditRule={(account, rule) => setRuleEditor({ account, rule })}
+                onEditAll={(accounts) => setEditor({ kind: 'accounts/rules', accounts })}
               />
             </>
           ) : tab === 'performance' ? (
@@ -216,7 +226,12 @@ export function TradingPage() {
         />
       )}
       {editor?.kind === 'accounts/rules' && (
-        <AccountRulesForm accounts={managed} save={save} close={() => setEditor(null)} />
+        <AccountRulesForm
+          accounts={editor.accounts ?? managed}
+          selectAll={!!editor.accounts}
+          save={save}
+          close={() => setEditor(null)}
+        />
       )}
       {editor?.kind === 'results' && !editor.record && (
         <DailyResultsForm
@@ -288,6 +303,23 @@ export function TradingPage() {
                   ? 'Account restored'
                   : 'Account hidden',
             )
+          }}
+        />
+      )}
+      {ruleEditor && (
+        <EditRuleForm
+          account={ruleEditor.account}
+          rule={ruleEditor.rule}
+          close={() => setRuleEditor(null)}
+          save={async (body) => {
+            await saveTrading(
+              home,
+              `accounts/${ruleEditor.account.id}/rules`,
+              body,
+              ruleEditor.rule.id,
+            )
+            await refresh()
+            notify('success', 'Rule changes saved; previous version retained')
           }}
         />
       )}

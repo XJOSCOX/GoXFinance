@@ -2,6 +2,8 @@ import {
   createTradingSchema,
   tradingAccountRulesBatchSchema,
   tradingAccountSchema,
+  tradingRuleSchema,
+  editTradingSchema,
   type PublicUser,
   type TradingAccount,
 } from '@goxfinance/shared'
@@ -9,6 +11,7 @@ import { saveTradingBatch } from './trading-batch'
 import type { TradingRepository } from './trading.repository'
 import type { TradingPermissions } from './trading.permissions'
 import type { TradingService } from './trading.service'
+import { FinancialError } from '../households/financial-access'
 
 type Dependencies = { store: TradingRepository; permissions: TradingPermissions } & Pick<
   TradingService,
@@ -54,4 +57,34 @@ export function updateAccountRules(
     },
     (id) => accountView(user, home, account(user, home, id)),
   )
+}
+
+export function correctAccountRule(
+  { store, permissions, account, saveAccount }: Dependencies,
+  user: PublicUser,
+  home: string,
+  id: string,
+  ruleId: string,
+  body: unknown,
+): TradingAccount {
+  return store.atomic(() => {
+    const old = account(user, home, id)
+    permissions.manage(user, home, old.responsibleMemberId, true)
+    const parsed = editTradingSchema(tradingRuleSchema).parse(body)
+    const previous = store.rules(home, id).find((r) => r.id === ruleId)
+    if (!previous) throw new FinancialError('Rule not found for this account', 404)
+    const values = tradingAccountSchema.parse({
+      ...Object.fromEntries(
+        Object.keys(tradingAccountSchema.shape).map((key) => [key, old[key as keyof typeof old]]),
+      ),
+      ruleSnapshot: { ...parsed.values, supersedesRuleId: ruleId },
+    })
+    const record = saveAccount(
+      user,
+      home,
+      { revision: parsed.revision, reason: parsed.reason, values },
+      id,
+    )
+    return record
+  })
 }
