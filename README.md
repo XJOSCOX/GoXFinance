@@ -1,35 +1,33 @@
-# GoXPlan
+# GoXFinance
 
-GoXPlan is a Windows desktop foundation for private household finance software. This version contains local account creation, login, and an empty dashboard. It does not contain financial records or cloud services.
+GoXFinance is a local website foundation with signup, login, logout, and an empty authenticated dashboard. It has no financial records or cloud integration yet.
 
-## Run on Windows
+## Run locally
 
-Install Node.js 22+, Rust with the MSVC toolchain, Microsoft C++ Build Tools, and WebView2. Then run:
+Install Node.js 22 or newer. From the repository root:
 
 ```powershell
 npm install
-npm run desktop:dev
+npm run dev
 ```
 
-Build an installer with `npm run desktop:build`. The NSIS installer is generated in `src-tauri/target/release/bundle/nsis/`. `npm run dev` opens a frontend preview that deliberately refuses signup/login because SQLite and authentication require Tauri.
+Open **http://localhost:1420**. Vite serves the website and forwards `/api` requests to Fastify at `http://127.0.0.1:3001`. The API creates and migrates `data/goxfinance_web.sqlite` on first startup. The `data/` directory and SQLite WAL/SHM files are ignored by Git. The prior Tauri database, if present in the OS app data directory, is not opened, migrated, or deleted.
 
-## Storage and security
+Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for `/login`, `/signup`, and `/dashboard`.
 
-The sole application database is `goxfinance_auth.sqlite` in Tauri's operating-system app data directory for `com.goxplan.desktop` (normally `%APPDATA%\com.goxplan.desktop\` on Windows). This is distinct from the previous `goxplan.sqlite`; the previous database is neither opened nor deleted. No old financial data is migrated automatically.
+## Security and storage
 
-The Rust backend owns every database query. SQLite stores a UUID, normalized unique email, full name, Argon2id password hash with a unique salt, and UTC timestamps for each user. Passwords and hashes are never returned to React. Login creates a random session token held only in process memory. Logout invalidates it; closing the app requires signing in again. SQLite is not automatically encrypted at rest. Protect your Windows account and disk accordingly.
+Accounts and sessions are stored in server-side SQLite. Passwords use Argon2id with unique salts. The browser receives an opaque session token only in an HttpOnly, SameSite=Strict cookie; its hash is stored in SQLite. Sessions expire after seven days and survive API restarts. Logout deletes the session. Cookies are `Secure` when `NODE_ENV=production`, so production deployments need HTTPS. The API checks request origin and a custom request header on writes, limits signup/login attempts, and allows credentialed CORS only from `FRONTEND_ORIGIN`. No auth secrets are stored in browser storage.
 
-The migration in `src-tauri/migrations/0001_auth.sql` creates only `users` and `schema_migrations`. Future migrations should be additive and versioned. UUID keys and ISO UTC timestamps are portable to PostgreSQL. There is no Supabase integration, cloud sync, or browser storage.
+SQLite is not encrypted at rest. Protect the local `data/` directory and make backups outside Git. This is a local development website; any future remote deployment needs an HTTPS reverse proxy and an explicit operational security review.
 
 ## Checks
 
 ```powershell
 npm run lint
+npm run typecheck
 npm test
 npm run build
-cd src-tauri
-cargo test
-cargo check
 ```
 
-Routing lives in `src/App.tsx`, screens in `src/pages/`, and shared UI in `src/components/`. Input validation and the controlled Tauri command client are in `src/lib/auth.ts`. Native authentication, database migration, and session enforcement are in `src-tauri/src/auth.rs`, `db.rs`, and `lib.rs`.
+See [architecture](docs/architecture.md) for module boundaries, migrations, and the PostgreSQL path. The preserved visual reference is [design-preview.png](docs/design-preview.png).

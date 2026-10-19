@@ -1,5 +1,9 @@
 node_modules/
-dist/
+**/dist/
+.env
+.env.*
+!.env.example
+data/
 *.local
 *.goxplan.json
 *.goxplan.enc
@@ -9,7 +13,6 @@ backups/
 *.xlsx
 *.csv
 coverage/
-src-tauri/target/
 *.sqlite
 *.sqlite3
 *.db
@@ -20,5 +23,3 @@ src-tauri/target/
 *.db.bak
 *.sqlite.bak
 tsconfig.*.tsbuildinfo
-
-src-tauri/gen/
