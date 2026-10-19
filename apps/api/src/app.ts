@@ -8,6 +8,12 @@ import { registerCsrfGuard } from './middleware/csrf'
 import { authRepository } from './modules/auth/auth.repository'
 import { registerAuthRoutes } from './modules/auth/auth.routes'
 import { AuthError, authService } from './modules/auth/auth.service'
+import { householdRepository } from './modules/households/household.repository'
+import { memberRepository } from './modules/households/member.repository'
+import { householdService } from './modules/households/household.service'
+import { memberService } from './modules/households/member.service'
+import { registerHouseholdRoutes } from './modules/households/household.routes'
+import { HouseholdError } from './modules/households/household.permissions'
 
 type AppOptions = { databasePath: string; frontendOrigin: string; secureCookie: boolean }
 
@@ -20,10 +26,14 @@ export async function buildApp(options: AppOptions) {
   await app.register(rateLimit, { global: false })
   app.addHook('onSend', async (_request, reply, payload) => { reply.header('Cache-Control', 'no-store'); return payload })
   registerCsrfGuard(app, options.frontendOrigin)
-  registerAuthRoutes(app, authService(authRepository(db)), options.secureCookie)
+  const auth = authService(authRepository(db))
+  const householdStore = householdRepository(db)
+  registerAuthRoutes(app, auth, options.secureCookie)
+  registerHouseholdRoutes(app, auth, householdService(householdStore), memberService(householdStore, memberRepository(db)))
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) return reply.code(400).send({ error: error.issues[0]?.message ?? 'Invalid input' })
     if (error instanceof AuthError) return reply.code(error.statusCode).send({ error: error.message })
+    if (error instanceof HouseholdError) return reply.code(error.statusCode).send({ error: error.message })
     if (typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 429) {
       return reply.code(429).send({ error: 'Too many attempts. Try again later.' })
     }

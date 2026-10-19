@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { ChevronDown, LogOut, Menu } from 'lucide-react'
 import type { PublicUser } from '@goxfinance/shared'
 
-export function DashboardHeader({ user, openSidebar, logout }: { user: PublicUser; openSidebar: () => void; logout: () => void }) {
+export function WorkspaceHeader({ user, title, openSidebar, logout }: { user: PublicUser; title: string; openSidebar: () => void; logout: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return <header className="app-header sticky top-0 z-10 flex h-14 items-center justify-between border-b border-white/10 px-4 sm:px-8">
     <div className="flex items-center gap-4">
       <button className="md:hidden" aria-label="Open navigation" onClick={openSidebar}><Menu size={20}/></button>
-      <span className="text-[10px] font-semibold uppercase tracking-[.18em] text-slate-500">GoXFinance / Overview</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[.18em] text-slate-500">GoXFinance / {title}</span>
     </div>
     <div className="flex items-center gap-3">
       <div className="relative">
