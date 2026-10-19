@@ -37,15 +37,17 @@ export function memberService(households: HouseholdRepository, members: MemberRe
       const now = new Date().toISOString()
       return members.create({ id: randomUUID(), householdId, linkedUserId: null,
         fullName: values.fullName, relationship: values.relationship, status: values.status,
-        notes: values.notes ?? null, createdAt: now, updatedAt: now })
+        plannedAccessRole: values.plannedAccessRole, notes: values.notes ?? null, createdAt: now, updatedAt: now })
     },
     update(user: PublicUser, householdId: string, memberId: string, input: unknown) {
       requireHouseholdRole(households, householdId, user.id, 'editMember')
       const before = existing(householdId, memberId)
+      if (before.accessRole === 'owner' || before.linkedUserId === households.findHousehold(householdId)?.createdByUserId) {
+        throw new HouseholdError('The household Owner cannot be modified', 403)
+      }
       const values = updateMemberSchema.parse(input)
       if (values.status === 'inactive') {
         requireHouseholdRole(households, householdId, user.id, 'removeMember')
-        if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be removed', 403)
         return members.deactivate(householdId, memberId, values)
       }
       if (values.status === 'active' && before.status === 'inactive') {
@@ -56,7 +58,9 @@ export function memberService(households: HouseholdRepository, members: MemberRe
     deactivate(user: PublicUser, householdId: string, memberId: string) {
       requireHouseholdRole(households, householdId, user.id, 'removeMember')
       const before = existing(householdId, memberId)
-      if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be removed', 403)
+      if (before.accessRole === 'owner' || before.linkedUserId === households.findHousehold(householdId)?.createdByUserId) {
+        throw new HouseholdError('The household Owner cannot be modified', 403)
+      }
       members.deactivate(householdId, memberId)
     },
   }

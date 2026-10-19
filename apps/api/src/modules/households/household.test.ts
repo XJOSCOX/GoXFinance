@@ -137,9 +137,12 @@ describe('household setup and access', () => {
     const body = { fullName: 'Child', relationship: 'child' }
     expect((await request(app, 'GET', url, viewer.cookie)).statusCode).toBe(200)
     expect((await request(app, 'POST', url, viewer.cookie, body)).statusCode).toBe(403)
-    const child = await request(app, 'POST', url, editor.cookie, body)
-    expect(child.statusCode).toBe(201)
-    const childId = child.json().member.id as string
+    expect((await request(app, 'POST', url, editor.cookie, body)).statusCode).toBe(403)
+    const proposal = await request(app, 'POST', `/api/households/${id}/member-requests`, editor.cookie, body)
+    expect(proposal.statusCode).toBe(201)
+    const approved = await request(app, 'POST', `/api/households/${id}/member-requests/${proposal.json().request.id}/approve`, owner.cookie, {})
+    expect(approved.statusCode).toBe(200)
+    const childId = approved.json().member.id as string
     expect((await request(app, 'PATCH', `${url}/${childId}`, editor.cookie, { fullName: 'Child A.' })).statusCode).toBe(200)
     expect((await request(app, 'PATCH', `${url}/${childId}`, editor.cookie, { status: 'inactive' })).statusCode).toBe(403)
     expect((await request(app, 'DELETE', `${url}/${childId}`, editor.cookie)).statusCode).toBe(403)
@@ -147,7 +150,8 @@ describe('household setup and access', () => {
     expect((await request(app, 'DELETE', `${url}/${ownerMemberId}`, admin.cookie)).statusCode).toBe(403)
     expect((await request(app, 'PATCH', `/api/households/${id}`, viewer.cookie, { name: 'Changed' })).statusCode).toBe(403)
     expect((await request(app, 'PATCH', `/api/households/${id}`, admin.cookie, { name: 'Updated home' })).statusCode).toBe(200)
-    expect((await request(app, 'DELETE', `${url}/${childId}`, admin.cookie)).statusCode).toBe(204)
+    expect((await request(app, 'DELETE', `${url}/${childId}`, admin.cookie)).statusCode).toBe(403)
+    expect((await request(app, 'DELETE', `${url}/${childId}`, owner.cookie)).statusCode).toBe(204)
   })
 
   it('rejects privilege changes in member input and enforces database constraints', async () => {

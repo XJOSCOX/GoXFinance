@@ -10,6 +10,7 @@ export function memberRepository(db: DatabaseConnection) {
     fullName: householdMembers.fullName,
     relationship: householdMembers.relationship,
     status: householdMembers.status,
+    plannedAccessRole: householdMembers.plannedAccessRole,
     notes: householdMembers.notes,
     createdAt: householdMembers.createdAt,
     updatedAt: householdMembers.updatedAt,

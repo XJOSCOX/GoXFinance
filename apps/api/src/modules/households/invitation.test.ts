@@ -47,7 +47,11 @@ async function member(app: FastifyInstance, cookie: string, householdId: string,
 }
 
 async function invite(app: FastifyInstance, cookie: string, householdId: string, memberId: string, role = 'editor') {
-  const response = await request(app, 'POST', `/api/households/${householdId}/members/${memberId}/invitations`, cookie, { role })
+  if (role !== 'viewer') {
+    const planned = await request(app, 'PATCH', `/api/households/${householdId}/members/${memberId}/role`, cookie, { role })
+    expect(planned.statusCode).toBe(200)
+  }
+  const response = await request(app, 'POST', `/api/households/${householdId}/members/${memberId}/invitations`, cookie, {})
   expect(response.statusCode).toBe(201)
   return { code: response.json().code as string, invitationId: response.json().invitation.id as string }
 }
@@ -223,7 +227,7 @@ describe('household invitation lifecycle', () => {
     const url = `/api/households/${householdId}/members/${memberId}/invitations`
     expect((await request(app, 'POST', url, viewer.cookie, { role: 'editor' })).statusCode).toBe(403)
     expect((await request(app, 'POST', url, owner.cookie, { role: 'owner' })).statusCode).toBe(400)
-    expect((await request(app, 'POST', url, admin.cookie, { role: 'viewer' })).statusCode).toBe(201)
+    expect((await request(app, 'POST', url, admin.cookie, { role: 'viewer' })).statusCode).toBe(403)
     const issued = await invite(app, owner.cookie, householdId, memberId, 'viewer')
     const attacker = await signup(app, 'attacker@example.com', 'Attacker')
     const result = await request(app, 'POST', '/api/household-invitations/redeem', attacker.cookie,

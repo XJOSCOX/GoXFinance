@@ -43,6 +43,7 @@ beforeEach(() => {
       return { ok: true, status: 200, json: async () => ({ household }) }
     }
     if (path === `/api/households/${householdId}/members` && method === 'GET') return { ok: true, status: 200, json: async () => ({ members }) }
+    if (path === `/api/households/${householdId}/member-requests` && method === 'GET') return { ok: true, status: 200, json: async () => ({ requests: [] }) }
     if (path === `/api/households/${householdId}/members` && method === 'POST') {
       const input = JSON.parse(String(options?.body))
       const member = { ...ownerMember, ...input, id: '25c0a5d5-8f1e-485d-831b-41040857db79', linkedUserId: null, accessRole: null }

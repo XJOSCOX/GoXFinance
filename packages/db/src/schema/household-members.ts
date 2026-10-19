@@ -10,6 +10,7 @@ export const householdMembers = sqliteTable('household_members', {
   fullName: text('full_name').notNull(),
   relationship: text('relationship', { enum: ['self', 'spouse', 'child', 'parent', 'other'] }).notNull(),
   status: text('status', { enum: ['active', 'inactive'] }).notNull(),
+  plannedAccessRole: text('planned_access_role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('viewer'),
   notes: text('notes'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
@@ -21,4 +22,5 @@ export const householdMembers = sqliteTable('household_members', {
   check('household_members_name_length', sql`length(${table.fullName}) between 1 and 120`),
   check('household_members_relationship_check', sql`${table.relationship} in ('self','spouse','child','parent','other')`),
   check('household_members_status_check', sql`${table.status} in ('active','inactive')`),
+  check('household_members_planned_role_check', sql`${table.plannedAccessRole} in ('admin','editor','viewer')`),
 ])

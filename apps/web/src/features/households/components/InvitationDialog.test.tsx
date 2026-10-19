@@ -13,7 +13,7 @@ vi.mock('../api/householdClient', () => ({
 const member: HouseholdMember = {
   id: '7d268315-a1b6-43f1-a0c5-c8261ea18b78', householdId: '8d2f1919-6954-425b-bccf-b1db9b1904b5',
   linkedUserId: null, fullName: 'Blair', relationship: 'spouse', status: 'active', notes: null,
-  accessRole: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', invitation: null,
+  accessRole: null, plannedAccessRole: 'viewer', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', invitation: null,
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -38,12 +38,11 @@ describe('invitation feedback', () => {
     expect(changed).toHaveBeenCalledOnce()
   })
 
-  it('keeps the dialog and selected role when saving fails', async () => {
+  it('keeps the dialog and planned role when saving fails', async () => {
     vi.mocked(client.generateInvitation).mockRejectedValue(new Error('Unable to save changes'))
     open()
-    fireEvent.change(screen.getByRole('combobox', { name: 'Access role' }), { target: { value: 'editor' } })
     fireEvent.click(screen.getByRole('button', { name: 'Generate invitation' }))
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Access role' })).toHaveProperty('value', 'editor'))
+    await waitFor(() => expect(screen.getByText('Planned access:')).toBeTruthy())
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(screen.getAllByText('Unable to save changes').length).toBeGreaterThan(0)
     expect(screen.queryByText('Invitation generated successfully')).toBeNull()

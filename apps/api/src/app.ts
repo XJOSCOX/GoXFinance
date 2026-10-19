@@ -16,6 +16,10 @@ import { registerHouseholdRoutes } from './modules/households/household.routes'
 import { HouseholdError } from './modules/households/household.permissions'
 import { invitationRepository } from './modules/households/invitation.repository'
 import { InvitationError, invitationService } from './modules/households/invitation.service'
+import { accessRepository } from './modules/households/access.repository'
+import { accessService } from './modules/households/access.service'
+import { memberRequestRepository } from './modules/households/member-request.repository'
+import { memberRequestService } from './modules/households/member-request.service'
 
 type AppOptions = { databasePath: string; frontendOrigin: string; secureCookie: boolean }
 
@@ -29,11 +33,14 @@ export async function buildApp(options: AppOptions) {
   app.addHook('onSend', async (_request, reply, payload) => { reply.header('Cache-Control', 'no-store'); return payload })
   registerCsrfGuard(app, options.frontendOrigin)
   const householdStore = householdRepository(db)
+  const memberStore = memberRepository(db)
   const invitationStore = invitationRepository(db)
-  const invitations = invitationService(householdStore, memberRepository(db), invitationStore)
+  const invitations = invitationService(householdStore, memberStore, invitationStore)
   const auth = authService(authRepository(db), invitations)
   registerAuthRoutes(app, auth, options.secureCookie)
-  registerHouseholdRoutes(app, auth, householdService(householdStore), memberService(householdStore, memberRepository(db), invitationStore), invitations)
+  registerHouseholdRoutes(app, auth, householdService(householdStore), memberService(householdStore, memberStore, invitationStore),
+    invitations, accessService(householdStore, memberStore, accessRepository(db)),
+    memberRequestService(householdStore, memberRequestRepository(db), memberStore))
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) return reply.code(400).send({ code: 'VALIDATION_ERROR', error: error.issues[0]?.message ?? 'Invalid input' })
     if (error instanceof InvitationError) return reply.code(error.statusCode).send({ code: error.code, error: error.message })

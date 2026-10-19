@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
-import { createInvitationSchema, invitationCodeSchema, redeemInvitationSchema, type InvitationRole, type InvitationSummary, type PublicUser } from '@goxfinance/shared'
+import { createInvitationSchema, invitationCodeSchema, redeemInvitationSchema, type InvitationSummary, type PublicUser } from '@goxfinance/shared'
 import type { users } from '../../../../../packages/db/src/schema'
 import type { HouseholdRepository } from './household.repository'
 import type { MemberRepository } from './member.repository'
@@ -26,16 +26,16 @@ export function invitationService(households: HouseholdRepository, members: Memb
     return member
   }
 
-  function summary(row: { id: string; memberId: string; role: InvitationRole; status: InvitationSummary['status']; createdAt: string; expiresAt: string }): InvitationSummary {
+  function summary(row: { id: string; memberId: string; role: 'admin' | 'editor' | 'viewer'; status: InvitationSummary['status']; createdAt: string; expiresAt: string }): InvitationSummary {
     return { id: row.id, memberId: row.memberId, role: row.role, status: row.status, createdAt: row.createdAt, expiresAt: row.expiresAt }
   }
 
-  function issue(user: PublicUser, householdId: string, memberId: string, role: InvitationRole) {
-    verifyTarget(user, householdId, memberId)
+  function issue(user: PublicUser, householdId: string, memberId: string) {
+    const member = verifyTarget(user, householdId, memberId)
     const code = randomBytes(32).toString('base64url')
     const now = new Date()
     const row = invitations.issue({ id: randomUUID(), householdId, memberId, activeMemberId: memberId,
-      codeHash: invitationCodeHash(code), role, status: 'pending', createdByUserId: user.id,
+      codeHash: invitationCodeHash(code), role: member.plannedAccessRole, status: 'pending', createdByUserId: user.id,
       createdAt: now.toISOString(), updatedAt: now.toISOString(), expiresAt: new Date(now.getTime() + EXPIRY_DAYS * 86400000).toISOString() })
     return { invitation: summary(row), code }
   }
@@ -56,14 +56,16 @@ export function invitationService(households: HouseholdRepository, members: Memb
   return {
     listPending: (householdId: string) => invitations.listPending(householdId).map(summary),
     generate(user: PublicUser, householdId: string, memberId: string, input: unknown) {
-      const { role } = createInvitationSchema.parse(input)
-      return issue(user, householdId, memberId, role)
+      const { role } = createInvitationSchema.parse(input ?? {})
+      const member = verifyTarget(user, householdId, memberId)
+      if (role && role !== member.plannedAccessRole) throw new HouseholdError('Change planned access before inviting', 409)
+      return issue(user, householdId, memberId)
     },
     regenerate(user: PublicUser, householdId: string, memberId: string, invitationId: string) {
       verifyTarget(user, householdId, memberId)
       const before = invitations.find(householdId, memberId, invitationId)
       if (!before || before.status !== 'pending') throw new HouseholdError('Invitation is no longer active', 409)
-      return issue(user, householdId, memberId, before.role)
+      return issue(user, householdId, memberId)
     },
     revoke(user: PublicUser, householdId: string, memberId: string, invitationId: string) {
       verifyTarget(user, householdId, memberId)

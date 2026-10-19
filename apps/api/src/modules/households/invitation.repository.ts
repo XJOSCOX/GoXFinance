@@ -26,6 +26,11 @@ export function invitationRepository(db: DatabaseConnection) {
     issue(invitation: NewInvitation) {
       expireStale(invitation.createdAt)
       db.transaction(tx => {
+        const member = tx.select().from(householdMembers).where(and(
+          eq(householdMembers.householdId, invitation.householdId), eq(householdMembers.id, invitation.memberId),
+          eq(householdMembers.status, 'active'), isNull(householdMembers.linkedUserId),
+          eq(householdMembers.plannedAccessRole, invitation.role))).get()
+        if (!member) throw new Error('Member access changed before invitation issue')
         tx.update(householdInvitations).set({ status: 'revoked', activeMemberId: null,
           revokedAt: invitation.createdAt, updatedAt: invitation.createdAt })
           .where(and(eq(householdInvitations.activeMemberId, invitation.memberId),
@@ -51,6 +56,7 @@ export function invitationRepository(db: DatabaseConnection) {
           eq(householdMembers.id, invitation.memberId), eq(householdMembers.householdId, invitation.householdId),
           eq(householdMembers.status, 'active'), isNull(householdMembers.linkedUserId))).get()
         if (!member) return null
+        if (member.plannedAccessRole !== invitation.role) return null
         const existingRole = tx.select().from(householdUserRoles).where(and(
           eq(householdUserRoles.householdId, invitation.householdId), eq(householdUserRoles.userId, userId))).get()
         if (existingRole) return null

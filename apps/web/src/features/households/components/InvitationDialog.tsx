@@ -1,12 +1,10 @@
 import { useRef, useState } from 'react'
-import type { HouseholdMember, InvitationRole, InvitationSummary } from '@goxfinance/shared'
+import type { HouseholdMember, InvitationSummary } from '@goxfinance/shared'
 import { Button, Input } from '../../../components/ui'
 import { Modal } from '../../../components/ui/Modal'
 import { useNotify } from '../../../components/ui/useNotify'
 import { errorMessage } from '../../../lib/api'
 import { generateInvitation, regenerateInvitation, revokeInvitation } from '../api/householdClient'
-
-const selectStyle = 'h-10 w-full rounded-lg border border-white/[.12] bg-[#151716] px-3 text-sm text-[#edecea] outline-none focus:border-[#a9b8a9]'
 
 export function InvitationDialog({ householdId, member, onClose, onChanged }: {
   householdId: string
@@ -16,7 +14,6 @@ export function InvitationDialog({ householdId, member, onClose, onChanged }: {
 }) {
   const notify = useNotify()
   const [invitation, setInvitation] = useState<InvitationSummary | null>(member.invitation ?? null)
-  const [role, setRole] = useState<InvitationRole>('viewer')
   const [code, setCode] = useState('')
   const [confirmAction, setConfirmAction] = useState<'revoke' | 'regenerate' | null>(null)
   const [busy, setBusy] = useState(false)
@@ -30,7 +27,7 @@ export function InvitationDialog({ householdId, member, onClose, onChanged }: {
     setError('')
     try {
       if (action === 'generate') {
-        const result = await generateInvitation(householdId, member.id, role)
+        const result = await generateInvitation(householdId, member.id)
         setInvitation(result.invitation); setCode(result.code)
         notify('success', 'Invitation generated successfully')
       } else if (action === 'regenerate' && invitation) {
@@ -62,10 +59,7 @@ export function InvitationDialog({ householdId, member, onClose, onChanged }: {
         <Input readOnly value={code} onFocus={event => event.currentTarget.select()} /></label>
         <Button type="button" onClick={() => void copyCode()}>Copy code</Button></>
         : <p className="text-slate-400">The previous code cannot be displayed again. Regenerate to get a new one.</p>}
-    </div> : <div className="mt-5"><label className="block text-sm"><span className="mb-1.5 block text-slate-300">Access role</span>
-      <select className={selectStyle} value={role} onChange={event => setRole(event.target.value as InvitationRole)}>
-        <option value="viewer">Viewer</option><option value="editor">Editor</option><option value="admin">Admin</option>
-      </select></label></div>}
+    </div> : <p className="mt-5 text-sm text-slate-300">Planned access: <span className="capitalize">{member.plannedAccessRole}</span></p>}
     {error && <p role="alert" className="mt-4 text-sm text-rose-300">{error}</p>}
     {confirmAction && <div className="mt-5 rounded-lg border border-amber-400/25 bg-amber-400/5 p-4 text-sm">
       <p>{confirmAction === 'revoke' ? 'Revoke this invitation? The current code will stop working.' : 'Regenerate this invitation? The current code will stop working.'}</p>
