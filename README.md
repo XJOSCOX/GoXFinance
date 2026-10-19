@@ -4,7 +4,7 @@ GoXFinance is a local website with authentication, household management, debts a
 
 ## Run locally
 
-Install Node.js 22 or newer. From the repository root:
+Install Node.js 22 or newer. For an encrypted installation, use the Windows launcher below. For plaintext development, from the repository root:
 
 ```powershell
 npm install
@@ -14,6 +14,12 @@ npm run dev
 Open **http://localhost:1420**. Vite serves the website and forwards `/api` requests to Fastify at `http://127.0.0.1:3001`. The API creates and migrates `data/goxfinance_web.sqlite` on startup. Migrations are additive; existing accounts, sessions, households, and members stay in place. The `data/` directory and SQLite WAL/SHM files are ignored by Git. The prior Tauri database, if present in the OS app data directory, is not opened, migrated, or deleted.
 
 Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, `/households/:householdId/members`, `/households/:householdId/debts`, `/households/:householdId/bills`, `/households/:householdId/expenses`, `/households/:householdId/income`, `/households/:householdId/trading`, and `/households/:householdId/goals`.
+
+## Windows encrypted launcher
+
+After dependencies are installed and an encrypted database is explicitly configured, double-click **Start GoXFinance.cmd** (or its desktop shortcut). No commands or production build are needed for normal starts. The launcher reads the local `.env`, starts Vite and the encrypted API, asks for the passphrase directly in the terminal without echo, and opens the configured local website in the default browser only after the API is ready. It never saves the passphrase or passes it through arguments/environment variables.
+
+Keep the launcher window open; press **Ctrl+C** to close its services through the API's normal database-close path. Already-running GoXFinance services are reused and left untouched. Unrelated port occupants cause a clear error. The launcher refuses plaintext mode and missing database files; it never creates a replacement or changes encryption configuration. Each cold start requires manual unlocking. Do not use the combined `npm run dev` pipeline for encrypted mode.
 
 ## Households
 
@@ -51,7 +57,7 @@ See [Bills & Expenses guide](docs/bills-expenses.md) for workflows, accounting r
 
 Accounts and sessions are stored in server-side SQLite. Passwords use Argon2id with unique salts. The browser receives an opaque session token only in an HttpOnly, SameSite=Strict cookie; its hash is stored in SQLite. Sessions expire after seven days and survive API restarts. Logout deletes the session. Cookies are `Secure` when `NODE_ENV=production`, so production deployments need HTTPS. Invitation codes are generated from 32 random bytes and stored only as SHA-256 hashes. The API checks request origin and a custom request header on writes, rate-limits authentication and invitation endpoints, and allows credentialed CORS only from `FRONTEND_ORIGIN`. No auth secrets are stored in browser storage.
 
-SQLite is not encrypted at rest. Protect the local `data/` directory and make backups outside Git. This is a local development website; any future remote deployment needs an HTTPS reverse proxy and an explicit operational security review.
+SQLite is plaintext by default; separately configured encrypted mode protects the database and new backups at rest. The Windows launcher requires encrypted mode. Retained plaintext originals and older backups are not encrypted automatically. Protect the local `data/` directory and keep backups outside Git. This is a local development website; any future remote deployment needs an HTTPS reverse proxy and an explicit operational security review.
 
 ## Checks
 
