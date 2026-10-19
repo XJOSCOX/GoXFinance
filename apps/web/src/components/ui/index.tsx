@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/utils'
 
@@ -12,4 +12,3 @@ const buttonStyles = cva('inline-flex min-h-10 items-center justify-center gap-2
 export function Button({ className, variant, size, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonStyles>) { return <button data-variant={variant ?? 'secondary'} className={cn(buttonStyles({ variant, size }), className)} {...props}/> }
 export function Card({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) { return <div {...props} className={cn('surface-card rounded-xl border border-white/[.09] bg-[#1b1d1c] shadow-[0_12px_30px_-24px_rgba(0,0,0,.8)]', className)}>{children}</div> }
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) { return <input {...props} className={cn('h-10 w-full rounded-lg border border-white/[.12] bg-[#151716] px-3 text-sm text-[#edecea] outline-none transition-colors placeholder:text-[#737a75] focus:border-[#a9b8a9]', props.className)}/> }
-export function Badge({ children }: { children: ReactNode }) { return <span className="inline-flex items-center rounded-md border border-white/10 bg-white/[.06] px-2.5 py-1 text-[11px] font-medium tracking-wide text-[#bfc1bd]">{children}</span> }

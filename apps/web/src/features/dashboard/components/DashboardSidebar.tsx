@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShieldCheck, X } from 'lucide-react'
+import { LayoutDashboard, X } from 'lucide-react'
 import { Brand } from '../../../components/layout/Brand'
 
 export function DashboardSidebar({ open, close }: { open: boolean; close: () => void }) {
@@ -14,10 +14,6 @@ export function DashboardSidebar({ open, close }: { open: boolean; close: () => 
           <LayoutDashboard size={16}/>Overview
         </span>
       </nav>
-      <div className="absolute bottom-4 left-3 right-3 rounded-lg border border-white/10 bg-white/[.04] p-3 text-xs text-slate-400">
-        <ShieldCheck size={15} className="mb-2 text-[#aab9aa]"/>Private workspace
-        <span className="mt-1 block text-slate-500">Stored in local SQLite</span>
-      </div>
     </aside>
     {open && <button className="fixed inset-0 z-20 bg-black/60 md:hidden" aria-label="Close navigation overlay" onClick={close}/>}
   </>

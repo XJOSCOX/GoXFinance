@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, LogOut, Menu } from 'lucide-react'
 import type { PublicUser } from '@goxfinance/shared'
-import { Badge } from '../../../components/ui'
 
 export function DashboardHeader({ user, openSidebar, logout }: { user: PublicUser; openSidebar: () => void; logout: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -11,7 +10,6 @@ export function DashboardHeader({ user, openSidebar, logout }: { user: PublicUse
       <span className="text-[10px] font-semibold uppercase tracking-[.18em] text-slate-500">GoXFinance / Overview</span>
     </div>
     <div className="flex items-center gap-3">
-      <Badge>Local Workspace</Badge>
       <div className="relative">
         <button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-sm" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
           <span className="max-w-28 truncate">{user.fullName}</span><ChevronDown size={14}/>
