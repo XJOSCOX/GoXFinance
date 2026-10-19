@@ -23,6 +23,9 @@ import { memberRequestService } from './modules/households/member-request.servic
 import { debtRepository } from './modules/debts/debt.repository'
 import { DebtError, debtService } from './modules/debts/debt.service'
 import { registerDebtRoutes } from './modules/debts/debt.routes'
+import { paymentRepository } from './modules/debt-payments/payment.repository'
+import { PaymentError, paymentService } from './modules/debt-payments/payment.service'
+import { registerPaymentRoutes } from './modules/debt-payments/payment.routes'
 
 type AppOptions = { databasePath: string; frontendOrigin: string; secureCookie: boolean }
 
@@ -44,13 +47,16 @@ export async function buildApp(options: AppOptions) {
   registerHouseholdRoutes(app, auth, householdService(householdStore), memberService(householdStore, memberStore, invitationStore),
     invitations, accessService(householdStore, memberStore, accessRepository(db)),
     memberRequestService(householdStore, memberRequestRepository(db), memberStore))
-  registerDebtRoutes(app, auth, debtService(householdStore, memberStore, debtRepository(db)))
+  const debts = debtService(householdStore, memberStore, debtRepository(db))
+  registerDebtRoutes(app, auth, debts)
+  registerPaymentRoutes(app, auth, paymentService(debts, paymentRepository(db)))
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) return reply.code(400).send({ code: 'VALIDATION_ERROR', error: error.issues[0]?.message ?? 'Invalid input' })
     if (error instanceof InvitationError) return reply.code(error.statusCode).send({ code: error.code, error: error.message })
     if (error instanceof AuthError) return reply.code(error.statusCode).send({ code: 'AUTH_ERROR', error: error.message })
     if (error instanceof HouseholdError) return reply.code(error.statusCode).send({ code: 'HOUSEHOLD_ERROR', error: error.message })
     if (error instanceof DebtError) return reply.code(error.statusCode).send({ code: 'DEBT_ERROR', error: error.message })
+    if (error instanceof PaymentError) return reply.code(error.statusCode).send({ code: 'PAYMENT_ERROR', error: error.message })
     if (typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 429) {
       return reply.code(429).send({ code: 'RATE_LIMITED', error: 'Too many attempts. Try again later.' })
     }

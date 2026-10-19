@@ -25,7 +25,9 @@ The Household page shows the selected house with its members inside the same car
 
 ## Debts
 
-The **Debts** sidebar page tracks household accounts, balances, status, collection links, and responsible members. One joint debt can have several members without duplicating the household total. Unknown balances remain unknown. Confirmed, estimated, and unverified balances are shown separately. A collection record is combined with its original account only when its duplicate link is explicitly verified. Archive hides an account from active totals without deleting it; Restore reverses that action. Debt records are saved in SQLite, never browser storage. This stage does not track payments or calculate payoff plans.
+The **Debts** sidebar page tracks household accounts, balances, status, collection links, and responsible members. One joint debt can have several members without duplicating the household total. Unknown balances remain unknown. Confirmed, estimated, and unverified balances are shown separately. A collection record is combined with its original account only when its duplicate link is explicitly verified. Archive hides an account from active totals without deleting it; Restore reverses that action. Debt records are saved in SQLite, never browser storage.
+
+Debt details include payments and balance history. Record completed, pending, scheduled, or failed payments with optional principal, interest, and fees. Scheduled and pending payments count as completed only after confirmation. Edits and cancellations retain audit records. Record a creditor statement or reconciliation as a new verified balance without deleting earlier balances or payments; editing an existing account cannot overwrite its recorded balance directly. The displayed estimate subtracts only known principal from completed payments dated after the latest verification. If principal is unknown, the estimate remains unknown; it never assumes that the whole payment reduces the debt. Even when calculable, the estimate excludes any unreported interest or fees and is not a creditor statement. This stage does not calculate payoff plans.
 
 ## Security and storage
 

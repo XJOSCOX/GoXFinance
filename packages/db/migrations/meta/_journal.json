@@ -43,6 +43,13 @@
       "when": 1792392133616,
       "tag": "0005_fine_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792393340389,
+      "tag": "0006_handy_silk_fever",
+      "breakpoints": true
     }
   ]
 }

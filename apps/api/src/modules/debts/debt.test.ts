@@ -61,11 +61,11 @@ describe('household debt API', () => {
     const homeId = await home(app, owner.cookie)
     const base = `/api/households/${homeId}/debts`
     const memberId = await ownerMember(app, homeId, owner.cookie)
-    const created = await request(app, 'POST', base, owner.cookie, debt(memberId, { accountStatus: 'closed', paymentStatus: 'charged_off' }))
+    const created = await request(app, 'POST', base, owner.cookie, debt(memberId, { accountStatus: 'closed', paymentStatus: 'charged_off', currentBalanceCents: null }))
     expect(created.statusCode).toBe(201)
     const id = created.json().debt.id as string
-    expect(created.json().debt.currentBalanceCents).toBe(12345)
-    expect((await request(app, 'PATCH', `${base}/${id}`, owner.cookie, { currentBalanceCents: null })).json().debt.currentBalanceCents).toBeNull()
+    expect(created.json().debt.currentBalanceCents).toBeNull()
+    expect((await request(app, 'PATCH', `${base}/${id}`, owner.cookie, { creditorName: 'Updated lender' })).json().debt.creditorName).toBe('Updated lender')
     expect((await request(app, 'DELETE', `${base}/${id}`, owner.cookie)).json().debt.isArchived).toBe(true)
     expect((await request(app, 'GET', base, owner.cookie)).json().summary.accountCount).toBe(0)
     expect((await request(app, 'POST', `${base}/${id}/restore`, owner.cookie, {})).json().debt.isArchived).toBe(false)
@@ -139,7 +139,7 @@ describe('household debt API', () => {
     expect(created.statusCode).toBe(201)
     expect((await request(app, 'GET', base, owner.cookie)).json().summary.confirmedBalanceCents).toBe(12345)
     expect((await request(app, 'PATCH', `${base}/${created.json().debt.id}`, admin.cookie,
-      { currentBalanceCents: 12000 })).statusCode).toBe(200)
+      { creditorName: 'Updated creditor' })).statusCode).toBe(200)
     const db = new Database(databasePath)
     db.pragma('foreign_keys = ON')
     expect(() => db.prepare('INSERT INTO debt_members (debt_id,household_id,household_member_id,responsibility,created_at) VALUES (?,?,?,?,?)')

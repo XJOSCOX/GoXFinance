@@ -64,6 +64,18 @@ export function debtService(households: HouseholdRepository, members: MemberRepo
       return { debts: items, summary: calculateDebtSummary(items) }
     },
     get,
+    authorizePayment(user: PublicUser, householdId: string, debtId: string, action: 'view' | 'create' | 'modify' | 'reconcile') {
+      const debt = get(user, householdId, debtId)
+      if (action === 'view') return debt
+      if (debt.isArchived) throw new DebtError('Restore this debt before recording changes', 409)
+      canEdit(user, debt, false)
+      const ctx = context(user, householdId)
+      if ((action === 'modify' || action === 'reconcile') && ctx.role !== 'owner' &&
+        debt.memberAssignments.some(item => ctx.allMembers.find(member => member.id === item.memberId)?.linkedUserId === ctx.household.createdByUserId)) {
+        throw new DebtError('The household Owner must approve changes to payments or balances on a joint Owner debt', 403)
+      }
+      return debt
+    },
     create(user: PublicUser, householdId: string, input: unknown) {
       const ctx = context(user, householdId)
       if (ctx.role === 'viewer') throw new DebtError('Permission denied', 403)
@@ -95,6 +107,9 @@ export function debtService(households: HouseholdRepository, members: MemberRepo
         notes: current.notes, memberAssignments: current.memberAssignments,
       }
       const values = createDebtSchema.parse({ ...fields, ...changes })
+      if (values.currentBalanceCents !== current.currentBalanceCents || values.balanceVerifiedAt !== current.balanceVerifiedAt) {
+        throw new DebtError('Record a new balance through Balance History instead of overwriting the account balance', 409)
+      }
       if (values.linkedOriginalDebtId === debtId) throw new DebtError('A debt cannot link to itself', 400)
       validateAssignments(user, householdId, values, current)
       return repository.update(householdId, debtId, values)
