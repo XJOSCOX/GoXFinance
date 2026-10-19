@@ -11,6 +11,7 @@ import { HouseholdMembersPage } from '../features/households/pages/HouseholdMemb
 import { Button, Card } from '../components/ui'
 import { NotificationProvider } from '../components/ui/Notifications'
 import { JoinHouseholdPage } from '../features/households/pages/JoinHouseholdPage'
+import { DebtsPage } from '../features/debts/pages/DebtsPage'
 
 function ProtectedRoute({ setup = false, children }: { setup?: boolean; children: ReactNode }) {
   const { user, loading: authLoading } = useAuth()
@@ -40,6 +41,7 @@ export default function App() {
     <Route path="/household/join" element={<SignedInRoute><JoinHouseholdPage /></SignedInRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
     <Route path="/households/:householdId/members" element={<ProtectedRoute><HouseholdMembersPage /></ProtectedRoute>} />
+    <Route path="/households/:householdId/debts" element={<ProtectedRoute><DebtsPage /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes></BrowserRouter></HouseholdProvider></AuthProvider></NotificationProvider>
 }

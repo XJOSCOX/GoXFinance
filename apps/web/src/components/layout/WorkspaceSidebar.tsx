@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Users, X } from 'lucide-react'
+import { CreditCard, Home, LayoutDashboard, Users, X } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { HouseholdSummary } from '@goxfinance/shared'
 import { Brand } from './Brand'
@@ -11,6 +11,7 @@ export function WorkspaceSidebar({ open, close, household }: { open: boolean; cl
   const navigation = [
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { href: `/households/${household.id}/members`, label: 'Household', icon: Users },
+    { href: `/households/${household.id}/debts`, label: 'Debts', icon: CreditCard },
   ]
   return <>
     <aside className={`app-sidebar fixed inset-y-0 left-0 z-30 w-[216px] border-r border-white/10 p-4 transition-transform md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>

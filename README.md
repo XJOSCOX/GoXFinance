@@ -1,6 +1,6 @@
 # GoXFinance
 
-GoXFinance is a local website with account authentication and household management. Users can create a household, manage its members, and view an empty dashboard. It has no financial records or cloud integration yet.
+GoXFinance is a local website with account authentication, household management, and a household debt register. The dashboard remains empty of finance projections. There is no cloud integration.
 
 ## Run locally
 
@@ -11,9 +11,9 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:1420**. Vite serves the website and forwards `/api` requests to Fastify at `http://127.0.0.1:3001`. The API creates and migrates `data/goxfinance_web.sqlite` on startup. Household migrations are additive; existing accounts, sessions, households, and members stay in place. The `data/` directory and SQLite WAL/SHM files are ignored by Git. The prior Tauri database, if present in the OS app data directory, is not opened, migrated, or deleted.
+Open **http://localhost:1420**. Vite serves the website and forwards `/api` requests to Fastify at `http://127.0.0.1:3001`. The API creates and migrates `data/goxfinance_web.sqlite` on startup. Migrations are additive; existing accounts, sessions, households, and members stay in place. The `data/` directory and SQLite WAL/SHM files are ignored by Git. The prior Tauri database, if present in the OS app data directory, is not opened, migrated, or deleted.
 
-Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, and `/households/:householdId/members`.
+Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, `/households/:householdId/members`, and `/households/:householdId/debts`.
 
 ## Households
 
@@ -22,6 +22,10 @@ After signing in, an account without a household is sent to the setup page. Crea
 Only the Owner can assign roles and issue invitations. An unregistered member's planned role defaults to Viewer; it grants no access until invitation acceptance. Changing it revokes any pending invitation. The Owner can also change a registered regular member's active role, effective on subsequent requests. The invitation code is displayed only when issued or regenerated; copy it then and share it privately. It expires after seven days, works once, and can be revoked. A new user can choose **Join with code** at signup; an existing user can use **Join household** on the Household page. Redemption links the account to the approved member record without changing its profile. Ownership transfer and household deletion are unavailable. A user with one household sees it by default; users with multiple households can select one in the sidebar. The dashboard remains empty until future finance features are added.
 
 The Household page shows the selected house with its members inside the same card. The Owner sees a **Pending approvals** section with request details and approve/reject actions. **Manage Access** handles roles for regular members. **Details** shows the house creation date, member count, move-in date, and notes. Owners and Admins can use **Edit household** to change its name, optional move-in date, and notes. Existing households start with those optional fields empty; no move-in date is inferred.
+
+## Debts
+
+The **Debts** sidebar page tracks household accounts, balances, status, collection links, and responsible members. One joint debt can have several members without duplicating the household total. Unknown balances remain unknown. Confirmed, estimated, and unverified balances are shown separately. A collection record is combined with its original account only when its duplicate link is explicitly verified. Archive hides an account from active totals without deleting it; Restore reverses that action. Debt records are saved in SQLite, never browser storage. This stage does not track payments or calculate payoff plans.
 
 ## Security and storage
 

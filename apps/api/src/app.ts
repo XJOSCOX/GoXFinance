@@ -20,6 +20,9 @@ import { accessRepository } from './modules/households/access.repository'
 import { accessService } from './modules/households/access.service'
 import { memberRequestRepository } from './modules/households/member-request.repository'
 import { memberRequestService } from './modules/households/member-request.service'
+import { debtRepository } from './modules/debts/debt.repository'
+import { DebtError, debtService } from './modules/debts/debt.service'
+import { registerDebtRoutes } from './modules/debts/debt.routes'
 
 type AppOptions = { databasePath: string; frontendOrigin: string; secureCookie: boolean }
 
@@ -41,11 +44,13 @@ export async function buildApp(options: AppOptions) {
   registerHouseholdRoutes(app, auth, householdService(householdStore), memberService(householdStore, memberStore, invitationStore),
     invitations, accessService(householdStore, memberStore, accessRepository(db)),
     memberRequestService(householdStore, memberRequestRepository(db), memberStore))
+  registerDebtRoutes(app, auth, debtService(householdStore, memberStore, debtRepository(db)))
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) return reply.code(400).send({ code: 'VALIDATION_ERROR', error: error.issues[0]?.message ?? 'Invalid input' })
     if (error instanceof InvitationError) return reply.code(error.statusCode).send({ code: error.code, error: error.message })
     if (error instanceof AuthError) return reply.code(error.statusCode).send({ code: 'AUTH_ERROR', error: error.message })
     if (error instanceof HouseholdError) return reply.code(error.statusCode).send({ code: 'HOUSEHOLD_ERROR', error: error.message })
+    if (error instanceof DebtError) return reply.code(error.statusCode).send({ code: 'DEBT_ERROR', error: error.message })
     if (typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 429) {
       return reply.code(429).send({ code: 'RATE_LIMITED', error: 'Too many attempts. Try again later.' })
     }
