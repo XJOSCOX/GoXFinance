@@ -93,6 +93,7 @@ it('preserves approval of legacy bill requests without relaxing revisions or amo
       Object.entries(period).filter(
         ([key]) =>
           ![
+            'budgetEstimateCents',
             'paidCents',
             'remainingCents',
             'overpaidCents',

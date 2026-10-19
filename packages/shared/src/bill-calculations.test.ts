@@ -5,6 +5,7 @@ import {
   billPeriodView,
   billScheduleDates,
   calculateBillSummary,
+  billBudgetEstimate,
 } from './bill-calculations'
 import { billInputSchema, type BillPayment, type BillPeriod, type BillView } from './bills'
 import { randomUUID } from 'node:crypto'
@@ -198,4 +199,37 @@ it('reports unconfirmed bill totals separately from the known remaining total', 
     unknownPeriodCount: 1,
     confirmedPeriodCount: 1,
   })
+})
+
+it('uses the saved estimate only for open current/future periods with missing snapshots', () => {
+  const bill = { amountType: 'variable', status: 'active', estimatedAmountCents: 30000 } as BillView
+  const open = billPeriodView(
+    {
+      ...period,
+      estimatedAmountCents: null,
+      amountCents: null,
+      dueDate: '2026-10-21',
+      creditCents: 0,
+    },
+    [],
+    false,
+    '2026-10-19',
+  )
+  expect(billBudgetEstimate(bill, open, '2026-10-19')).toBe(30000)
+  expect(open.estimatedAmountCents).toBeNull()
+  expect(open.amountCents).toBeNull()
+  expect(open.remainingCents).toBeNull()
+  expect(open.paidCents).toBe(0)
+  for (const changes of [
+    { dueDate: '2026-09-21' },
+    { amountCents: 34218 },
+    { paidCents: 20000 },
+    { creditCents: 100 },
+  ])
+    expect(billBudgetEstimate(bill, { ...open, ...changes }, '2026-10-19')).toBeNull()
+  expect(billBudgetEstimate(bill, { ...open, estimatedAmountCents: 25000 }, '2026-10-19')).toBe(
+    25000,
+  )
+  expect(billBudgetEstimate(bill, { ...open, estimatedAmountCents: 0 }, '2026-10-19')).toBe(0)
+  expect(billBudgetEstimate({ ...bill, estimatedAmountCents: null }, open, '2026-10-19')).toBeNull()
 })

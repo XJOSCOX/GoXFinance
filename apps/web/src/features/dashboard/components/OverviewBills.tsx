@@ -40,7 +40,10 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
                   {(
                     [
-                      ['Budget estimate', period.estimatedAmountCents],
+                      [
+                        'Budget estimate',
+                        period.budgetEstimateCents ?? period.estimatedAmountCents,
+                      ],
                       ['Confirmed bill', period.amountCents],
                       ['Actually paid', period.paidCents],
                       ['Still owed', period.amountCents === null ? null : period.remainingCents],

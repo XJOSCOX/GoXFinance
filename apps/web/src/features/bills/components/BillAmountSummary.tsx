@@ -3,7 +3,11 @@ import { formatMoney } from '../../../lib/money'
 
 export function BillAmountSummary({ period }: { period: BillPeriodView }) {
   const amounts = [
-    ['Budget estimate', period.estimatedAmountCents, 'For planning only'],
+    [
+      'Budget estimate',
+      period.budgetEstimateCents ?? period.estimatedAmountCents,
+      'For planning only',
+    ],
     ['Confirmed bill', period.amountCents, 'Amount billed this period'],
     ['Completed payments', period.paidCents, 'Cleared payments only'],
     [

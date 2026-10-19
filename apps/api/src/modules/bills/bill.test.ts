@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import Database from 'better-sqlite3'
 import type { FastifyInstance } from 'fastify'
-import type { BillInput, BillView } from '@goxfinance/shared'
+import { localBillDate, type BillInput, type BillView } from '@goxfinance/shared'
 import { buildApp } from '../../app'
 import { testHome, testOrigin, testRequest, testRole, testUser } from '../../testing/workspace'
 
@@ -822,4 +822,51 @@ it('rolls back bill confirmation and its audit if payment persistence fails', as
   expect(current.bill.payments).toHaveLength(0)
   expect(current.bill.revision).toBe(bill.revision)
   expect(current.audit).toHaveLength(1)
+})
+
+it('displays an estimate entered after the current period was created without rewriting financial records', async () => {
+  const f = await setup(),
+    today = localBillDate()
+  const bill = await f.create({ nextDueDate: today, estimatedAmountCents: null })
+  const updated = await f.act(bill, {
+    action: 'edit_bill',
+    changes: { ...f.input, nextDueDate: today, estimatedAmountCents: 30000 },
+  })
+  expect(updated.statusCode, updated.body).toBe(200)
+  const period = updated.json().bill.periods[0]
+  expect(period).toMatchObject({
+    estimatedAmountCents: null,
+    budgetEstimateCents: 30000,
+    amountCents: null,
+    paidCents: 0,
+    remainingCents: null,
+  })
+  expect(updated.json().bill.payments).toHaveLength(0)
+  const result = await testRequest(
+    f.app,
+    'GET',
+    `/api/households/${f.home}/overview?month=${today.slice(0, 7)}`,
+    f.owner.cookie,
+  )
+  expect(result.json().payments.billAmounts).toMatchObject({
+    estimatedCents: 30000,
+    confirmedCount: 0,
+    unconfirmedCount: 1,
+    paidCents: 0,
+  })
+  expect(result.json().upcoming[0]).toMatchObject({
+    budgetEstimateCents: 30000,
+    amountCents: null,
+    remainingCents: null,
+  })
+  const sqlite = new Database(f.path, { readonly: true })
+  try {
+    expect(
+      sqlite
+        .prepare('SELECT estimated_amount_cents, amount_cents FROM bill_periods WHERE id = ?')
+        .get(period.id),
+    ).toEqual({ estimated_amount_cents: null, amount_cents: null })
+  } finally {
+    sqlite.close()
+  }
 })

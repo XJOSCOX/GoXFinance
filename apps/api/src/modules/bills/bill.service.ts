@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import {
   billActionSchema,
+  billBudgetEstimate,
   billInputSchema,
   billPaymentInputSchema,
   billPeriodView,
@@ -31,11 +32,15 @@ export function billService(
       ...bill,
       ...permissions.flags(user, bill),
       payments,
-      periods: store
-        .periods(bill.householdId, bill.id)
-        .map((period) =>
-          billPeriodView(period, payments, bill.status === 'cancelled', localBillDate()),
-        ),
+      periods: store.periods(bill.householdId, bill.id).map((period) => {
+        const result = billPeriodView(
+          period,
+          payments,
+          bill.status === 'cancelled',
+          localBillDate(),
+        )
+        return { ...result, budgetEstimateCents: billBudgetEstimate(bill, result, localBillDate()) }
+      }),
     }
   }
   function materialize(bill: Bill) {

@@ -161,6 +161,7 @@ it('shows actual partial balances, estimates, and unknown bill amounts distinctl
       billName: 'Unknown utility',
       amountCents: null,
       estimatedAmountCents: null,
+      budgetEstimateCents: 30000,
       remainingCents: null,
       paidCents: 0,
     },
@@ -169,6 +170,7 @@ it('shows actual partial balances, estimates, and unknown bill amounts distinctl
   expect(screen.getByText('$142.18')).toBeTruthy()
   expect(screen.getByText('$200.00')).toBeTruthy()
   expect(screen.getAllByText('Budget estimate').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('$300.00')).toHaveLength(3)
   expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
   expect(screen.getAllByText('Actual bill not confirmed')).toHaveLength(2)
 })

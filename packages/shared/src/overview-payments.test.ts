@@ -195,3 +195,35 @@ it('keeps linked bill payments once in both the bill view and payment activity',
   expect(result.billAmounts.remainingCents).toBe(3000)
   expect(result.completed.totalCents).toBe(2000)
 })
+
+it('shows a saved budget fallback without confirming the bill or assuming a payment', () => {
+  const period = billPeriodView(
+    {
+      id: 'open',
+      dueDate: '2026-10-21',
+      amountCents: null,
+      estimatedAmountCents: null,
+      creditCents: 0,
+    } as BillView['periods'][number],
+    [],
+    false,
+    '2026-10-19',
+  )
+  const result = overviewPayments(
+    [bill([], [{ ...period, budgetEstimateCents: 30000 }])],
+    [],
+    [],
+    '2026-10',
+    '2026-10-19',
+  )
+  expect(result.billAmounts).toMatchObject({
+    estimatedCents: 30000,
+    confirmedCents: 0,
+    confirmedCount: 0,
+    unconfirmedCount: 1,
+    paidCents: 0,
+    remainingCents: 0,
+  })
+  expect(result.remainingBills.unknownCount).toBe(1)
+  expect(result.completed.totalCents).toBe(0)
+})

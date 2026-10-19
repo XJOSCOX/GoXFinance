@@ -142,6 +142,7 @@ export type BillPeriod = {
   updatedAt: string
 }
 export type BillPeriodView = BillPeriod & {
+  budgetEstimateCents?: number | null
   paidCents: number
   remainingCents: number | null
   overpaidCents: number

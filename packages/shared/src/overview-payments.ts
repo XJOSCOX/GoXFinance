@@ -61,12 +61,16 @@ export function overviewPayments(
     .flatMap((bill) => bill.periods)
     .filter((period) => period.dueDate.startsWith(month) && period.paymentStatus !== 'cancelled')
   const confirmed = periods.filter((period) => typeof period.amountCents === 'number')
-  const estimated = periods.filter((period) => typeof period.estimatedAmountCents === 'number')
+  const estimated = periods.filter(
+    (period) => typeof (period.budgetEstimateCents ?? period.estimatedAmountCents) === 'number',
+  )
   return {
     billAmounts: {
       periodCount: periods.length,
       estimatedCount: estimated.length,
-      estimatedCents: sumCents(estimated.map((period) => period.estimatedAmountCents!)),
+      estimatedCents: sumCents(
+        estimated.map((period) => (period.budgetEstimateCents ?? period.estimatedAmountCents)!),
+      ),
       confirmedCount: confirmed.length,
       unconfirmedCount: periods.length - confirmed.length,
       confirmedCents: sumCents(confirmed.map((period) => period.amountCents!)),

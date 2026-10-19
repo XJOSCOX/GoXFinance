@@ -235,7 +235,7 @@ export function BillsPage() {
                       <div>
                         <dt className="text-slate-400">Budget estimate</dt>
                         <dd className="mt-1 font-semibold tabular-nums">
-                          {formatMoney(next.estimatedAmountCents)}
+                          {formatMoney(next.budgetEstimateCents ?? next.estimatedAmountCents)}
                         </dd>
                       </div>
                       <div>
