@@ -1,6 +1,7 @@
 import type { IncomeService } from '../income/income.service'
 import {
   calculateBillSummary,
+  debtPayoffProgress,
   overviewPayments,
   incomeSummary,
   cashOutflows,
@@ -38,6 +39,7 @@ export function overviewService(
       ).confirmedCents
       const paid = sumCents(outflows.map((item) => item.cashOutflowCents))
       return {
+        debtProgress: debtPayoffProgress(debtList.debts, store.balances(householdId)),
         income: { confirmedCents: received, netRecordedCashFlowCents: sumCents([received, -paid]) },
         month,
         payments: overviewPayments(billList, debtList.debts, payments, month),

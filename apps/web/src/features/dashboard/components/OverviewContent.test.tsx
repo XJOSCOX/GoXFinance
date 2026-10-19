@@ -2,7 +2,11 @@
 import { afterEach, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { calculateDebtSummary, type HouseholdOverview } from '@goxfinance/shared'
+import {
+  calculateDebtSummary,
+  debtPayoffProgress,
+  type HouseholdOverview,
+} from '@goxfinance/shared'
 import { OverviewContent } from './OverviewContent'
 
 afterEach(cleanup)
@@ -18,6 +22,7 @@ function overview(): HouseholdOverview {
   }
   return {
     month: '2026-10',
+    debtProgress: debtPayoffProgress([], []),
     income: { confirmedCents: 10000, netRecordedCashFlowCents: 5000 },
     debts: { debts: [], summary: calculateDebtSummary([]) },
     bills: {

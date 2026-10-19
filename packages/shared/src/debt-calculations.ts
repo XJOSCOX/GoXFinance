@@ -51,7 +51,7 @@ export function debtObligationGroups(debts: Debt[]): Debt[][] {
 }
 
 const confidenceRank: Record<DebtConfidence, number> = { confirmed: 3, estimated: 2, unverified: 1 }
-function representative(group: Debt[]) {
+export function representativeDebtBalance(group: Debt[]) {
   return [...group].sort((a, b) => {
     if (a.currentBalanceCents === null) return b.currentBalanceCents === null ? 0 : 1
     if (b.currentBalanceCents === null) return -1
@@ -79,7 +79,7 @@ export function calculateDebtSummary(debts: Debt[]): DebtSummary {
   }
   const members = new Map<string, MemberDebtTotal>()
   for (const group of groups) {
-    const selected = representative(group)
+    const selected = representativeDebtBalance(group)
     const balance = selected.currentBalanceCents
     if (balance === null) summary.unknownBalanceCount += 1
     else {

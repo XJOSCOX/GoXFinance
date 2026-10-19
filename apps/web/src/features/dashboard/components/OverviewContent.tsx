@@ -7,6 +7,7 @@ import { OverviewDebtSnapshot } from './OverviewDebtSnapshot'
 import { OverviewBills } from './OverviewBills'
 import { OverviewAttention } from './OverviewAttention'
 import { OverviewProgress } from './OverviewProgress'
+import { OverviewDebtProgress } from './OverviewDebtProgress'
 export function OverviewContent({ data, home }: { data: HouseholdOverview; home: string }) {
   const base = `/households/${home}`
   return (
@@ -98,6 +99,9 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
             <OverviewAttention data={data} home={home} />
           </div>
           <div className="order-3">
+            <OverviewDebtProgress data={data} />
+          </div>
+          <div className="order-4">
             <OverviewDebtSnapshot data={data} home={home} />
           </div>
         </div>

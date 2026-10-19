@@ -1,9 +1,16 @@
 import { eq } from 'drizzle-orm'
-import type { DebtPayment } from '@goxfinance/shared'
-import { debtPayments } from '../../../../../packages/db/src/schema'
+import type { DebtBalanceHistory, DebtPayment } from '@goxfinance/shared'
+import { debtBalanceHistory, debtPayments } from '../../../../../packages/db/src/schema'
 import type { DatabaseConnection } from '../../db/connection'
 export function overviewRepository(db: DatabaseConnection) {
   return {
+    balances(householdId: string) {
+      return db
+        .select()
+        .from(debtBalanceHistory)
+        .where(eq(debtBalanceHistory.householdId, householdId))
+        .all() as DebtBalanceHistory[]
+    },
     payments(householdId: string) {
       return db
         .select()

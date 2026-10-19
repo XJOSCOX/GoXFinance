@@ -311,6 +311,8 @@ it.each(['plaintext', 'encrypted', 'converted'])(
       expect(result.payments.remainingBills.amountCents).toBe(24218)
       expect(result.payments.completed.items).toHaveLength(2)
       expect(result.payments.pending.totalCents).toBe(10000)
+      // Even a confirmed payment with known principal is not a new balance snapshot.
+      expect(result.debtProgress).toMatchObject({ trackedCount: 0, missingHistoryCount: 1, reductionCents: 0 })
       expect((await ok('GET', base + '/income')).transactions).toHaveLength(1)
     }
     if (mode === 'converted') {
