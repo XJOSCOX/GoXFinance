@@ -38,6 +38,12 @@ A paid payout requires explicit receipt confirmation, actual net received amount
 
 User-entered payout rule snapshots are append-only metadata, labeled advisory. They are not evaluated as authoritative payout eligibility. Verify provider restrictions externally before performing any copying or withdrawal activity.
 
+### Editable account rules and profit shares
+
+Account setup and rule snapshots are user-entered data, with no provider plan defaults or automatic plan selection. **Update account rules** can apply a reviewed nominal tier, loss limits and new rule snapshot to selected accounts in one transaction. Each account revision and household permission is checked. Existing paths, stages, balances, results, payments and prior rule snapshots are preserved. The optional version-2 rule fields include evaluation targets, consistency percentages, qualifying-day amounts, contract limits, plan/reset/activation fees and plan flags. Older JSON snapshots remain readable; no database migration is needed because snapshots already use the existing SQLite rule table.
+
+Payout forms and batches show a split estimate using the configured trader share in basis points. Integer/BigInt arithmetic rounds the trader portion to the nearest cent and assigns the remainder to the provider, so both portions always sum to the entered amount. No split is assumed when the share is unknown. The estimate uses the rule effective on the request date; existing payouts exclude snapshots created after the payout record, preventing later rule changes from rewriting their displayed historical split. Estimates exclude other fees and taxes, do not prove eligibility and never fill or confirm an actual deposit. Recorded gross results remain account performance; only actual confirmed net payout deposits reach Income. Rule fee metadata does not create an expense or recurring bill.
+
 ## Goals
 
 Types: trading net profit, net loss budget, confirmed income, explicit savings contributions, verified debt reduction, purchase spending limits, completed bill payments, and custom manual contributions. Account-specific, copy-group and combined trading scopes are supported. Loss budgets measure net loss magnitude; profit goals preserve negative net P&L and their full shortfalls. No target guarantees returns or encourages increasing risk.

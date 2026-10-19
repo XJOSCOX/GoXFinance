@@ -22,8 +22,23 @@ export const tradingRuleSchema = z
     maximumPayoutCents: positive.nullable(),
     profitShareBps: z.number().int().min(0).max(10000).nullable(),
     notes: z.string().trim().max(2000).nullable(),
+    version: z.literal(2).optional(),
+    profitTargetCents: positive.nullable().optional(),
+    combineConsistencyBps: z.number().int().min(0).max(10000).nullable().optional(),
+    payoutConsistencyBps: z.number().int().min(0).max(10000).nullable().optional(),
+    minimumWinningDayCents: positive.nullable().optional(),
+    minimumTradesPerDay: z.number().int().nonnegative().max(100000).nullable().optional(),
+    maximumMiniContracts: z.number().int().nonnegative().max(100000).nullable().optional(),
+    maximumMicroContracts: z.number().int().nonnegative().max(100000).nullable().optional(),
+    monthlyFeeCents: positive.nullable().optional(),
+    resetFeeCents: positive.nullable().optional(),
+    activationFeeCents: positive.nullable().optional(),
+    maintainBalanceBetweenPayouts: z.boolean().nullable().optional(),
+    resetCreditOnRebill: z.boolean().nullable().optional(),
+    enhancedPayoutCap: z.boolean().nullable().optional(),
   })
   .strict()
+export type TradingRule = z.infer<typeof tradingRuleSchema>
 export const tradingAccountSchema = z
   .object({
     responsibleMemberId: z.uuid(),

@@ -1,3 +1,5 @@
+import { TradingRuleFields } from './TradingRuleFields'
+import { readTradingRule } from '../lib/rule-fields'
 import { useState } from 'react'
 import {
   tradingAccountSchema,
@@ -73,21 +75,7 @@ export function AccountForm({
           timezone: text(data, 'timezone'),
           sessionStart: text(data, 'sessionStart'),
           notes: optionalText(data, 'notes'),
-          ruleSnapshot: rules
-            ? {
-                label: text(data, 'ruleLabel'),
-                effectiveDate: text(data, 'ruleDate'),
-                minimumDays:
-                  optionalText(data, 'ruleDays') === null ? null : Number(text(data, 'ruleDays')),
-                minimumNetCents: readMoney(data, 'ruleNet'),
-                maximumPayoutCents: readMoney(data, 'ruleMaximum'),
-                profitShareBps:
-                  optionalText(data, 'ruleShare') === null
-                    ? null
-                    : Number(text(data, 'ruleShare')) * 100,
-                notes: optionalText(data, 'ruleNotes'),
-              }
-            : null,
+          ruleSnapshot: rules ? readTradingRule(data) : null,
         })
         return !account && count > 1
           ? tradingAccountBatchSchema.parse(
@@ -243,25 +231,7 @@ export function AccountForm({
         <input type="checkbox" checked={rules} onChange={(e) => setRules(e.target.checked)} />
         Add a payout-rule snapshot (advisory only)
       </label>
-      {rules && (
-        <div className="grid gap-4 rounded-xl border border-white/10 p-4 sm:grid-cols-2">
-          <FormField label="Rule label">
-            <Input name="ruleLabel" required />
-          </FormField>
-          <DateField name="ruleDate" label="Effective date" required />
-          <FormField label="Minimum trading days">
-            <Input type="number" name="ruleDays" min="0" />
-          </FormField>
-          <AmountField name="ruleNet" label="Minimum net profit ($)" />
-          <AmountField name="ruleMaximum" label="Maximum payout ($)" />
-          <FormField label="Profit share (%)">
-            <Input name="ruleShare" type="number" min="0" max="100" step="0.01" />
-          </FormField>
-          <FormField label="Rule notes / source">
-            <Input name="ruleNotes" />
-          </FormField>
-        </div>
-      )}
+      {rules && <TradingRuleFields rule={account?.ruleSnapshots.at(-1)} />}
     </FinancialEditor>
   )
 }

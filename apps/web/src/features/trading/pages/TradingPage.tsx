@@ -20,6 +20,7 @@ import { useTrading } from '../hooks/useTrading'
 import { saveTrading, removeTradingAccount } from '../api/tradingClient'
 import { AccountRemovalDialog } from '../components/AccountRemovalDialog'
 import { AccountForm } from '../components/AccountForm'
+import { AccountRulesForm } from '../components/AccountRulesForm'
 import { ResultForm } from '../components/ResultForm'
 import { DailyResultsForm } from '../components/DailyResultsForm'
 import { PayoutForm } from '../components/PayoutForm'
@@ -36,6 +37,7 @@ type Editor =
   | { kind: 'groups'; record?: CopyGroup }
   | { kind: 'events'; record?: CopyEvent }
   | { kind: 'batches'; record?: undefined }
+  | { kind: 'accounts/rules'; record?: undefined }
 export function TradingPage() {
   const { householdId: home = '' } = useParams(),
     { data, members, income, error, refresh } = useTrading(home),
@@ -145,6 +147,9 @@ export function TradingPage() {
           </div>
           {managed.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
+              <Button size="small" onClick={() => setEditor({ kind: 'accounts/rules' })}>
+                Update account rules
+              </Button>
               <Button size="small" onClick={() => setEditor({ kind: 'results' })}>
                 Record daily result
               </Button>
@@ -209,6 +214,9 @@ export function TradingPage() {
           save={save}
           close={() => setEditor(null)}
         />
+      )}
+      {editor?.kind === 'accounts/rules' && (
+        <AccountRulesForm accounts={managed} save={save} close={() => setEditor(null)} />
       )}
       {editor?.kind === 'results' && !editor.record && (
         <DailyResultsForm

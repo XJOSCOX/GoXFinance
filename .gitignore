@@ -30,3 +30,4 @@ coverage/
 *.key
 *.key.json
 tsconfig.*.tsbuildinfo
+/Screenshots/

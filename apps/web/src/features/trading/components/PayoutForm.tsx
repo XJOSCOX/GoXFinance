@@ -8,7 +8,8 @@ import {
 } from '@goxfinance/shared'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { AmountField, DateField } from '../../../components/financial/EntryFields'
-import { readMoney, text, optionalText } from '../../../lib/financial-entry'
+import { readMoney, text, optionalText, moneyText } from '../../../lib/financial-entry'
+import { PayoutSplitEstimate } from './PayoutSplitEstimate'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { Input, Button } from '../../../components/ui'
 import { TradingAccountSelect } from './TradingAccountSelect'
@@ -29,6 +30,9 @@ export function PayoutForm({
 }) {
   const [id, setId] = useState(payout?.accountId ?? accounts[0]?.id ?? ''),
     [status, setStatus] = useState(payout?.status ?? 'requested')
+  const [requestAmount, setRequestAmount] = useState(moneyText(payout?.requestedCents)),
+    [approvedAmount, setApprovedAmount] = useState(moneyText(payout?.approvedCents)),
+    [requestDate, setRequestDate] = useState(payout?.requestDate ?? localBillDate())
   return (
     <FinancialEditor
       title={payout ? 'Update payout' : 'Record external payout request'}
@@ -74,18 +78,21 @@ export function PayoutForm({
           name="requestedCents"
           label="Requested amount ($)"
           value={payout?.requestedCents}
+          onChange={setRequestAmount}
           required
         />
         <DateField
           name="requestDate"
           label="Request date"
           value={payout?.requestDate ?? localBillDate()}
+          onChange={setRequestDate}
           required
         />
         <AmountField
           name="approvedCents"
           label="Approved amount ($, if known)"
           value={payout?.approvedCents}
+          onChange={setApprovedAmount}
         />
         <FormField label="Payout status">
           <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
@@ -98,6 +105,12 @@ export function PayoutForm({
           </Select>
         </FormField>
       </div>
+      <PayoutSplitEstimate
+        account={accounts.find((a) => a.id === id)}
+        amountText={approvedAmount || requestAmount}
+        date={requestDate}
+        recordedAt={payout?.createdAt}
+      />
       {status === 'paid' && (
         <section className="space-y-4 rounded-xl border border-white/10 p-4">
           <div className="grid gap-4 sm:grid-cols-2">

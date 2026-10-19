@@ -6,6 +6,7 @@ import {
 } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { TradingRuleDetails } from './TradingRuleDetails'
 export function TradingAccounts({
   accounts,
   results,
@@ -88,6 +89,13 @@ export function TradingAccounts({
               {account.timezone} / session starts {account.sessionStart} / Current session net{' '}
               {formatMoney(risk.netCents)}
             </p>
+            {rules?.profitShareBps != null && (
+              <p className="mt-2 text-xs text-slate-400">
+                Saved trader share {rules.profitShareBps / 100}% · Provider{' '}
+                {(10000 - rules.profitShareBps) / 100}% · Advisory payout cap{' '}
+                {formatMoney(rules.maximumPayoutCents)}
+              </p>
+            )}
             {risk.dailyLimitReached && (
               <p
                 role="alert"
@@ -107,20 +115,7 @@ export function TradingAccounts({
               </p>
               {!rules && <p className="mt-2 text-slate-500">No payout rules entered.</p>}
               {account.ruleSnapshots.map((rule) => (
-                <div key={rule.id} className="mt-3 space-y-1 rounded-lg border border-white/10 p-3">
-                  <p>
-                    {rule.label} / effective {rule.effectiveDate}
-                  </p>
-                  <p>
-                    Minimum days: {rule.minimumDays ?? 'Unknown'} / Minimum net:{' '}
-                    {formatMoney(rule.minimumNetCents)}
-                  </p>
-                  <p>
-                    Maximum payout: {formatMoney(rule.maximumPayoutCents)} / Share:{' '}
-                    {rule.profitShareBps === null ? 'Unknown' : rule.profitShareBps / 100 + '%'}
-                  </p>
-                  <p className="text-slate-400">{rule.notes}</p>
-                </div>
+                <TradingRuleDetails key={rule.id} rule={rule} />
               ))}
               <p className="mt-3 text-slate-500">
                 User-entered rule snapshots are advisory, may be outdated, and do not establish

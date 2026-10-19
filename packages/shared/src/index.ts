@@ -22,6 +22,7 @@ export * from './income-calculations'
 
 export * from './trading'
 export * from './trading-batches'
+export * from './trading-rules'
 export * from './trading-calculations'
 export * from './goals'
 export * from './copy-trading'

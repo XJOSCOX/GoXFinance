@@ -54,6 +54,9 @@ export function registerTradingRoutes(
       .code(201)
       .send({ records: trading.saveAccounts(user(r), params.parse(r.params).householdId, r.body) }),
   )
+  app.post(base + '/accounts/rules', (r) => ({
+    records: trading.saveAccountRules(user(r), params.parse(r.params).householdId, r.body),
+  }))
   app.post(base + '/results', (r, reply) =>
     reply
       .code(201)

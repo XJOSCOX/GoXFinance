@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui'
 import { FormField } from '../../../components/ui/FormField'
 import { Button } from '../../../components/ui'
 import { AccountSelectionToolbar } from './AccountSelectionToolbar'
+import { PayoutSplitEstimate } from './PayoutSplitEstimate'
 export function BatchForm({
   accounts,
   save,
@@ -19,6 +20,7 @@ export function BatchForm({
   const [selected, setSelected] = useState<string[]>([])
   const [commonAmount, setCommonAmount] = useState(''),
     [amounts, setAmounts] = useState<Record<string, string>>({})
+  const [requestDate, setRequestDate] = useState(localBillDate())
   return (
     <FinancialEditor
       title="Record external payout batch"
@@ -47,6 +49,7 @@ export function BatchForm({
         label="External request date"
         name="requestDate"
         value={localBillDate()}
+        onChange={setRequestDate}
         required
       />
       <AccountSelectionToolbar accounts={accounts} selected={selected} onChange={setSelected} />
@@ -100,6 +103,13 @@ export function BatchForm({
                 required
               />
             </FormField>
+          )}
+          {selected.includes(account.id) && (
+            <PayoutSplitEstimate
+              account={account}
+              amountText={amounts[account.id] ?? ''}
+              date={requestDate}
+            />
           )}
         </div>
       ))}

@@ -15,6 +15,7 @@ import { FinancialError } from '../households/financial-access'
 import { checkRevision, type TradingPermissions } from './trading.permissions'
 import type { TradingRepository } from './trading.repository'
 import { createAccounts } from './account-batch.service'
+import { updateAccountRules } from './account-rules.service'
 import { saveTradingBatch } from './trading-batch'
 export function tradingService(store: TradingRepository, permissions: TradingPermissions) {
   function account(user: PublicUser, home: string, id: string) {
@@ -132,6 +133,14 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           permissions.manage(user, home, row.responsibleMemberId, true)
           return accountView(user, home, row)
         },
+      )
+    },
+    saveAccountRules(user: PublicUser, home: string, body: unknown): TradingAccount[] {
+      return updateAccountRules(
+        { store, permissions, account, accountView, saveAccount: this.saveAccount },
+        user,
+        home,
+        body,
       )
     },
     saveAccount(user: PublicUser, home: string, body: unknown, id?: string) {
