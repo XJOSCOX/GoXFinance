@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ArrowRight, Plus, Search } from 'lucide-react'
-import { calculateDebtSummary, debtTypeLabels, paymentStatusLabels, type Debt, type DebtInput, type HouseholdMember } from '@goxfinance/shared'
+import { Plus, Search } from 'lucide-react'
+import { calculateDebtSummary, type Debt, type DebtInput, type HouseholdMember } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
-import { Button, Card, Input } from '../../../components/ui'
+import { Button, Card } from '../../../components/ui'
 import { Modal } from '../../../components/ui/Modal'
 import { useNotify } from '../../../components/ui/useNotify'
 import { errorMessage } from '../../../lib/api'
@@ -14,6 +14,9 @@ import { submitDebtChange } from '../api/changeClient'
 import { archiveDebt, createDebt, listDebts, restoreDebt, updateDebt } from '../api/debtClient'
 import { DebtFormDialog } from '../components/DebtFormDialog'
 import { DebtSummary } from '../components/DebtSummary'
+import { DebtBreakdown } from '../components/DebtBreakdown'
+import { DebtFilters } from '../components/DebtFilters'
+import { emptyDebtFilters } from '../lib/debt-filters'
 import { DebtEmptyState } from '../components/DebtEmptyState'
 import { DebtAccountCard } from '../components/DebtAccountCard'
 import { DebtDetailsDialog } from '../components/DebtDetailsDialog'
@@ -35,11 +38,8 @@ export function DebtsPage() {
   const [busy, setBusy] = useState(false)
   const [archiveReason, setArchiveReason] = useState('')
   const [archiveRequestKey, setArchiveRequestKey] = useState('')
-  const [query, setQuery] = useState('')
-  const [memberFilter, setMemberFilter] = useState('')
-  const [typeFilter, setTypeFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [sort, setSort] = useState('updated')
+  const [filters, setFilters] = useState(emptyDebtFilters)
+  const { query, member: memberFilter, type: typeFilter, status: statusFilter, sort } = filters
   const [showArchived, setShowArchived] = useState(false)
   const [requestRefresh, setRequestRefresh] = useState(0)
   useEffect(() => { if (household && selected?.id !== householdId) select(householdId) }, [household, householdId, selected?.id, select])
@@ -120,30 +120,23 @@ export function DebtsPage() {
     } catch (failure) { notify('error', errorMessage(failure)) }
     finally { setBusy(false) }
   }
-  const selectClass = 'h-10 w-full rounded-lg border border-white/10 bg-[#151716] px-3 text-sm text-slate-300 outline-none focus:border-[#a9b8a9]'
-  return <WorkspaceLayout title="Debts"><div className="space-y-6">
-    <div className="relative overflow-hidden rounded-2xl border border-white/[.09] bg-[radial-gradient(circle_at_88%_10%,rgba(169,187,168,.13),transparent_35%),linear-gradient(115deg,#222823,#191d1a_70%)] px-6 py-8 shadow-[0_22px_45px_-35px_rgba(0,0,0,.8)] sm:px-9 sm:py-10">
-      <div className="pointer-events-none absolute -bottom-28 right-16 h-52 w-52 rounded-full border border-[#a9b8a9]/[.09] sm:h-72 sm:w-72" />
-      <div className="relative flex flex-wrap items-end justify-between gap-6"><div><div className="flex items-center gap-3"><span className="h-px w-6 bg-[#aab9a9]"/><p className="text-[10px] font-semibold uppercase tracking-[.23em] text-[#aab9a9]">Household finances</p></div>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[#f1f2ee] sm:text-4xl">Debts</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">A complete view of your household obligations, the people responsible, and what still needs to be verified.</p></div>
-        {!loading && !error && summary.accountCount > 0 && canWrite && <Button variant="primary" className="gap-2" onClick={() => setFormDebt(null)}><Plus size={16}/> Add debt</Button>}
-      </div>
-    </div>
+  return <WorkspaceLayout title="Debts"><div className="space-y-5">
+    <header className="flex flex-wrap items-center justify-between gap-4 pb-1">
+      <div><h1 className="text-2xl font-semibold tracking-tight text-[#f1f2ee]">Debts</h1><p className="mt-1 text-sm text-slate-400">Manage your household accounts and balances.</p></div>
+      {!loading && !error && summary.accountCount > 0 && canWrite && <Button variant="primary" className="gap-2" onClick={() => setFormDebt(null)}><Plus size={15}/>Add debt</Button>}
+    </header>
     {household.role === 'owner' && <DebtChangeRequestsPanel householdId={householdId} owner members={members} debts={debts} refreshToken={requestRefresh} onChanged={refreshDetail} hideEmpty />}
     {household.role !== 'owner' && household.role !== 'viewer' && <DebtChangeRequestsPanel householdId={householdId} owner={false} members={members} debts={debts} refreshToken={requestRefresh} onChanged={refreshDetail} hideEmpty />}
     {loading ? <Card className="p-8 text-sm text-slate-400" role="status">Loading debts…</Card> : error ? <Card className="p-6"><p role="alert" className="text-rose-300">{error}</p><Button className="mt-3" onClick={() => window.location.reload()}>Try again</Button></Card> : summary.accountCount === 0 && !showArchived ?
       <DebtEmptyState canAdd={canWrite} archivedCount={archivedCount} onAdd={() => setFormDebt(null)} onShowArchived={() => setShowArchived(true)} /> : <>
-      {summary.accountCount > 0 && <DebtSummary summary={summary} members={members} />}
-      <div className="flex flex-wrap items-end justify-between gap-3 pt-1"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#9eaf9d]">Account register</p><h2 className="mt-1 text-xl font-semibold tracking-tight">{showArchived ? 'Archived debts' : 'Your accounts'}</h2></div><p className="text-xs text-slate-500">{visible.length} {visible.length === 1 ? 'account' : 'accounts'} shown</p></div>
-      <Card className="p-4 sm:p-5"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,2fr)_repeat(4,minmax(130px,1fr))]"><div className="relative sm:col-span-2 xl:col-span-1"><Search size={16} className="pointer-events-none absolute left-3 top-3 text-slate-500"/><Input aria-label="Search debts" placeholder="Search creditor or nickname" value={query} onChange={event => setQuery(event.target.value)} className="pl-10" /></div>
-        <select aria-label="Filter by member" className={selectClass} value={memberFilter} onChange={event => setMemberFilter(event.target.value)}><option value="">All members</option>{members.map(member => <option key={member.id} value={member.id}>{member.fullName}</option>)}</select>
-        <select aria-label="Filter by type" className={selectClass} value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="">All types</option>{Object.entries(debtTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        <select aria-label="Filter by payment status" className={selectClass} value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All statuses</option>{Object.entries(paymentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        <select aria-label="Sort debts" className={selectClass} value={sort} onChange={event => setSort(event.target.value)}><option value="updated">Recently updated</option><option value="balance">Highest balance</option><option value="creditor">Creditor name</option></select></div>
-        <label className="mt-4 flex items-center gap-2 border-t border-white/[.06] pt-3 text-xs text-slate-400"><input type="checkbox" checked={showArchived} onChange={event => setShowArchived(event.target.checked)}/>Show archived{archivedCount ? ` (${archivedCount})` : ''}</label></Card>
-      {visible.length ? <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">{visible.map(debt => <DebtAccountCard key={debt.id} debt={debt} members={members} canEdit={!debt.isArchived && canManage(debt)} canArchive={canManage(debt, true) || requiresApproval(debt)} requestMode={requiresApproval(debt)} onView={() => setDetail(debt)} onEdit={() => setFormDebt(debt)} onArchive={() => { setArchiveTarget(debt); setArchiveReason(''); setArchiveRequestKey(crypto.randomUUID()) }} />)}</div>
-      : <Card className="flex flex-col items-center px-6 py-12 text-center"><span className="rounded-xl border border-white/10 bg-white/[.03] p-3 text-slate-400"><Search size={22}/></span><h3 className="mt-4 font-medium">No matching accounts</h3><p className="mt-1 text-sm text-slate-400">Try a different search or filter.</p><Button variant="ghost" className="mt-4 gap-1" onClick={() => { setQuery(''); setMemberFilter(''); setTypeFilter(''); setStatusFilter('') }}>Clear filters <ArrowRight size={14}/></Button></Card>}
+      {summary.accountCount > 0 && <DebtSummary summary={summary} />}
+      <Card>
+        <DebtFilters value={filters} onChange={setFilters} members={members} showArchived={showArchived} onArchivedChange={setShowArchived} archivedCount={archivedCount} count={visible.length}/>
+        <div className="hidden grid-cols-12 gap-4 border-b border-white/[.07] bg-white/[.015] px-6 py-3 text-[10px] font-medium uppercase tracking-wider text-slate-500 lg:grid" aria-hidden="true"><span className="col-span-4">Account</span><span className="col-span-2">Responsible</span><span className="col-span-2">Status</span><span className="col-span-2 text-right">Balance</span><span className="col-span-2 text-right">Actions</span></div>
+        {visible.length ? <div>{visible.map(debt => <DebtAccountCard key={debt.id} debt={debt} members={members} canEdit={!debt.isArchived && canManage(debt)} canArchive={canManage(debt, true) || requiresApproval(debt)} requestMode={requiresApproval(debt)} onView={() => setDetail(debt)} onEdit={() => setFormDebt(debt)} onArchive={() => { setArchiveTarget(debt); setArchiveReason(''); setArchiveRequestKey(crypto.randomUUID()) }} />)}</div>
+        : <div className="flex flex-col items-center px-6 py-12 text-center"><Search size={22} className="text-slate-500"/><h3 className="mt-4 font-medium">No matching accounts</h3><p className="mt-1 text-sm text-slate-400">Try a different search or filter.</p><Button variant="ghost" className="mt-4" onClick={() => setFilters(emptyDebtFilters)}>Clear filters</Button></div>}
+      </Card>
+      {summary.accountCount > 0 && <DebtBreakdown summary={summary} members={members}/>}
     </>}
     {formDebt !== undefined && <DebtFormDialog key={formDebt?.id ?? 'new'} debt={formDebt} members={members} debts={debts} role={household.role} currentMemberId={currentMember?.id} requestMode={Boolean(formDebt && requiresApproval(formDebt))} onClose={() => setFormDebt(undefined)} onSave={save} />}
     {detail && <DebtDetailsDialog householdId={householdId} debt={detail} members={members} debts={debts} owner={household.role === 'owner'} canCreate={!detail.isArchived && canManage(detail)}
