@@ -23,6 +23,8 @@ import { DebtBreakdown } from '../components/DebtBreakdown'
 import { DebtFilters } from '../components/DebtFilters'
 import { emptyDebtFilters } from '../lib/debt-filters'
 import { DebtEmptyState } from '../components/DebtEmptyState'
+import { DebtAccountGroups } from '../components/DebtAccountGroups'
+import { groupDebts } from '../lib/debt-groups'
 import { DebtAccountCard } from '../components/DebtAccountCard'
 import { DebtDetailsDialog } from '../components/DebtDetailsDialog'
 import { DebtChangeRequestsPanel } from '../components/DebtChangeRequestsPanel'
@@ -96,6 +98,7 @@ export function DebtsPage() {
         ),
     [debts, showArchived, query, memberFilter, typeFilter, statusFilter, sort],
   )
+  const groups = useMemo(() => groupDebts(visible), [visible])
   if (!household)
     return (
       <WorkspaceLayout title="Debts">
@@ -271,62 +274,54 @@ export function DebtsPage() {
                 archivedCount={archivedCount}
                 count={visible.length}
               />
-              <div
-                className="hidden grid-cols-12 gap-4 border-b border-white/[.07] bg-white/[.015] px-6 py-3 text-[10px] font-medium uppercase tracking-wider text-slate-500 lg:grid"
-                aria-hidden="true"
-              >
-                <span className="col-span-4">Account</span>
-                <span className="col-span-2">Responsible</span>
-                <span className="col-span-2">Status</span>
-                <span className="col-span-2 text-right">Balance</span>
-                <span className="col-span-2 text-right">Actions</span>
-              </div>
-              {visible.length ? (
-                <div>
-                  {visible.map((debt) => (
-                    <DebtAccountCard
-                      key={debt.id}
-                      debt={debt}
-                      members={members}
-                      canEdit={!debt.isArchived && canManage(debt)}
-                      canArchive={canManage(debt, true) || requiresApproval(debt)}
-                      requestMode={requiresApproval(debt)}
-                      onView={() => {
-                        setRecordPayment(false)
-                        setDetail(debt)
-                      }}
-                      onRecordPayment={
-                        !debt.isArchived && canManage(debt)
-                          ? () => {
-                              setRecordPayment(true)
-                              setDetail(debt)
-                            }
-                          : undefined
-                      }
-                      onEdit={() => setFormDebt(debt)}
-                      onArchive={() => {
-                        setArchiveTarget(debt)
-                        setArchiveReason('')
-                        setArchiveRequestKey(crypto.randomUUID())
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center px-6 py-12 text-center">
-                  <Search size={22} className="text-slate-500" />
-                  <h3 className="mt-4 font-medium">No matching accounts</h3>
-                  <p className="mt-1 text-sm text-slate-400">Try a different search or filter.</p>
-                  <Button
-                    variant="ghost"
-                    className="mt-4"
-                    onClick={() => setFilters(emptyDebtFilters)}
-                  >
-                    Clear filters
-                  </Button>
-                </div>
-              )}
             </Card>
+            {visible.length ? (
+              <DebtAccountGroups
+                groups={groups}
+                archived={showArchived}
+                renderAccount={(debt) => (
+                  <DebtAccountCard
+                    key={debt.id}
+                    debt={debt}
+                    members={members}
+                    canEdit={!debt.isArchived && canManage(debt)}
+                    canArchive={canManage(debt, true) || requiresApproval(debt)}
+                    requestMode={requiresApproval(debt)}
+                    onView={() => {
+                      setRecordPayment(false)
+                      setDetail(debt)
+                    }}
+                    onRecordPayment={
+                      !debt.isArchived && canManage(debt)
+                        ? () => {
+                            setRecordPayment(true)
+                            setDetail(debt)
+                          }
+                        : undefined
+                    }
+                    onEdit={() => setFormDebt(debt)}
+                    onArchive={() => {
+                      setArchiveTarget(debt)
+                      setArchiveReason('')
+                      setArchiveRequestKey(crypto.randomUUID())
+                    }}
+                  />
+                )}
+              />
+            ) : (
+              <div className="flex flex-col items-center px-6 py-12 text-center">
+                <Search size={22} className="text-slate-500" />
+                <h3 className="mt-4 font-medium">No matching accounts</h3>
+                <p className="mt-1 text-sm text-slate-400">Try a different search or filter.</p>
+                <Button
+                  variant="ghost"
+                  className="mt-4"
+                  onClick={() => setFilters(emptyDebtFilters)}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            )}
             {summary.accountCount > 0 && <DebtBreakdown summary={summary} members={members} />}
           </>
         )}
