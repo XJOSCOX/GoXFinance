@@ -2,7 +2,7 @@ import { backupSchema, parseBackup, type Backup, type Collection } from './schem
 import { summary } from './finance'
 import { debtQueue, householdOverview, settlementPlan, simulateCashFlow } from './planning'
 
-export const collections: Collection[] = ['members', 'incomes', 'expenses', 'debts', 'payments', 'settlements', 'savings', 'trading', 'oneTimeExpenses', 'tradingPayouts']
+export const collections: Collection[] = ['members', 'incomes', 'expenses', 'debts', 'payments', 'settlements', 'savings', 'trading', 'oneTimeExpenses', 'tradingPayouts', 'bankAccounts', 'incomeTransactions', 'incomeRevisions', 'expenseTransactions', 'bankTransfers', 'categories', 'monthlyBudgets', 'tradingTransactions', 'savedScenarios', 'balanceCorrections']
 export function toJson(data: Backup) { return JSON.stringify(backupSchema.parse({ ...data, exportedAt: new Date().toISOString() }), null, 2) }
 export function fromJson(text: string) { return parseBackup(JSON.parse(text)) }
 const flatten = (value: unknown) => value === null || value === undefined ? '' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : typeof value === 'object' ? JSON.stringify(value) : value
@@ -13,7 +13,7 @@ export async function toXlsx(data: Backup) {
   const overview = workbook.addWorksheet('Summary')
   const s = summary(data)
   const household = householdOverview(data)
-  overview.addRows([['GoXPlan household summary', 'Value'], ['Schema version', data.version], ['Exported at', data.exportedAt], ['Monthly income (known)', s.income], ['Monthly expenses (known)', s.expenses], ['Debt minimums (known)', s.minimums], ['Remaining (known data)', s.remaining], ['Household debt (known)', household.totalDebt], ['Collection balances', household.collectionBalances], ['Charge-off balances', household.chargeOffBalances], ['Settlement opportunities', household.settlementOpportunities], ['Missing fields', s.missing.join('; ') || 'None']])
+  overview.addRows([['GoXPlan household summary', 'Value'], ['Schema version', data.version], ['Household', data.household.name], ['Household ID', data.household.id], ['Exported at', data.exportedAt], ['Fixed monthly income estimate', s.income], ['Confirmed net deposits', data.incomeTransactions.reduce((sum, row) => sum + row.amount, 0)], ['Recorded gross pay', data.incomeTransactions.reduce((sum, row) => sum + (row.gross ?? 0), 0)], ['Monthly expenses (known)', s.expenses], ['Debt minimums (known)', s.minimums], ['Projected fixed-income margin', s.remaining], ['Household debt (known)', household.totalDebt], ['Collection balances', household.collectionBalances], ['Charge-off balances', household.chargeOffBalances], ['Settlement opportunities', household.settlementOpportunities], ['Missing fields', s.missing.join('; ') || 'None']])
   for (const key of collections) {
     const sheet = workbook.addWorksheet(key[0].toUpperCase() + key.slice(1))
     const rows = data[key] as unknown as Record<string, unknown>[]
@@ -34,8 +34,8 @@ export async function toXlsx(data: Backup) {
   schedule.addRow(['Settlement', 'Debt', 'Status', 'Due date', 'Payment', 'Unpaid', 'Written agreement'])
   data.settlements.forEach(settlement => settlementPlan(settlement, data).schedule.forEach(item => schedule.addRow([settlement.name, data.debts.find(d => d.id === settlement.debtId)?.creditor ?? '', settlement.status, item.date, item.amount, item.remaining, settlement.writtenAgreement ? 'Yes' : 'No'])))
   const projection = workbook.addWorksheet('Monthly forecast')
-  projection.addRow(['Month', 'Starting cash', 'Income', 'Bills', 'Debt minimums', 'One-time expenses', 'Settlements', 'Emergency savings', 'Extra debt', 'Total expenses', 'Free cash flow', 'Ending cash', 'Shortfall', 'Settlement budget'])
-  simulateCashFlow(data, { startMonth: new Date().toISOString().slice(0, 7), startingCash: data.settings.startingCash, monthlyEmergencySavings: data.settings.monthlyEmergencySavings, monthlyExtraDebtPayment: data.settings.monthlyExtraDebtPayment }).forEach(row => projection.addRow([row.month, row.startingCash, row.income, row.recurringBills, row.minimums, row.oneTime, row.settlements, row.emergencySavings, row.extraDebtPayments, row.expenses, row.freeCashFlow, row.endingCash, row.shortfall, row.availableSettlementBudget]))
+  projection.addRow(['Month', 'Starting cash', 'Confirmed net and actual payouts', 'Estimated fixed income (excluded)', 'Bills', 'Debt minimums', 'One-time expenses', 'Settlements', 'Emergency savings', 'Extra debt', 'Total expenses', 'Free cash flow', 'Ending cash', 'Shortfall', 'Settlement budget'])
+  simulateCashFlow(data, { startMonth: new Date().toISOString().slice(0, 7), startingCash: data.settings.startingCash, monthlyEmergencySavings: data.settings.monthlyEmergencySavings, monthlyExtraDebtPayment: data.settings.monthlyExtraDebtPayment }).forEach(row => projection.addRow([row.month, row.startingCash, row.income, row.estimatedIncome, row.recurringBills, row.minimums, row.oneTime, row.settlements, row.emergencySavings, row.extraDebtPayments, row.expenses, row.freeCashFlow, row.endingCash, row.shortfall, row.availableSettlementBudget]))
   for (const sheet of [priority, schedule, projection]) { sheet.views = [{ state: 'frozen', ySplit: 1 }]; sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }; sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF17345A' } }; sheet.columns = Array.from({ length: sheet.getRow(1).cellCount }, () => ({ width: 22 })) }
   overview.getRow(1).font = { bold: true }
   return workbook.xlsx.writeBuffer()

@@ -1,4 +1,4 @@
-import { activeDebts, monthly, sumKnown } from './finance'
+import { activeDebts, monthly, statedDebtBalance, sumKnown } from './finance'
 import type { Backup, Debt, Settlement } from './schema'
 
 const cents = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
@@ -34,7 +34,8 @@ export function debtPriority(debt: Debt) {
 export function debtQueue(data: Backup) { return activeDebts(data.debts).map(debtPriority).sort((a, b) => rank[a.level] - rank[b.level] || b.score - a.score || a.debt.creditor.localeCompare(b.debt.creditor)) }
 
 export function settlementTotal(settlement: Settlement, debt?: Debt) {
-  return settlement.agreedAmount ?? settlement.offerAmount ?? (settlement.offerPercent !== null && debt?.balance !== null && debt?.balance !== undefined ? cents(debt.balance * settlement.offerPercent / 100) : null)
+  const balance = debt ? statedDebtBalance(debt) : null
+  return settlement.agreedAmount ?? settlement.offerAmount ?? (settlement.offerPercent !== null && balance !== null ? cents(balance * settlement.offerPercent / 100) : null)
 }
 export function settlementPaid(settlement: Settlement, data: Backup) {
   return cents((settlement.paidAmount ?? 0) + sumKnown(data.payments.filter(p => p.settlementId === settlement.id && p.cashOutflow && (p.kind === 'debt' || p.kind === 'credit-card-payment')).map(p => p.amount)))
@@ -60,38 +61,49 @@ export function settlementPlan(settlement: Settlement, data: Backup) {
   const schedule = settlementSchedule(settlement, debt)
   let applied = paid
   const remainingSchedule = schedule.map(item => { const offset = Math.min(item.amount, applied); applied = cents(applied - offset); return { ...item, remaining: cents(item.amount - offset) } })
-  return { debt, total, paid, remaining: total === null ? null : Math.max(0, cents(total - paid)), savings: total === null || debt?.balance === null || debt?.balance === undefined ? null : cents(debt.balance - total), monthlyRequirement: settlement.planType === 'installments' && total !== null ? cents((total - Math.min(total, settlement.downPayment ?? 0)) / Math.max(1, settlement.installments)) : null, completionDate: schedule.at(-1)?.date ?? null, schedule: remainingSchedule }
+  const balance = debt ? statedDebtBalance(debt) : null
+  return { debt, total, paid, remaining: total === null ? null : Math.max(0, cents(total - paid)), savings: total === null || balance === null ? null : cents(balance - total), monthlyRequirement: settlement.planType === 'installments' && total !== null ? cents((total - Math.min(total, settlement.downPayment ?? 0)) / Math.max(1, settlement.installments)) : null, completionDate: schedule.at(-1)?.date ?? null, schedule: remainingSchedule }
 }
 
-export type SimulationOptions = { startMonth: string; startingCash: number; monthlyEmergencySavings: number; monthlyExtraDebtPayment: number; hypotheticalTradingMonthly?: number }
+export type SimulationOptions = { startMonth: string; startingCash: number; monthlyEmergencySavings: number; monthlyExtraDebtPayment: number; hypotheticalTradingMonthly?: number; includeProjectedIncome?: boolean }
 export function simulateCashFlow(data: Backup, options: SimulationOptions) {
   const accepted = data.settlements.filter(s => s.status === 'accepted' && s.writtenAgreement)
   const replacedDebtIds = new Set(accepted.map(s => s.debtId))
-  const monthlyIncome = sumKnown(data.incomes.filter(i => i.active).map(i => monthly(i.amount, i.frequency)))
-  const monthlyBills = sumKnown(data.expenses.filter(e => e.active).map(e => monthly(e.amount, e.frequency)))
-  const monthlyMinimums = sumKnown(activeDebts(data.debts).filter(d => !replacedDebtIds.has(d.id)).map(d => d.minimumPayment))
+  const recurringIncome = data.incomes.filter(i => i.active)
+  const recurringBills = data.expenses.filter(e => e.active)
+  const minimumDebts = activeDebts(data.debts).filter(d => !replacedDebtIds.has(d.id))
   const settlementItems = accepted.flatMap(s => settlementPlan(s, data).schedule.filter(item => item.remaining > 0).map(item => ({ settlementId: s.id, name: s.name, date: item.date, amount: item.remaining })))
   const monthStart = `${options.startMonth}-01`
   let cash = cents(options.startingCash)
   return Array.from({ length: 12 }, (_, index) => {
     const date = addMonths(monthStart, index), month = monthKey(date)
     const startingCash = cash
+    const paidIncome = data.incomeTransactions.filter(t => monthKey(t.date) === month)
+    const confirmedIncome = cents(sumKnown(paidIncome.map(t => t.amount)))
+    const confirmedSources = new Set(paidIncome.map(t => t.sourceId).filter(Boolean))
+    const estimatedIncome = cents(sumKnown(recurringIncome.filter(source => source.payType === 'salaried' && !confirmedSources.has(source.id)).map(source => monthly(source.amount, source.frequency))))
     const actualPayouts = cents(sumKnown(data.tradingPayouts.filter(p => monthKey(p.date) === month).map(p => p.amount)))
     const hypothetical = cents(options.hypotheticalTradingMonthly ?? 0)
-    const income = cents(monthlyIncome + actualPayouts + hypothetical)
-    const oneTime = cents(sumKnown(data.oneTimeExpenses.filter(e => monthKey(e.date) === month).map(e => e.amount)))
+    const income = cents(confirmedIncome + actualPayouts + (options.includeProjectedIncome ? estimatedIncome : 0) + hypothetical)
+    const paidBills = data.expenseTransactions.filter(t => monthKey(t.date) === month && t.cashOutflow && t.kind === 'expense')
+    const actualExpenses = cents(sumKnown(paidBills.map(t => t.amount)))
+    const monthlyBills = cents(sumKnown(recurringBills.map(bill => Math.max(0, (monthly(bill.amount, bill.frequency) ?? 0) - sumKnown(paidBills.filter(t => t.expenseId === bill.id).map(t => t.amount))))))
+    const oneTime = cents(sumKnown(data.oneTimeExpenses.filter(e => monthKey(e.date) === month).map(e => Math.max(0, (e.amount ?? 0) - sumKnown(paidBills.filter(t => t.name === e.name && t.date === e.date).map(t => t.amount))))))
+    const actualDebtPayments = data.payments.filter(p => monthKey(p.date) === month && p.cashOutflow && !p.settlementId && p.kind === 'debt')
+    const actualPayments = cents(sumKnown(actualDebtPayments.map(p => p.amount)) + sumKnown(data.payments.filter(p => monthKey(p.date) === month && p.cashOutflow && p.settlementId).map(p => p.amount)))
+    const monthlyMinimums = cents(sumKnown(minimumDebts.map(debt => Math.max(0, (debt.minimumPayment ?? 0) - sumKnown(actualDebtPayments.filter(p => p.debtId === debt.id).map(p => p.amount))))))
     const settlementDue = settlementItems.filter(item => monthKey(item.date) <= month && (index === 0 || monthKey(item.date) === month)).map(item => ({ ...item, date: monthKey(item.date) < month ? monthStart : item.date }))
     const settlements = cents(sumKnown(settlementDue.map(item => item.amount)))
     const savings = cents(options.monthlyEmergencySavings)
     const extra = cents(options.monthlyExtraDebtPayment)
-    const expenses = cents(monthlyBills + monthlyMinimums + oneTime + settlements + savings + extra)
+    const expenses = cents(monthlyBills + actualExpenses + monthlyMinimums + actualPayments + oneTime + settlements + savings + extra)
     const freeCashFlow = cents(income - expenses)
     cash = cents(cash + freeCashFlow)
-    const availableSettlementBudget = Math.max(0, cents(startingCash + income - monthlyBills - monthlyMinimums - oneTime - savings - extra - settlements))
-    return { month, startingCash, endingCash: cash, income, recurringBills: monthlyBills, minimums: monthlyMinimums, oneTime, settlements, emergencySavings: savings, extraDebtPayments: extra, expenses, freeCashFlow, actualPayouts, hypothetical, shortfall: cash < 0 ? Math.abs(cash) : 0, availableSettlementBudget, obligations: settlementDue }
+    const availableSettlementBudget = Math.max(0, cents(startingCash + confirmedIncome + actualPayouts - expenses))
+    return { month, startingCash, endingCash: cash, income, confirmedIncome, estimatedIncome, recurringBills: monthlyBills, actualExpenses, minimums: monthlyMinimums, actualPayments, oneTime, settlements, emergencySavings: savings, extraDebtPayments: extra, expenses, freeCashFlow, actualPayouts, hypothetical, shortfall: cash < 0 ? Math.abs(cash) : 0, availableSettlementBudget, obligations: settlementDue }
   })
 }
 export function householdOverview(data: Backup) {
   const debts = activeDebts(data.debts)
-  return { totalDebt: sumKnown(debts.map(d => d.balance)), monthlyDebtPayments: sumKnown(debts.map(d => d.minimumPayment)), collectionBalances: sumKnown(debts.filter(d => d.status === 'collection').map(d => d.balance)), chargeOffBalances: sumKnown(debts.filter(d => d.chargeOff).map(d => d.balance)), settlementOpportunities: data.settlements.filter(s => ['proposed', 'negotiating', 'accepted'].includes(s.status)).length, jointDebtCount: debts.filter(d => d.ownerType === 'joint').length }
+  return { totalDebt: sumKnown(debts.map(statedDebtBalance)), monthlyDebtPayments: sumKnown(debts.map(d => d.minimumPayment)), collectionBalances: sumKnown(debts.filter(d => d.status === 'collection').map(statedDebtBalance)), chargeOffBalances: sumKnown(debts.filter(d => d.chargeOff).map(statedDebtBalance)), settlementOpportunities: data.settlements.filter(s => ['proposed', 'negotiating', 'accepted'].includes(s.status)).length, jointDebtCount: debts.filter(d => d.ownerType === 'joint').length }
 }

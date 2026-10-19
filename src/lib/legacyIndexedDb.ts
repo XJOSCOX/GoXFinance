@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { backupSchema, emptyBackup, parseBackup, type Backup, type Collection, type Debt, type Expense, type Income, type Member, type OneTimeExpense, type Payment, type Savings, type Settlement, type Trading, type TradingPayout, type Settings } from './schema'
+import { emptyBackup, parseBackup, type Backup, type Collection, type Debt, type Expense, type Income, type Member, type OneTimeExpense, type Payment, type Savings, type Settlement, type Trading, type TradingPayout, type Settings } from './schema'
 
 class GoXDatabase extends Dexie {
   members!: Table<Member, string>; incomes!: Table<Income, string>; expenses!: Table<Expense, string>; debts!: Table<Debt, string>; payments!: Table<Payment, string>; settlements!: Table<Settlement, string>; savings!: Table<Savings, string>; trading!: Table<Trading, string>; oneTimeExpenses!: Table<OneTimeExpense, string>; tradingPayouts!: Table<TradingPayout, string>; settings!: Table<{ id: string; value: Settings }, string>
@@ -17,7 +17,7 @@ class GoXDatabase extends Dexie {
 export const db = new GoXDatabase()
 export async function readAll(): Promise<Backup> {
   const [members, incomes, expenses, debts, payments, settlements, savings, trading, oneTimeExpenses, tradingPayouts, settings] = await Promise.all([db.members.toArray(), db.incomes.toArray(), db.expenses.toArray(), db.debts.toArray(), db.payments.toArray(), db.settlements.toArray(), db.savings.toArray(), db.trading.toArray(), db.oneTimeExpenses.toArray(), db.tradingPayouts.toArray(), db.settings.get('main')])
-  return backupSchema.parse({ ...emptyBackup(), members, incomes, expenses, debts, payments, settlements, savings, trading, oneTimeExpenses, tradingPayouts, settings: settings?.value ?? emptyBackup().settings })
+  return parseBackup({ format: 'goxplan', version: 2, exportedAt: new Date().toISOString(), members, incomes, expenses, debts, payments, settlements, savings, trading, oneTimeExpenses, tradingPayouts, settings: settings?.value ?? emptyBackup().settings })
 }
 export async function mergeBackup(value: unknown) {
   const data = parseBackup(value)
