@@ -6,6 +6,7 @@ import { validateEncryptedFile } from './encrypted-copy'
 import { initializeEncryptedDatabase } from './initialize-database'
 import { promptPassphrase } from './passphrase-prompt'
 import { validateKey, type DatabaseSecurity } from './sqlite-engine'
+import { verifyPreparedCandidate } from './candidate-verification'
 
 const secrets: Buffer[] = []
 async function unlock(label: string, confirm = false): Promise<DatabaseSecurity> {
@@ -28,13 +29,17 @@ try {
       destination: { type: 'string' },
       source: { type: 'string' },
       recovery: { type: 'string' },
+      manifest: { type: 'string' },
+      report: { type: 'string' },
       'source-encrypted': { type: 'boolean', default: false },
     },
   })
-  if (positionals.length !== 1 || !values.destination)
-    throw new Error('Specify initialize, prepare, or verify and --destination')
+  if (positionals.length !== 1 || (!values.destination && positionals[0] !== 'rehearse'))
+    throw new Error(
+      'Specify initialize, prepare, verify with --destination, or rehearse with --manifest and --report',
+    )
   const [action] = positionals,
-    destination = resolve(values.destination)
+    destination = values.destination ? resolve(values.destination) : ''
   if (action === 'initialize') {
     const security = await unlock('New database passphrase (16–1024 UTF-8 bytes)', true)
     initializeEncryptedDatabase(destination, security)
@@ -61,6 +66,17 @@ try {
   } else if (action === 'verify') {
     validateEncryptedFile(destination, await unlock('Database passphrase'))
     console.info('Encrypted database integrity verified with an independent connection.')
+  } else if (action === 'rehearse') {
+    if (!values.manifest || !values.report)
+      throw new Error('Rehearse requires --manifest and --report')
+    await verifyPreparedCandidate(
+      resolve(values.manifest),
+      resolve(values.report),
+      await unlock('Reenter the candidate passphrase from your saved recovery record'),
+    )
+    console.info(
+      'Candidate, backup and disposable restore verified. Local report saved. STOP: explicit approval is required before production cutover.',
+    )
   } else throw new Error('Unknown encryption command')
 } catch {
   console.error(

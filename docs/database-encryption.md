@@ -77,6 +77,21 @@ The command:
 
 The conversion uses the [engine maintainer's supported VACUUM INTO URI technique](https://github.com/utelle/SQLite3MultipleCiphers/discussions/72). The driver requires its `SQLITE_USE_URI=1` native initialization setting; this is set internally before native initialization. The destination URI is a bound parameter and includes explicit cipher/key parameters. No plaintext temporary database export is made. Existing/occupied destinations cause failure. Incomplete outputs are retained for inspection; no automatic retry or cleanup runs. Logical fingerprinting currently holds table row hashes in memory; large databases may need a streaming comparison before migration.
 
+
+### Offline candidate verification and restore rehearsal
+
+After `prepare`, the optional `rehearse` command consumes a local safety manifest and reenters the key from the user's separately saved recovery record. The manifest must contain `sourcePath`, `candidatePath`, `encryptedRecoveryPath`, `logicalFingerprint`, and `safetyBackup.path`. It must be generated from a verified, offline safety backup; it contains paths, aggregate counts and checksums, never record contents or secrets. Keep this manifest and all generated reports in the ignored local data directory or another private directory outside Git.
+
+```powershell
+npm --script-shell=cmd.exe run db:encryption -- rehearse --manifest ./data/preparation/safety-manifest.json --report ./data/preparation/verification-report.json
+```
+
+The command holds source/candidate runtime leases, checks current migration compatibility, independently compares the source, safety backup, encrypted recovery and candidate using exact logical fingerprints, and tests ordinary-reader/wrong-key rejection. It creates an encrypted backup through the existing snapshot utility and restores only into a newly reserved disposable directory. Restored contents must match exactly except for the deliberately invalidated session rows; users, permissions, financial records, migrations and audit rows are not exempted from comparison.
+
+Candidate and restored API verification performs two full Fastify startup/close cycles with new keyed connections and an anonymous `/api/auth/me` check. It uses in-process requests, without opening a network listener, creating users/sessions, or using the user's login credentials. This proves application/database reopening; it is not a production process cutover or a manual login test. The full session-preservation fingerprint must remain unchanged on the candidate.
+
+The aggregate-only report records PASS/FAIL/NOT_RUN per stage. A failure stops further verification and retains generated files for inspection; existing report paths are refused. Nothing changes `.env`, selects the candidate as the live database, deletes recovery copies, or performs production cutover. Rehearsal changes session rows only in the disposable restored copy. Keep APIs and external editors stopped until this command completes, then review the report and obtain separate explicit approval for cutover.
+
 ### Production cutover — separate manual step
 
 Only after the verified preparation, backup-key recovery rehearsal, and **explicit user approval**, configure:

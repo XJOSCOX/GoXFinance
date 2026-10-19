@@ -8,7 +8,10 @@ const encode = (value: unknown) =>
   )
 
 /** Logical equality includes every schema object and row, independent of physical page order. */
-export function databaseFingerprint(db: Database.Database) {
+export function databaseFingerprint(
+  db: Database.Database,
+  options: { omitSessionRowsForRestore?: boolean } = {},
+) {
   const hash = createHash('sha256')
   const schema = db
     .prepare('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')
@@ -19,6 +22,8 @@ export function databaseFingerprint(db: Database.Database) {
     .all() as { name: string }[]
   for (const { name } of tables) {
     hash.update(name)
+    // A restore deliberately invalidates sessions; all schema and every other row still match.
+    if (name === 'sessions' && options.omitSessionRowsForRestore) continue
     const rows = db
       .prepare(`SELECT * FROM ${quote(name)}`)
       .safeIntegers()
