@@ -1,4 +1,5 @@
 import type { HouseholdOverview } from '@goxfinance/shared'
+import type { ReactNode } from 'react'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { formatMoney } from '../../../lib/money'
 import { OverviewPayments } from './OverviewPayments'
@@ -7,7 +8,15 @@ import { OverviewBills } from './OverviewBills'
 import { OverviewAttention } from './OverviewAttention'
 import { OverviewProgress } from './OverviewProgress'
 import { OverviewDebtProgress } from './OverviewDebtProgress'
-export function OverviewContent({ data, home }: { data: HouseholdOverview; home: string }) {
+export function OverviewContent({
+  data,
+  home,
+  goalSummary,
+}: {
+  data: HouseholdOverview
+  home: string
+  goalSummary?: ReactNode
+}) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
@@ -85,10 +94,11 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
           <div className="order-1">
             <OverviewAttention data={data} home={home} />
           </div>
-          <div className="order-3">
+          <div className="order-3">{goalSummary}</div>
+          <div className="order-4">
             <OverviewDebtProgress data={data} />
           </div>
-          <div className="order-4">
+          <div className="order-5">
             <OverviewDebtSnapshot data={data} home={home} />
           </div>
         </div>

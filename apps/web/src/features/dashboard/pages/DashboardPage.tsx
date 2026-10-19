@@ -7,6 +7,7 @@ import { Button, Card, Input } from '../../../components/ui'
 import { FormField } from '../../../components/ui/FormField'
 import { getOverview } from '../api/overviewClient'
 import { OverviewContent } from '../components/OverviewContent'
+import { OverviewGoals } from '../components/OverviewGoals'
 import { refreshBills } from '../../bills/api/billClient'
 import { errorMessage } from '../../../lib/api'
 
@@ -64,7 +65,11 @@ export function DashboardPage() {
           </Button>
         </Card>
       ) : data && selected ? (
-        <OverviewContent data={data} home={selected.id} />
+        <OverviewContent
+          data={data}
+          home={selected.id}
+          goalSummary={<OverviewGoals key={selected.id} home={selected.id} />}
+        />
       ) : (
         <p role="status">Loading overview…</p>
       )}
