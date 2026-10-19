@@ -11,3 +11,5 @@ export * from './expenses'
 export * from './outflows'
 export * from './overview'
 export * from './payment-presets'
+
+export * from './overview-payments'

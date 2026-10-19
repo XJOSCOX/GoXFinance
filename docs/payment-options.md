@@ -31,3 +31,9 @@ A completed debt-linked bill creates one authoritative debt payment with its sup
 Tests cover presets (including unknown/zero amounts), custom edits, exact cents, clearance confirmation, all payment statuses, duplicate submissions, known-principal preservation, no automatic payoff, Owner restrictions, linked correction/cancellation, populated migration preservation, and API restart persistence.
 
 Browser QA used only the isolated fictional localhost:1421 database. Verified bill/debt row shortcuts, the remaining-bill preset and cleared confirmation, a scheduled full-balance debt record with unchanged completed totals, disabled unknown presets, and the payoff warning. The shortcut dialogs mount after their detail dialog so focus and stacking stay correct. QA databases and screenshots remain outside Git.
+
+## Overview payment reporting
+
+The overview groups recorded debt and bill payments by payment date in the selected reporting month. Scheduled, pending, and completed payments have independent totals and lists. Failed and cancelled records are excluded from these groups. Only completed payments contribute to actual cash paid (credit-card payments retain the existing cash-outflow rules).
+
+`packages/shared/src/overview-payments.ts` provides the reporting projection. A linked bill payment is represented by its authoritative debt payment, including subsequent corrections and cancellations. Remaining bill amounts use actual period balances after completed payments and credits; unknown amounts are excluded from known totals and explicitly counted. Upcoming and overdue bill periods continue to show their remaining balance, completed amount paid, and any recorded credit separately from budget estimates.

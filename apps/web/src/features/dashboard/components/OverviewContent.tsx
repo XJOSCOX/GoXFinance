@@ -1,3 +1,4 @@
+import { OverviewPayments } from './OverviewPayments'
 import { Link } from 'react-router-dom'
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
@@ -32,6 +33,7 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
           detail="Confirmed payments; excludes credit purchases"
         />
       </div>
+      <OverviewPayments payments={data.payments} home={home} />
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <Card className="p-5">
           <div className="flex items-center justify-between gap-3">
@@ -60,7 +62,11 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="tabular-nums">{formatMoney(period.remainingCents)}</p>
+                    <p className="tabular-nums">{formatMoney(period.remainingCents)} remaining</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {formatMoney(period.paidCents)} paid
+                      {period.creditCents > 0 ? ` · ${formatMoney(period.creditCents)} credit` : ''}
+                    </p>
                     {period.amountCents === null && (
                       <p className="mt-1 text-xs text-slate-400">
                         Estimate {formatMoney(period.estimatedAmountCents)}
@@ -108,8 +114,16 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
             <strong className="mt-1 block">{data.expenses.length} purchases</strong>
           </p>
           <p>
-            <span className="block text-slate-400">Actual bill amounts remaining</span>
-            <strong className="mt-1 block">{formatMoney(data.bills.outstandingCents)}</strong>
+            <span className="block text-slate-400">Bills remaining this reporting month</span>
+            <strong className="mt-1 block">
+              {formatMoney(data.payments.remainingBills.amountCents)}
+            </strong>
+            <span className="mt-1 block text-xs text-slate-400">
+              After completed payments and credits.
+              {data.payments.remainingBills.unknownCount > 0
+                ? ` ${data.payments.remainingBills.unknownCount} amounts unknown; excluded from total.`
+                : ''}
+            </span>
           </p>
           <p>
             <span className="block text-slate-400">Confirmed outflows</span>

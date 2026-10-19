@@ -532,6 +532,12 @@ describe('bills persistence, payments and permissions', () => {
       transactionCount: 1,
     })
     expect(overview.bills.householdMonthlyObligationsCents).toBe(15000)
+    expect(overview.payments.completed.totalCents).toBe(15000)
+    expect(overview.payments.completed.items).toHaveLength(1)
+    expect(overview.payments.completed.items[0]).toMatchObject({ id: linked, source: 'debt' })
+    expect(overview.payments.pending.items).toHaveLength(0)
+    expect(overview.payments.scheduled.items).toHaveLength(0)
+
     await testRequest(
       f.app,
       'PATCH',

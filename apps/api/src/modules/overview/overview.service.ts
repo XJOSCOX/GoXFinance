@@ -1,5 +1,6 @@
 import {
   calculateBillSummary,
+  overviewPayments,
   cashOutflows,
   localBillDate,
   sumCents,
@@ -29,6 +30,7 @@ export function overviewService(
       ).filter((item) => item.date.startsWith(month))
       return {
         month,
+        payments: overviewPayments(billList, debtList.debts, payments, month),
         debts: debtList,
         bills: calculateBillSummary(billList, debtList.debts, localBillDate()),
         actual: {
