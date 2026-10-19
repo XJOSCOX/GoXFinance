@@ -137,7 +137,12 @@ export function billRepository(db: DatabaseConnection) {
     updatePeriod(
       householdId: string,
       id: string,
-      values: { amountCents: number | null; creditCents: number; notes: string | null },
+      values: {
+        amountCents: number | null
+        creditCents: number
+        notes: string | null
+        estimatedAmountCents?: number
+      },
     ) {
       db.update(billPeriods)
         .set({ ...values, updatedAt: new Date().toISOString() })

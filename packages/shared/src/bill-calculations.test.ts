@@ -201,7 +201,7 @@ it('reports unconfirmed bill totals separately from the known remaining total', 
   })
 })
 
-it('uses the saved estimate only for open current/future periods with missing snapshots', () => {
+it('keeps the saved estimate visible on current/future confirmed and paid periods with missing snapshots', () => {
   const bill = { amountType: 'variable', status: 'active', estimatedAmountCents: 30000 } as BillView
   const open = billPeriodView(
     {
@@ -220,13 +220,9 @@ it('uses the saved estimate only for open current/future periods with missing sn
   expect(open.amountCents).toBeNull()
   expect(open.remainingCents).toBeNull()
   expect(open.paidCents).toBe(0)
-  for (const changes of [
-    { dueDate: '2026-09-21' },
-    { amountCents: 34218 },
-    { paidCents: 20000 },
-    { creditCents: 100 },
-  ])
-    expect(billBudgetEstimate(bill, { ...open, ...changes }, '2026-10-19')).toBeNull()
+  for (const changes of [{ amountCents: 34218 }, { paidCents: 20000 }, { creditCents: 100 }])
+    expect(billBudgetEstimate(bill, { ...open, ...changes }, '2026-10-19')).toBe(30000)
+  expect(billBudgetEstimate(bill, { ...open, dueDate: '2026-09-21' }, '2026-10-19')).toBeNull()
   expect(billBudgetEstimate(bill, { ...open, estimatedAmountCents: 25000 }, '2026-10-19')).toBe(
     25000,
   )

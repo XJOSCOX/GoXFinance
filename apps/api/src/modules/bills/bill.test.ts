@@ -870,3 +870,85 @@ it('displays an estimate entered after the current period was created without re
     sqlite.close()
   }
 })
+
+it('retains the budget snapshot after actual confirmation, partial payment and future estimate changes', async () => {
+  const f = await setup(),
+    today = localBillDate()
+  const bill = await f.create({ nextDueDate: today, estimatedAmountCents: null })
+  const updated = await f.act(bill, {
+    action: 'edit_bill',
+    changes: {
+      ...f.input,
+      nextDueDate: today,
+      estimatedAmountCents: 30000,
+    },
+  })
+  const current = updated.json().bill as BillView,
+    period = current.periods[0]
+  const paid = await f.request('POST', `/${bill.id}/periods/${period.id}/payments`, {
+    idempotencyKey: randomUUID(),
+    amountCents: 20000,
+    paymentDate: today,
+    method: 'cash',
+    notes: null,
+    status: 'completed',
+    billAmountConfirmation: { amountCents: 34218, expectedRevision: current.revision },
+  })
+  expect(paid.statusCode, paid.body).toBe(200)
+  expect(paid.json().bill.periods[0]).toMatchObject({
+    estimatedAmountCents: 30000,
+    budgetEstimateCents: 30000,
+    amountCents: 34218,
+    paidCents: 20000,
+    remainingCents: 14218,
+  })
+  await f.act(bill, {
+    action: 'edit_bill',
+    changes: {
+      ...f.input,
+      nextDueDate: today,
+      estimatedAmountCents: 40000,
+    },
+  })
+  const overview = await testRequest(
+    f.app,
+    'GET',
+    `/api/households/${f.home}/overview?month=${today.slice(0, 7)}`,
+    f.owner.cookie,
+  )
+  expect(overview.json().payments.billAmounts).toMatchObject({
+    estimatedCents: 30000,
+    confirmedCents: 34218,
+    paidCents: 20000,
+    remainingCents: 14218,
+  })
+  expect(overview.json().upcoming[0]).toMatchObject({
+    estimatedAmountCents: 30000,
+    budgetEstimateCents: 30000,
+    amountCents: 34218,
+    paidCents: 20000,
+    remainingCents: 14218,
+  })
+})
+it('captures a missing budget snapshot when confirming an actual bill separately', async () => {
+  const f = await setup(),
+    today = localBillDate()
+  const bill = await f.create({ nextDueDate: today, estimatedAmountCents: null })
+  await f.act(bill, {
+    action: 'edit_bill',
+    changes: { ...f.input, nextDueDate: today, estimatedAmountCents: 30000 },
+  })
+  const result = await f.act(bill, {
+    action: 'edit_period',
+    periodId: bill.periods[0].id,
+    changes: { amountCents: 34218, creditCents: 0, notes: null },
+  })
+  expect(result.statusCode, result.body).toBe(200)
+  expect(result.json().bill.periods[0]).toMatchObject({
+    estimatedAmountCents: 30000,
+    budgetEstimateCents: 30000,
+    amountCents: 34218,
+    paidCents: 0,
+    remainingCents: 34218,
+  })
+})

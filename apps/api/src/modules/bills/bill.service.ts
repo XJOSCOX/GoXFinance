@@ -9,6 +9,7 @@ import {
   localBillDate,
   type Bill,
   type BillAction,
+  type BillPeriod,
   type PublicUser,
 } from '@goxfinance/shared'
 import type { PaymentService } from '../debt-payments/payment.service'
@@ -42,6 +43,16 @@ export function billService(
         return { ...result, budgetEstimateCents: billBudgetEstimate(bill, result, localBillDate()) }
       }),
     }
+  }
+  function estimateSnapshot(bill: Bill, period: BillPeriod) {
+    const estimate = billBudgetEstimate(
+      bill,
+      billPeriodView(period, [], bill.status === 'cancelled', localBillDate()),
+      localBillDate(),
+    )
+    return period.estimatedAmountCents === null && estimate !== null
+      ? { estimatedAmountCents: estimate }
+      : {}
   }
   function materialize(bill: Bill) {
     if (bill.status === 'active')
@@ -125,9 +136,13 @@ export function billService(
           ...bill,
           status: bill.kind === 'recurring' ? 'inactive' : 'cancelled',
         })
-      else if (action.action === 'edit_period')
-        store.updatePeriod(householdId, action.periodId, action.changes)
-      else {
+      else if (action.action === 'edit_period') {
+        const period = store.periods(householdId, id).find((item) => item.id === action.periodId)!
+        store.updatePeriod(householdId, action.periodId, {
+          ...action.changes,
+          ...(action.changes.amountCents !== null ? estimateSnapshot(bill, period) : {}),
+        })
+      } else {
         const payment = store
           .payments(householdId, id)
           .find((item) => item.id === action.paymentId)!
@@ -302,6 +317,26 @@ export function billService(
             ...period,
             ...changes,
           })
+        }
+        const snapshot = permissions.flags(user, bill).requiresApproval
+          ? {}
+          : estimateSnapshot(bill, period)
+        if (snapshot.estimatedAmountCents !== undefined) {
+          store.updatePeriod(householdId, periodId, {
+            amountCents: billAmountConfirmation?.amountCents ?? period.amountCents,
+            creditCents: period.creditCents,
+            notes: period.notes,
+            ...snapshot,
+          })
+          store.audit(
+            householdId,
+            id,
+            user.id,
+            'estimate_captured',
+            periodId,
+            { estimatedAmountCents: period.estimatedAmountCents },
+            snapshot,
+          )
         }
         const paymentId = randomUUID(),
           now = new Date().toISOString()

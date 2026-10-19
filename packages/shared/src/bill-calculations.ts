@@ -95,17 +95,14 @@ export function billPeriodView(
       period.dueDate < today,
   }
 }
-// Read-only fallback for open current/future periods created before an estimate was entered.
-// Keep stored snapshots and all confirmed/paid historical periods unchanged.
+// Read-only fallback for current/future periods created before an estimate was entered.
+// Stored snapshots and earlier months remain unchanged.
 export function billBudgetEstimate(bill: Bill, period: BillPeriodView, today: string) {
   if (period.estimatedAmountCents !== null) return period.estimatedAmountCents
   if (
     bill.amountType !== 'variable' ||
     bill.status !== 'active' ||
     period.dueDate < today.slice(0, 7) + '-01' ||
-    period.amountCents !== null ||
-    period.paidCents > 0 ||
-    period.creditCents > 0 ||
     period.paymentStatus === 'cancelled'
   )
     return null

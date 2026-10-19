@@ -1,5 +1,4 @@
 import type { HouseholdOverview } from '@goxfinance/shared'
-import { Link } from 'react-router-dom'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { formatMoney } from '../../../lib/money'
 import { OverviewPayments } from './OverviewPayments'
@@ -9,7 +8,6 @@ import { OverviewAttention } from './OverviewAttention'
 import { OverviewProgress } from './OverviewProgress'
 import { OverviewDebtProgress } from './OverviewDebtProgress'
 export function OverviewContent({ data, home }: { data: HouseholdOverview; home: string }) {
-  const base = `/households/${home}`
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
@@ -72,22 +70,6 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
           />
         </section>
       </div>
-      <nav aria-label="Manage household finances" className="flex flex-wrap gap-2">
-        {[
-          ['bills', 'Manage bills'],
-          ['income', 'Record income'],
-          ['expenses', 'Record an expense'],
-          ['debts', 'Manage debts'],
-        ].map(([path, label]) => (
-          <Link
-            key={path}
-            to={`${base}/${path}`}
-            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-white/[.05] focus-visible:outline focus-visible:outline-[#a9b8a9]"
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
       <div className="grid items-start gap-3 lg:grid-cols-[1.2fr_1fr] xl:grid-cols-3">
         <div className="order-2 space-y-3 lg:order-1 xl:col-span-2">
           <OverviewProgress data={data} />

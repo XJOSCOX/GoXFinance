@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import {
   calculateDebtSummary,
@@ -175,7 +175,7 @@ it('shows actual partial balances, estimates, and unknown bill amounts distinctl
   expect(screen.getAllByText('Actual bill not confirmed')).toHaveLength(2)
 })
 
-it('has useful empty states and household-scoped actions without invented records', () => {
+it('keeps useful empty states and household-scoped detail links without duplicate shortcuts', () => {
   const data = overview()
   data.payments.completed = { items: [], totalCents: 0 }
   show(data)
@@ -183,9 +183,9 @@ it('has useful empty states and household-scoped actions without invented record
   expect(screen.getByText('No debts recorded.')).toBeTruthy()
   expect(screen.getByText('No data warnings to review.')).toBeTruthy()
   expect(screen.getByText('No completed payments this month.')).toBeTruthy()
-  const actions = screen.getByRole('navigation', { name: 'Manage household finances' })
-  expect(within(actions).getByRole('link', { name: 'Record income' }).getAttribute('href')).toBe(
-    '/households/example-home/income',
+  expect(screen.queryByRole('navigation', { name: 'Manage household finances' })).toBeNull()
+  expect(screen.getByRole('link', { name: 'View bills' }).getAttribute('href')).toBe(
+    '/households/example-home/bills',
   )
 })
 
