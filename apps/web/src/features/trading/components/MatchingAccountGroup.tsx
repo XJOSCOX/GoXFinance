@@ -29,12 +29,8 @@ export function MatchingAccountGroup({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-semibold">
-            {accounts.length} matching accounts · {first.stage.toUpperCase()} /{' '}
-            {first.xfaPath.replaceAll('_', ' ')}
-          </h2>
-          <p className="mt-1 text-xs text-slate-400">
             {accounts.map((a) => a.nickname).join(' · ')}
-          </p>
+          </h2>
         </div>
         {first.canManage && !first.deletedAt && (
           <Button size="small" onClick={() => onEditAll(accounts)}>

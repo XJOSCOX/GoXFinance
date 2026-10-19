@@ -56,7 +56,7 @@ it('provides a collapsed matching-account group, individual controls, and an Edi
       onEditAll={editAll}
     />,
   )
-  expect(screen.getByText(/3 matching accounts/)).toBeTruthy()
+  expect(screen.getByRole('heading', { name: 'Example 0 · Example 1 · Example 2' })).toBeTruthy()
   const summary = screen.getByText('View / edit individual accounts (3)')
   expect(summary.closest('details')?.open).toBe(false)
   fireEvent.click(screen.getByRole('button', { name: 'Edit all' }))
