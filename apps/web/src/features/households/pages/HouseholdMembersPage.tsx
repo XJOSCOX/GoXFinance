@@ -20,7 +20,7 @@ import { useMembers } from '../hooks/useMembers'
 export function HouseholdMembersPage() {
   const { householdId = '' } = useParams()
   const navigate = useNavigate()
-  const { selected, households, select } = useHousehold()
+  const { selected, households, select, refresh: refreshHouseholds } = useHousehold()
   const notify = useNotify()
   const { members, loading, error, refresh, save, deactivate } = useMembers(householdId)
   const [formMember, setFormMember] = useState<HouseholdMember | null | undefined>(undefined)
@@ -55,7 +55,13 @@ export function HouseholdMembersPage() {
   async function confirmDeactivate() {
     if (!deactivateTarget) return
     setBusy(true)
-    try { await deactivate(deactivateTarget.id); setNotice('Member deactivated successfully'); notify('success', 'Member deactivated successfully'); setDeactivateTarget(null) }
+    try {
+      const linked = Boolean(deactivateTarget.linkedUserId)
+      await deactivate(deactivateTarget.id)
+      await refreshHouseholds()
+      const message = linked ? 'Removed from household' : 'Member deactivated'
+      setNotice(message); notify('success', message); setDeactivateTarget(null)
+    }
     catch (failure) { const message = errorMessage(failure); setActionError(message); notify('error', message) }
     finally { setBusy(false) }
   }
@@ -65,32 +71,25 @@ export function HouseholdMembersPage() {
   }
 
   return <WorkspaceLayout title="Household">
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.22em] text-slate-500">Household</p>
-      <h1 className="text-3xl font-semibold tracking-tight">Household</h1>
-      <p className="mt-2 text-sm text-slate-400">Your household and the people in it.</p></div>
-      <Button type="button" onClick={() => navigate('/household/join')}>Join household</Button></div>
-    <HouseholdOverview household={household} memberCount={loading || error ? null : members.length} canEdit={canSettings}
-      onDetails={() => setShowDetails(true)} onEdit={() => setShowEdit(true)} />
-    <div className="section-heading mb-6 mt-9 flex flex-wrap items-end justify-between gap-4">
-      <div><h2 className="text-xl font-semibold">Members in {household.name}</h2>
-        <p className="mt-1 text-sm text-slate-400">View and manage household members.</p></div>
-      {canAdd && <Button variant="primary" onClick={() => setFormMember(null)}>Add member</Button>}
-    </div>
-    {notice && <p role="status" className="mb-4 rounded-lg border border-[#9cac9b]/20 bg-[#9cac9b]/10 p-3 text-sm text-[#b9c9b8]">{notice}</p>}
-    {actionError && <p role="alert" className="mb-4 text-sm text-rose-300">{actionError}</p>}
-    {loading ? <p role="status" className="text-sm text-slate-400">Loading members…</p> : error
-      ? <Card className="p-6"><p role="alert" className="text-sm text-rose-300">{error}</p><Button className="mt-4" onClick={() => void refresh()}>Try again</Button></Card>
+    <HouseholdOverview household={household} memberCount={loading || error ? null : members.length} canEdit={canSettings} canAdd={canAdd}
+      onDetails={() => setShowDetails(true)} onEdit={() => setShowEdit(true)}
+      onJoin={() => navigate('/household/join')} onAdd={() => setFormMember(null)}>
+      {notice && <p role="status" className="my-4 rounded-lg border border-[#9cac9b]/20 bg-[#9cac9b]/10 p-3 text-sm text-[#b9c9b8]">{notice}</p>}
+      {actionError && <p role="alert" className="my-4 text-sm text-rose-300">{actionError}</p>}
+      {loading ? <p role="status" className="py-6 text-sm text-slate-400">Loading members…</p> : error
+      ? <div className="py-6"><p role="alert" className="text-sm text-rose-300">{error}</p><Button className="mt-4" onClick={() => void refresh()}>Try again</Button></div>
       : <MemberList members={members} canEdit={canEdit} canRemove={canRemove} canInvite={canInvite}
           view={member => void openDetails(member)} edit={setFormMember} deactivate={setDeactivateTarget}
           reactivate={member => void reactivate(member)} invite={setInviteTarget} />}
+    </HouseholdOverview>
     {showDetails && <HouseholdDetailsDialog household={household} memberCount={loading || error ? null : members.length}
       onClose={() => setShowDetails(false)} onEdit={canSettings ? () => { setShowDetails(false); setShowEdit(true) } : undefined} />}
     {showEdit && <HouseholdEditDialog key={household.id} household={household} onClose={() => setShowEdit(false)} />}
-    {formMember !== undefined && <MemberFormDialog member={formMember} canChangeStatus={canRemove}
+    {formMember !== undefined && <MemberFormDialog member={formMember}
       onClose={() => setFormMember(undefined)} onSave={saveForm} />}
     {detail && <MemberDetailsDialog member={detail} onClose={() => setDetail(null)}
       onEdit={canEdit ? () => { setFormMember(detail); setDetail(null) } : undefined} />}
-    {deactivateTarget && <ConfirmDeactivateDialog name={deactivateTarget.fullName} busy={busy}
+    {deactivateTarget && <ConfirmDeactivateDialog name={deactivateTarget.fullName} linked={Boolean(deactivateTarget.linkedUserId)} busy={busy}
       onClose={() => setDeactivateTarget(null)} onConfirm={() => void confirmDeactivate()} />}
     {inviteTarget && <InvitationDialog key={inviteTarget.id} householdId={householdId} member={inviteTarget}
       onClose={() => setInviteTarget(null)} onChanged={refresh} />}

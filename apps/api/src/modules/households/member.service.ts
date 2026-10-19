@@ -43,20 +43,21 @@ export function memberService(households: HouseholdRepository, members: MemberRe
       requireHouseholdRole(households, householdId, user.id, 'editMember')
       const before = existing(householdId, memberId)
       const values = updateMemberSchema.parse(input)
-      if (values.status === 'inactive' && before.status !== 'inactive') {
+      if (values.status === 'inactive') {
         requireHouseholdRole(households, householdId, user.id, 'removeMember')
-        if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be deactivated', 403)
+        if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be removed', 403)
+        return members.deactivate(householdId, memberId, values)
       }
-      const updated = members.update(householdId, memberId, values)
-      if (values.status === 'inactive') invitations.revokeForMember(householdId, memberId)
-      return updated
+      if (values.status === 'active' && before.status === 'inactive') {
+        requireHouseholdRole(households, householdId, user.id, 'removeMember')
+      }
+      return members.update(householdId, memberId, values)
     },
     deactivate(user: PublicUser, householdId: string, memberId: string) {
       requireHouseholdRole(households, householdId, user.id, 'removeMember')
       const before = existing(householdId, memberId)
-      if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be deactivated', 403)
-      if (before.status !== 'inactive') members.update(householdId, memberId, { status: 'inactive' })
-      invitations.revokeForMember(householdId, memberId)
+      if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be removed', 403)
+      members.deactivate(householdId, memberId)
     },
   }
 }

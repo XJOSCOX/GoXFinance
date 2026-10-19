@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import type { DatabaseConnection } from '../../db/connection'
-import { householdMembers, householdUserRoles } from '../../../../../packages/db/src/schema'
+import { householdInvitations, householdMembers, householdUserRoles } from '../../../../../packages/db/src/schema'
 
 export function memberRepository(db: DatabaseConnection) {
   const columns = {
@@ -38,6 +38,22 @@ export function memberRepository(db: DatabaseConnection) {
     update(householdId: string, memberId: string, changes: Partial<typeof householdMembers.$inferInsert>) {
       db.update(householdMembers).set({ ...changes, updatedAt: new Date().toISOString() })
         .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.id, memberId))).run()
+      return this.find(householdId, memberId)!
+    },
+    deactivate(householdId: string, memberId: string, changes: Partial<typeof householdMembers.$inferInsert> = {}) {
+      const now = new Date().toISOString()
+      db.transaction(tx => {
+        const member = tx.select().from(householdMembers).where(and(
+          eq(householdMembers.householdId, householdId), eq(householdMembers.id, memberId))).get()
+        if (!member) throw new Error('Member not found')
+        if (member.linkedUserId) tx.delete(householdUserRoles).where(and(
+          eq(householdUserRoles.householdId, householdId), eq(householdUserRoles.userId, member.linkedUserId))).run()
+        tx.update(householdMembers).set({ ...changes, status: 'inactive', linkedUserId: null, updatedAt: now })
+          .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.id, memberId))).run()
+        tx.update(householdInvitations).set({ status: 'revoked', activeMemberId: null, revokedAt: now, updatedAt: now })
+          .where(and(eq(householdInvitations.householdId, householdId), eq(householdInvitations.memberId, memberId),
+            eq(householdInvitations.status, 'pending'))).run()
+      })
       return this.find(householdId, memberId)!
     },
   }

@@ -99,6 +99,8 @@ describe('website authentication', () => {
     window.history.replaceState({}, '', `/households/${householdId}/members`)
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Our home' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Members in Our home' })).toBeNull()
+    expect(screen.getByRole('heading', { name: /People/ })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Add member' }))
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Blair Example' } })
     fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
@@ -106,6 +108,21 @@ describe('website authentication', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Deactivate' }))
     await waitFor(() => expect(requests.some(request => request.method === 'DELETE')).toBe(true))
+  })
+
+  it('offers removal of a linked account inside the house card', async () => {
+    signedIn = true
+    household = { id: householdId, name: 'Our home', role: 'owner', moveInDate: null, notes: null,
+      createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
+    members = [ownerMember, { ...ownerMember, id: '25c0a5d5-8f1e-485d-831b-41040857db79',
+      fullName: 'Blair Example', linkedUserId: '3bef517c-e6d4-44d5-8828-184bf67e4916', accessRole: 'viewer' }]
+    window.history.replaceState({}, '', `/households/${householdId}/members`)
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Blair Example' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from household' }))
+    expect(within(screen.getByRole('dialog')).getByText(/member record will remain inactive/)).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove access' }))
+    await waitFor(() => expect(requests).toContainEqual({ path: `/api/households/${householdId}/members/25c0a5d5-8f1e-485d-831b-41040857db79`, method: 'DELETE' }))
   })
 
   it('rejects mismatched passwords and uses no browser database or auth storage', async () => {
@@ -148,7 +165,7 @@ describe('website authentication', () => {
     window.history.replaceState({}, '', `/households/${householdId}/members`)
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Our home' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'View details' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     expect(within(screen.getByRole('dialog')).getByText('Not added')).toBeTruthy()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Edit household' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Household name' }), { target: { value: 'New home' } })

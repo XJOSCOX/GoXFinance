@@ -39,12 +39,6 @@ export function invitationRepository(db: DatabaseConnection) {
         .where(and(eq(householdInvitations.id, invitationId), eq(householdInvitations.householdId, householdId),
           eq(householdInvitations.memberId, memberId), eq(householdInvitations.status, 'pending'))).run().changes === 1
     },
-    revokeForMember(householdId: string, memberId: string) {
-      const now = new Date().toISOString()
-      db.update(householdInvitations).set({ status: 'revoked', activeMemberId: null, revokedAt: now, updatedAt: now })
-        .where(and(eq(householdInvitations.householdId, householdId), eq(householdInvitations.memberId, memberId),
-          eq(householdInvitations.status, 'pending'))).run()
-    },
     redeem(codeHash: string, userId: string, newUser?: NewUser) {
       const now = new Date().toISOString()
       expireStale(now)

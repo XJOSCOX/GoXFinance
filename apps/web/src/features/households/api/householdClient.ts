@@ -4,7 +4,7 @@ import { apiRequest } from '../../../lib/api'
 const path = (householdId: string) => `households/${householdId}`
 const memberPath = (householdId: string, memberId: string) => `${path(householdId)}/members/${memberId}`
 
-export type MemberInput = { fullName: string; relationship: Relationship; status: MemberStatus; notes?: string | null }
+export type MemberInput = { fullName: string; relationship: Relationship; status?: MemberStatus; notes?: string | null }
 
 export const listHouseholds = () => apiRequest<{ households: HouseholdSummary[] }>('households')
 export const createHousehold = (name: string) => apiRequest<{ household: HouseholdSummary }>('households', {

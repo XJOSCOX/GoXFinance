@@ -26,7 +26,8 @@ export function useMembers(householdId: string) {
 
   async function deactivate(memberId: string) {
     await deactivateMember(householdId, memberId)
-    setMembers(current => current.map(member => member.id === memberId ? { ...member, status: 'inactive', invitation: null } : member))
+    setMembers(current => current.map(member => member.id === memberId
+      ? { ...member, status: 'inactive', linkedUserId: null, accessRole: null, invitation: null } : member))
   }
 
   return { members, loading, error, refresh, save, deactivate }

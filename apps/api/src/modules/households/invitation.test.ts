@@ -169,6 +169,43 @@ describe('household invitation lifecycle', () => {
     expect(conflict.json().error).toBe('Invitation could not be accepted')
   })
 
+  it('removes a linked member from one household while preserving their account, other home, and member history', async () => {
+    const { app, databasePath } = await setup()
+    const owner = await signup(app, 'owner@example.com', 'Owner')
+    const guest = await signup(app, 'guest@example.com', 'Guest')
+    const householdId = await home(app, owner.cookie)
+    const guestHomeId = await home(app, guest.cookie)
+    const memberId = await member(app, owner.cookie, householdId)
+    const { code } = await invite(app, owner.cookie, householdId, memberId)
+    expect((await request(app, 'POST', '/api/household-invitations/redeem', guest.cookie, { code })).statusCode).toBe(200)
+    const url = `/api/households/${householdId}/members/${memberId}`
+    expect((await request(app, 'DELETE', url, owner.cookie)).statusCode).toBe(204)
+    expect((await request(app, 'GET', `/api/households/${householdId}`, guest.cookie)).statusCode).toBe(404)
+    expect((await request(app, 'GET', '/api/auth/me', guest.cookie)).json().user.id).toBe(guest.userId)
+    expect((await request(app, 'GET', '/api/households', guest.cookie)).json().households.map((item: { id: string }) => item.id)).toEqual([guestHomeId])
+    expect((await request(app, 'GET', url, owner.cookie)).json().member).toMatchObject({ id: memberId, status: 'inactive', linkedUserId: null, accessRole: null })
+    const db = new Database(databasePath)
+    expect((db.prepare('SELECT COUNT(*) AS count FROM household_members WHERE id=?').get(memberId) as { count: number }).count).toBe(1)
+    expect((db.prepare('SELECT COUNT(*) AS count FROM household_user_roles WHERE household_id=? AND user_id=?').get(householdId, guest.userId) as { count: number }).count).toBe(0)
+    db.close()
+    expect((await request(app, 'PATCH', url, owner.cookie, { status: 'active' })).statusCode).toBe(200)
+    expect((await request(app, 'GET', `/api/households/${householdId}`, guest.cookie)).statusCode).toBe(404)
+  })
+
+  it('revokes a linked member through the status update path as well', async () => {
+    const { app } = await setup()
+    const owner = await signup(app, 'owner@example.com', 'Owner')
+    const guest = await signup(app, 'guest@example.com', 'Guest')
+    const householdId = await home(app, owner.cookie)
+    const memberId = await member(app, owner.cookie, householdId)
+    const { code } = await invite(app, owner.cookie, householdId, memberId)
+    expect((await request(app, 'POST', '/api/household-invitations/redeem', guest.cookie, { code })).statusCode).toBe(200)
+    const url = `/api/households/${householdId}/members/${memberId}`
+    expect((await request(app, 'PATCH', url, owner.cookie, { status: 'inactive' })).statusCode).toBe(200)
+    expect((await request(app, 'GET', url, guest.cookie)).statusCode).toBe(404)
+    expect((await request(app, 'GET', url, owner.cookie)).json().member.linkedUserId).toBeNull()
+  })
+
   it('blocks unauthorized issue and client-supplied privilege escalation', async () => {
     const { app, databasePath } = await setup()
     const owner = await signup(app, 'owner@example.com', 'Owner')

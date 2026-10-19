@@ -17,11 +17,11 @@ Copy `.env.example` to `.env` to change the API port, frontend origin, or local 
 
 ## Households
 
-After signing in, an account without a household is sent to the setup page. Creating a household also assigns the creator the Owner role and creates their linked member record in one transaction. Repeating setup returns the existing household. The Household sidebar link opens the member list, where authorized users can add, edit, view, deactivate, and reactivate members. Deactivation retains the record. Household members need no email or password.
+After signing in, an account without a household is sent to the setup page. Creating a household also assigns the creator the Owner role and creates their linked member record in one transaction. Repeating setup returns the existing household. The Household sidebar link opens the house and its people in one card. Authorized users can add, edit, view, deactivate, and reactivate members. Removing a linked member revokes that account's access to this household and retains an inactive member record; the account and its other households remain intact. Reactivating the record does not restore access. Household members need no email or password.
 
 Owners and admins can generate an invitation for an active, unlinked member and assign Admin, Editor, or Viewer access. The code is displayed only when issued or regenerated; copy it then and share it privately. It expires after seven days, works once, and can be revoked. Regeneration invalidates the old code. A new user can choose **Join with code** at signup; an existing user can use **Join household** on the Household page. Redemption links the account to the original member record without changing its profile. The API enforces Owner, Admin, Editor, and Viewer permissions. There is no general role editor or email invitation delivery yet. A user with one household sees it by default; users with multiple households can select one in the sidebar. The dashboard remains empty until future finance features are added.
 
-The Household page shows the selected house above its members. **View details** shows its creation date, member count, move-in date, and notes. Authorized users can use **Edit household** to change its name, optional move-in date, and notes. Existing households start with those optional fields empty; no move-in date is inferred.
+The Household page shows the selected house with its members inside the same card. **Details** shows its creation date, member count, move-in date, and notes. Authorized users can use **Edit household** to change its name, optional move-in date, and notes. Existing households start with those optional fields empty; no move-in date is inferred.
 
 ## Security and storage
 
