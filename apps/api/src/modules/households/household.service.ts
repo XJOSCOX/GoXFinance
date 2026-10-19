@@ -3,8 +3,8 @@ import type { HouseholdRepository } from './household.repository'
 import { requireHouseholdRole } from './household.permissions'
 
 export function householdService(repository: HouseholdRepository) {
-  function summary(household: { id: string; name: string; createdAt: string; updatedAt: string }, role: HouseholdSummary['role']): HouseholdSummary {
-    return { id: household.id, name: household.name, role, createdAt: household.createdAt, updatedAt: household.updatedAt }
+  function summary(household: { id: string; name: string; moveInDate: string | null; notes: string | null; createdAt: string; updatedAt: string }, role: HouseholdSummary['role']): HouseholdSummary {
+    return { id: household.id, name: household.name, moveInDate: household.moveInDate, notes: household.notes, role, createdAt: household.createdAt, updatedAt: household.updatedAt }
   }
 
   return {
@@ -23,8 +23,8 @@ export function householdService(repository: HouseholdRepository) {
     },
     update(user: PublicUser, householdId: string, input: unknown) {
       const role = requireHouseholdRole(repository, householdId, user.id, 'manageSettings')
-      const { name } = updateHouseholdSchema.parse(input)
-      return summary(repository.updateName(householdId, name), role)
+      const changes = updateHouseholdSchema.parse(input)
+      return summary(repository.updateDetails(householdId, changes), role)
     },
   }
 }

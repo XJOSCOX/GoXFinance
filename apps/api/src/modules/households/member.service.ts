@@ -1,10 +1,21 @@
 import { randomUUID } from 'node:crypto'
-import { createMemberSchema, updateMemberSchema, type PublicUser } from '@goxfinance/shared'
+import { canManageHousehold, createMemberSchema, updateMemberSchema, type PublicUser } from '@goxfinance/shared'
 import type { HouseholdRepository } from './household.repository'
 import type { MemberRepository } from './member.repository'
+import type { InvitationRepository } from './invitation.repository'
 import { HouseholdError, requireHouseholdRole } from './household.permissions'
 
-export function memberService(households: HouseholdRepository, members: MemberRepository) {
+export function memberService(households: HouseholdRepository, members: MemberRepository, invitations: InvitationRepository) {
+  function withInvitations(householdId: string, role: 'owner' | 'admin' | 'editor' | 'viewer') {
+    const pending = new Map(invitations.listPending(householdId).map(row => [row.memberId, row]))
+    return (member: ReturnType<MemberRepository['find']>) => {
+      if (!member) return member
+      const invitation = pending.get(member.id)
+      return { ...member, invitation: invitation ? { id: invitation.id, memberId: invitation.memberId,
+        status: invitation.status, createdAt: invitation.createdAt, expiresAt: invitation.expiresAt,
+        ...(canManageHousehold(role, 'manageRoles') ? { role: invitation.role } : {}) } : null }
+    }
+  }
   function existing(householdId: string, memberId: string) {
     const member = members.find(householdId, memberId)
     if (!member) throw new HouseholdError('Member not found', 404)
@@ -13,12 +24,12 @@ export function memberService(households: HouseholdRepository, members: MemberRe
 
   return {
     list(user: PublicUser, householdId: string) {
-      requireHouseholdRole(households, householdId, user.id, 'view')
-      return members.list(householdId)
+      const role = requireHouseholdRole(households, householdId, user.id, 'view')
+      return members.list(householdId).map(withInvitations(householdId, role))
     },
     get(user: PublicUser, householdId: string, memberId: string) {
-      requireHouseholdRole(households, householdId, user.id, 'view')
-      return existing(householdId, memberId)
+      const role = requireHouseholdRole(households, householdId, user.id, 'view')
+      return withInvitations(householdId, role)(existing(householdId, memberId))
     },
     create(user: PublicUser, householdId: string, input: unknown) {
       requireHouseholdRole(households, householdId, user.id, 'addMember')
@@ -36,13 +47,16 @@ export function memberService(households: HouseholdRepository, members: MemberRe
         requireHouseholdRole(households, householdId, user.id, 'removeMember')
         if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be deactivated', 403)
       }
-      return members.update(householdId, memberId, values)
+      const updated = members.update(householdId, memberId, values)
+      if (values.status === 'inactive') invitations.revokeForMember(householdId, memberId)
+      return updated
     },
     deactivate(user: PublicUser, householdId: string, memberId: string) {
       requireHouseholdRole(households, householdId, user.id, 'removeMember')
       const before = existing(householdId, memberId)
       if (before.accessRole === 'owner') throw new HouseholdError('The household owner cannot be deactivated', 403)
       if (before.status !== 'inactive') members.update(householdId, memberId, { status: 'inactive' })
+      invitations.revokeForMember(householdId, memberId)
     },
   }
 }

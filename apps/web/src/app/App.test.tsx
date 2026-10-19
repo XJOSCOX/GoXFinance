@@ -10,7 +10,7 @@ const ownerMember = { id: '9bc9ecf7-a1ad-4239-b444-c8366260a950', householdId, l
   createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
 const requests: { path: string; method: string }[] = []
 let signedIn = false
-let household: { id: string; name: string; role: string; createdAt: string; updatedAt: string } | null = null
+let household: { id: string; name: string; role: string; moveInDate: string | null; notes: string | null; createdAt: string; updatedAt: string } | null = null
 let members: typeof ownerMember[] = []
 
 beforeEach(() => {
@@ -24,14 +24,23 @@ beforeEach(() => {
     const method = options?.method ?? 'GET'
     requests.push({ path, method })
     if (path.endsWith('/me')) return { ok: signedIn, status: signedIn ? 200 : 401, json: async () => signedIn ? { user } : { error: 'Sign in required' } }
-    if (path.endsWith('/signup') || path.endsWith('/login')) { signedIn = true; return { ok: true, status: 200, json: async () => ({ user }) } }
+    if (path.endsWith('/signup') || path.endsWith('/login')) {
+      if (path.endsWith('/signup') && JSON.parse(String(options?.body)).invitationCode === 'bad-code') {
+        return { ok: false, status: 400, json: async () => ({ code: 'INVITATION_INVALID', error: 'Invitation could not be accepted' }) }
+      }
+      signedIn = true; return { ok: true, status: 200, json: async () => ({ user }) }
+    }
     if (path.endsWith('/logout')) { signedIn = false; return { ok: true, status: 204 } }
     if (path === '/api/households' && method === 'GET') return { ok: true, status: 200, json: async () => ({ households: household ? [household] : [] }) }
     if (path === '/api/households' && method === 'POST') {
       const name = JSON.parse(String(options?.body)).name as string
-      household = { id: householdId, name, role: 'owner', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
+      household = { id: householdId, name, role: 'owner', moveInDate: null, notes: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
       members = [ownerMember]
       return { ok: true, status: 201, json: async () => ({ household }) }
+    }
+    if (path === `/api/households/${householdId}` && method === 'PATCH' && household) {
+      household = { ...household, ...JSON.parse(String(options?.body)) }
+      return { ok: true, status: 200, json: async () => ({ household }) }
     }
     if (path === `/api/households/${householdId}/members` && method === 'GET') return { ok: true, status: 200, json: async () => ({ members }) }
     if (path === `/api/households/${householdId}/members` && method === 'POST') {
@@ -78,14 +87,14 @@ describe('website authentication', () => {
 
   it('restores a valid login after browser refresh', async () => {
     signedIn = true
-    household = { id: householdId, name: 'Our home', role: 'owner', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
+    household = { id: householdId, name: 'Our home', role: 'owner', moveInDate: null, notes: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Welcome, Alex Example' })).toBeTruthy()
   })
 
   it('adds and deactivates a household member from the workspace', async () => {
     signedIn = true
-    household = { id: householdId, name: 'Our home', role: 'owner', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
+    household = { id: householdId, name: 'Our home', role: 'owner', moveInDate: null, notes: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
     members = [ownerMember]
     window.history.replaceState({}, '', `/households/${householdId}/members`)
     render(<App />)
@@ -113,5 +122,39 @@ describe('website authentication', () => {
     expect(requests.some(request => request.path.endsWith('/signup'))).toBe(false)
     expect(local).not.toHaveBeenCalled()
     expect(session).not.toHaveBeenCalled()
+  })
+
+  it('keeps invitation signup entries after an invalid-code response', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('link', { name: 'Sign up' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Join with code' }))
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Blair Example' } })
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'blair@example.com' } })
+    fireEvent.change(screen.getByPlaceholderText('At least 12 characters'), { target: { value: 'long unique password' } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'long unique password' } })
+    fireEvent.change(screen.getByPlaceholderText('Paste your invitation code'), { target: { value: 'bad-code' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+    expect((await screen.findAllByRole('alert')).some(node => node.textContent?.includes('Invitation could not be accepted'))).toBe(true)
+    expect(screen.getByPlaceholderText('Paste your invitation code')).toHaveProperty('value', 'bad-code')
+    expect(screen.getByPlaceholderText('Your name')).toHaveProperty('value', 'Blair Example')
+    expect(window.location.pathname).toBe('/signup')
+  })
+
+  it('shows household details and edits the name and living-since date', async () => {
+    signedIn = true
+    household = { id: householdId, name: 'Our home', role: 'owner', moveInDate: null, notes: null,
+      createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
+    members = [ownerMember]
+    window.history.replaceState({}, '', `/households/${householdId}/members`)
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Our home' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }))
+    expect(within(screen.getByRole('dialog')).getByText('Not added')).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Edit household' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Household name' }), { target: { value: 'New home' } })
+    fireEvent.change(screen.getByLabelText('Living here since'), { target: { value: '2025-06-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+    expect(await screen.findByRole('heading', { name: 'New home' })).toBeTruthy()
+    expect(requests).toContainEqual({ path: `/api/households/${householdId}`, method: 'PATCH' })
   })
 })

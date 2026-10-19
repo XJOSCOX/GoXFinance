@@ -5,6 +5,8 @@ import { users } from './users'
 export const households = sqliteTable('households', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  moveInDate: text('move_in_date'),
+  notes: text('notes'),
   createdByUserId: text('created_by_user_id').notNull().references(() => users.id),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),

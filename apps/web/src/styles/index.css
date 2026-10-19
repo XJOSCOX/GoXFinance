@@ -18,7 +18,6 @@ button { cursor: pointer; }
 .app-sidebar { background: #101211; }
 .app-header { background: rgba(21, 23, 22, .82); backdrop-filter: blur(16px); }
 .app-main { width: 100%; min-width: 0; }
-@media (min-width: 1600px) { .app-main { padding-inline: clamp(2.5rem, 3vw, 5rem); } }
 @media (max-width: 639px) { .app-main { padding-inline: 1rem; } }
 .dashboard-hero { background: radial-gradient(circle at 90% 15%, rgba(162, 183, 161, .17), transparent 34%), linear-gradient(115deg, #212522, #1a1e1b 72%); }
 .section-heading { border-bottom: 1px solid rgba(255, 255, 255, .08); padding-bottom: 1.6rem; }

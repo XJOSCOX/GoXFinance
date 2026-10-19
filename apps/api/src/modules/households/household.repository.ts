@@ -19,9 +19,9 @@ export function householdRepository(db: DatabaseConnection) {
       return db.select().from(householdUserRoles)
         .where(and(eq(householdUserRoles.householdId, householdId), eq(householdUserRoles.userId, userId))).get()
     },
-    updateName(id: string, name: string) {
+    updateDetails(id: string, changes: { name?: string; moveInDate?: string | null; notes?: string | null }) {
       const updatedAt = new Date().toISOString()
-      db.update(households).set({ name, updatedAt }).where(eq(households.id, id)).run()
+      db.update(households).set({ ...changes, updatedAt }).where(eq(households.id, id)).run()
       return db.select().from(households).where(eq(households.id, id)).get()!
     },
     createInitial(user: PublicUser, name: string) {
@@ -34,7 +34,7 @@ export function householdRepository(db: DatabaseConnection) {
 
         const id = randomUUID()
         const now = new Date().toISOString()
-        const household = { id, name, createdByUserId: user.id, createdAt: now, updatedAt: now }
+        const household = { id, name, moveInDate: null, notes: null, createdByUserId: user.id, createdAt: now, updatedAt: now }
         tx.insert(households).values(household).run()
         tx.insert(householdUserRoles).values({ id: randomUUID(), householdId: id, userId: user.id, role: 'owner', createdAt: now, updatedAt: now }).run()
         tx.insert(householdMembers).values({ id: randomUUID(), householdId: id, linkedUserId: user.id,

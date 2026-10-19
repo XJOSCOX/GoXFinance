@@ -1,10 +1,13 @@
 import { Home, LayoutDashboard, Users, X } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { HouseholdSummary } from '@goxfinance/shared'
 import { Brand } from './Brand'
+import { useHousehold } from '../../features/households/hooks/useHousehold'
 
 export function WorkspaceSidebar({ open, close, household }: { open: boolean; close: () => void; household: HouseholdSummary }) {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { households, select } = useHousehold()
   const navigation = [
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { href: `/households/${household.id}/members`, label: 'Household', icon: Users },
@@ -16,7 +19,11 @@ export function WorkspaceSidebar({ open, close, household }: { open: boolean; cl
         <button className="md:hidden" aria-label="Close navigation" onClick={close}><X size={18}/></button>
       </div>
       <div className="mt-8 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-xs text-slate-300">
-        <Home size={15} className="shrink-0 text-[#adbcad]"/><span className="truncate">{household.name}</span>
+        <Home size={15} className="shrink-0 text-[#adbcad]"/>
+        {households.length > 1 ? <select aria-label="Current household" className="min-w-0 flex-1 bg-transparent outline-none"
+          value={household.id} onChange={event => { select(event.target.value); navigate(`/households/${event.target.value}/members`); close() }}>
+          {households.map(item => <option key={item.id} value={item.id} className="bg-[#151716]">{item.name}</option>)}
+        </select> : <span className="truncate">{household.name}</span>}
       </div>
       <p className="mb-2 mt-10 px-2 text-[10px] font-semibold uppercase tracking-[.2em] text-slate-500">Workspace</p>
       <nav>

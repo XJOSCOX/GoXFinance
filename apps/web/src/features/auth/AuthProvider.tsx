@@ -18,8 +18,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     setUser((await signIn(email, password)).user)
   }
-  async function signup(name: string, email: string, password: string, confirmPassword: string) {
-    setUser((await signUp(name, email, password, confirmPassword)).user)
+  async function signup(name: string, email: string, password: string, confirmPassword: string, invitationCode?: string) {
+    setUser((await signUp(name, email, password, confirmPassword, invitationCode)).user)
   }
   async function logout() {
     await signOut()

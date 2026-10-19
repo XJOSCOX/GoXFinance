@@ -24,7 +24,11 @@ export function canManageHousehold(role: HouseholdRole, permission: HouseholdPer
 export const createHouseholdSchema = z.object({
   name: z.string().trim().min(1, 'Enter a household name').max(120),
 }).strict()
-export const updateHouseholdSchema = createHouseholdSchema
+export const updateHouseholdSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a household name').max(120).optional(),
+  moveInDate: z.iso.date().nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+}).strict().refine(value => Object.keys(value).length > 0, 'Enter at least one change')
 
 export const createMemberSchema = z.object({
   fullName: z.string().trim().min(1, 'Enter a name').max(120),
@@ -43,6 +47,8 @@ export const updateMemberSchema = z.object({
 export type HouseholdSummary = {
   id: string
   name: string
+  moveInDate: string | null
+  notes: string | null
   role: HouseholdRole
   createdAt: string
   updatedAt: string
@@ -59,4 +65,20 @@ export type HouseholdMember = {
   accessRole: HouseholdRole | null
   createdAt: string
   updatedAt: string
+  invitation?: InvitationSummary | null
+}
+
+export const invitationRoleSchema = z.enum(['admin', 'editor', 'viewer'])
+export const invitationCodeSchema = z.string().trim().min(1, 'Enter an invitation code').max(200)
+export const createInvitationSchema = z.object({ role: invitationRoleSchema }).strict()
+export const redeemInvitationSchema = z.object({ code: invitationCodeSchema }).strict()
+export type InvitationRole = z.infer<typeof invitationRoleSchema>
+export type InvitationStatus = 'pending' | 'redeemed' | 'revoked' | 'expired'
+export type InvitationSummary = {
+  id: string
+  memberId: string
+  role?: InvitationRole
+  status: InvitationStatus
+  createdAt: string
+  expiresAt: string
 }

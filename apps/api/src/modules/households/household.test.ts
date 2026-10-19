@@ -46,6 +46,20 @@ afterEach(async () => {
 })
 
 describe('household setup and access', () => {
+  it('saves optional household details without changing existing member records', async () => {
+    const { app, databasePath } = await testApp()
+    const { cookie } = await signup(app, 'alex@example.com', 'Alex')
+    const id = await createHousehold(app, cookie)
+    const updated = await request(app, 'PATCH', `/api/households/${id}`, cookie,
+      { name: 'New home', moveInDate: '2025-06-01', notes: 'Moved in together' })
+    expect(updated.statusCode).toBe(200)
+    expect(updated.json().household).toMatchObject({ name: 'New home', moveInDate: '2025-06-01', notes: 'Moved in together' })
+    expect((await request(app, 'PATCH', `/api/households/${id}`, cookie, { moveInDate: 'not-a-date' })).statusCode).toBe(400)
+    const reopened = await testApp(databasePath)
+    const detail = await request(reopened.app, 'GET', `/api/households/${id}`, cookie)
+    expect(detail.json().household.moveInDate).toBe('2025-06-01')
+    expect((await request(reopened.app, 'GET', `/api/households/${id}/members`, cookie)).json().members).toHaveLength(1)
+  })
   it('creates owner, role, and linked member atomically; repeated setup is idempotent', async () => {
     const { app, databasePath } = await testApp()
     const { cookie, userId } = await signup(app, 'alex@example.com', 'Alex Example')

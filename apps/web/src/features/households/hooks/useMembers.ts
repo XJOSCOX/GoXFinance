@@ -20,13 +20,13 @@ export function useMembers(householdId: string) {
 
   async function save(memberId: string | null, input: MemberInput) {
     const result = memberId ? await updateMember(householdId, memberId, input) : await createMember(householdId, input)
-    setMembers(current => memberId ? current.map(member => member.id === memberId ? result.member : member) : [...current, result.member])
+    setMembers(current => memberId ? current.map(member => member.id === memberId ? { ...result.member, invitation: member.invitation } : member) : [...current, result.member])
     return result.member
   }
 
   async function deactivate(memberId: string) {
     await deactivateMember(householdId, memberId)
-    setMembers(current => current.map(member => member.id === memberId ? { ...member, status: 'inactive' } : member))
+    setMembers(current => current.map(member => member.id === memberId ? { ...member, status: 'inactive', invitation: null } : member))
   }
 
   return { members, loading, error, refresh, save, deactivate }

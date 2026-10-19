@@ -7,7 +7,8 @@ export const signupSchema = z.object({
   email: emailSchema,
   password: z.string().min(12, 'Use at least 12 characters').max(128),
   confirmPassword: z.string(),
-}).refine(value => value.password === value.confirmPassword, {
+  invitationCode: z.string().trim().optional(),
+}).strict().refine(value => value.password === value.confirmPassword, {
   path: ['confirmPassword'], message: 'Passwords do not match',
 })
 

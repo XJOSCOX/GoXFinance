@@ -2,6 +2,7 @@ import argon2 from 'argon2'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { loginSchema, signupSchema, type PublicUser } from '@goxfinance/shared'
 import type { AuthRepository } from './auth.repository'
+import type { InvitationService } from '../households/invitation.service'
 
 const SESSION_SECONDS = 7 * 24 * 60 * 60
 
@@ -13,7 +14,7 @@ export function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex')
 }
 
-export function authService(repository: AuthRepository) {
+export function authService(repository: AuthRepository, invitations: InvitationService) {
   function publicUser(user: { id: string; fullName: string; email: string }): PublicUser {
     return { id: user.id, fullName: user.fullName, email: user.email }
   }
@@ -32,8 +33,12 @@ export function authService(repository: AuthRepository) {
       const now = new Date().toISOString()
       const user = { id: randomUUID(), fullName: values.fullName, email: values.email,
         passwordHash: await argon2.hash(values.password, { type: argon2.argon2id }), createdAt: now, updatedAt: now }
-      try { repository.createUser(user) }
-      catch { throw new AuthError('An account with this email already exists', 409) }
+      if (values.invitationCode) {
+        invitations.redeemForSignup(values.invitationCode, user.id, user)
+      } else {
+        try { repository.createUser(user) }
+        catch { throw new AuthError('An account with this email already exists', 409) }
+      }
       return { user: publicUser(user), token: createSession(user.id) }
     },
     async login(input: unknown) {

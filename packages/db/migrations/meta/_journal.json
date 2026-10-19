@@ -15,6 +15,20 @@
       "when": 1792387186815,
       "tag": "0001_sturdy_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792388179872,
+      "tag": "0002_violet_sentinels",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792388633950,
+      "tag": "0003_flawless_squadron_supreme",
+      "breakpoints": true
     }
   ]
 }
