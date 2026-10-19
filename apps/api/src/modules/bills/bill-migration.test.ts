@@ -21,7 +21,7 @@ afterEach(() => {
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true })
 })
 
-it.each([9, 10])(
+it.each([9, 10, 13])(
   'preserves populated records when upgrading from %s applied migrations',
   (count) => {
     const folder = mkdtempSync(join(tmpdir(), 'gox-bill-migration-'))
@@ -95,7 +95,7 @@ it.each([9, 10])(
       )
     const bill = randomUUID(),
       period = randomUUID()
-    if (count === 10) {
+    if (count >= 10) {
       sqlite
         .prepare(
           'INSERT INTO bills (id,household_id,created_by_user_id,name,category,kind,amount_type,amount_cents,frequency,next_due_date,auto_pay,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -140,6 +140,18 @@ it.each([9, 10])(
           now,
         )
     }
+    if (count === 13) {
+      sqlite.prepare('UPDATE bill_periods SET billing_period=due_date').run()
+      sqlite
+        .prepare(
+          "UPDATE bill_payments SET status='completed',confirmed_at=?,debt_id=?,debt_payment_id=?",
+        )
+        .run(now, debt, payment)
+    }
+    const previousPayments =
+      count >= 10
+        ? (sqlite.prepare('SELECT * FROM bill_payments').all() as Record<string, unknown>[])
+        : []
     const tables = [
       'users',
       'households',
@@ -156,7 +168,7 @@ it.each([9, 10])(
       tables.forEach((table, index) =>
         expect(upgraded.sqlite.prepare(`SELECT * FROM ${table}`).all()).toEqual(original[index]),
       )
-      if (count === 10) {
+      if (count >= 10) {
         expect(
           upgraded.sqlite
             .prepare('SELECT id,credit_cents,notes,billing_period FROM bill_periods')
@@ -165,6 +177,18 @@ it.each([9, 10])(
         expect(upgraded.sqlite.prepare('SELECT period_id FROM bill_payments').get()).toEqual({
           period_id: period,
         })
+      }
+      if (count >= 10) {
+        const upgradedPayment = upgraded.sqlite
+          .prepare('SELECT * FROM bill_payments')
+          .get() as Record<string, unknown>
+        expect(
+          Object.fromEntries(
+            Object.keys(previousPayments[0]).map((key) => [key, upgradedPayment[key]]),
+          ),
+        ).toEqual(previousPayments[0])
+        expect(upgradedPayment.principal_amount_cents).toBeNull()
+        expect(upgradedPayment.reference_number).toBeNull()
       }
       expect(upgraded.sqlite.pragma('foreign_key_check')).toEqual([])
       expect(upgraded.sqlite.pragma('integrity_check', { simple: true })).toBe('ok')

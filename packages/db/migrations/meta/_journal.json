@@ -92,6 +92,13 @@
       "when": 1792399069709,
       "tag": "0012_simple_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792414887921,
+      "tag": "0013_silly_energizer",
+      "breakpoints": true
     }
   ]
 }

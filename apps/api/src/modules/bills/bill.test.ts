@@ -67,6 +67,161 @@ async function setup() {
   return { app, path, owner, home, member, base, request, input, create, pending, act }
 }
 describe('bills persistence, payments and permissions', () => {
+  it('tracks every payment status while counting only cleared money, and confirms scheduled payments explicitly', async () => {
+    const f = await setup(),
+      bill = await f.create({ amountType: 'fixed', amountCents: 5000, estimatedAmountCents: null })
+    const path = `/${bill.id}/periods/${bill.periods[0].id}/payments`
+    for (const status of ['scheduled', 'pending', 'failed', 'cancelled', 'completed']) {
+      const input = {
+        idempotencyKey: randomUUID(),
+        amountCents: 1000,
+        paymentDate: '2026-10-01',
+        method: 'cash',
+        notes: status,
+        status,
+      }
+      const response = await f.request('POST', path, input)
+      expect(response.statusCode, response.body).toBe(200)
+      expect((await f.request('POST', path, input)).json().bill.payments.length).toBe(
+        response.json().bill.payments.length,
+      )
+    }
+    const result = (await f.request('GET', `/${bill.id}`)).json().bill as BillView
+    expect(result.periods[0]).toMatchObject({ paidCents: 1000, remainingCents: 4000 })
+    expect(
+      (
+        await testRequest(
+          f.app,
+          'GET',
+          `/api/households/${f.home}/overview?month=2026-10`,
+          f.owner.cookie,
+        )
+      ).json().actual.cashOutflowCents,
+    ).toBe(1000)
+    const scheduled = result.payments.find((item) => item.status === 'scheduled')!,
+      failed = result.payments.find((item) => item.status === 'failed')!
+    expect(
+      (await f.act(bill, { action: 'confirm_payment', paymentId: scheduled.id })).json().bill
+        .periods[0].paidCents,
+    ).toBe(2000)
+    expect(
+      (await f.act(bill, { action: 'confirm_payment', paymentId: failed.id })).statusCode,
+    ).toBe(409)
+    expect(
+      (
+        await f.act(bill, {
+          action: 'edit_payment',
+          paymentId: failed.id,
+          changes: {
+            amountCents: 1000,
+            paymentDate: failed.paymentDate,
+            method: failed.method,
+            notes: failed.notes,
+            status: 'pending',
+          },
+        })
+      ).statusCode,
+    ).toBe(200)
+    expect(
+      (await f.act(bill, { action: 'confirm_payment', paymentId: failed.id })).json().bill
+        .periods[0].paidCents,
+    ).toBe(3000)
+  })
+  it('preserves linked allocations through legacy corrections and never treats full payment as verified payoff', async () => {
+    const f = await setup(),
+      debtBase = `/api/households/${f.home}/debts`
+    const debt = (
+      await testRequest(f.app, 'POST', debtBase, f.owner.cookie, {
+        creditorName: 'Example full balance',
+        accountType: 'auto_loan',
+        currentBalanceCents: 50000,
+        memberAssignments: [{ memberId: f.member, responsibility: 'primary' }],
+      })
+    ).json().debt
+    await testRequest(f.app, 'POST', `${debtBase}/${debt.id}/balances`, f.owner.cookie, {
+      balanceCents: 50000,
+      effectiveDate: '2026-09-01',
+      source: 'creditor_statement',
+    })
+    const bill = await f.create({
+      linkedDebtId: debt.id,
+      amountType: 'fixed',
+      amountCents: 50000,
+      estimatedAmountCents: null,
+    })
+    const response = await f.request('POST', `/${bill.id}/periods/${bill.periods[0].id}/payments`, {
+      idempotencyKey: randomUUID(),
+      amountCents: 50000,
+      paymentDate: '2026-10-01',
+      method: 'bank_transfer',
+      notes: null,
+      status: 'completed',
+      principalAmountCents: 4000,
+      interestAmountCents: 1000,
+      feesAmountCents: 100,
+      referenceNumber: 'Fictional reference',
+    })
+    expect(response.statusCode, response.body).toBe(200)
+    const payment = (response.json().bill as BillView).payments[0]
+    expect(
+      (
+        await f.act(bill, {
+          action: 'edit_payment',
+          paymentId: payment.id,
+          changes: {
+            amountCents: 51000,
+            paymentDate: payment.paymentDate,
+            method: payment.method,
+            notes: 'Old client correction',
+          },
+        })
+      ).statusCode,
+    ).toBe(200)
+    const debtPayments = (
+      await testRequest(f.app, 'GET', `${debtBase}/${debt.id}/payments`, f.owner.cookie)
+    ).json()
+    expect(debtPayments.payments).toHaveLength(1)
+    expect(debtPayments.payments[0]).toMatchObject({
+      principalAmountCents: 4000,
+      interestAmountCents: 1000,
+      feesAmountCents: 100,
+      referenceNumber: 'Fictional reference',
+      amountCents: 51000,
+    })
+    const recorded = (
+      await testRequest(f.app, 'GET', `${debtBase}/${debt.id}`, f.owner.cookie)
+    ).json().debt
+    expect(recorded.currentBalanceCents).toBe(50000)
+    expect(recorded.paymentStatus).not.toBe('paid')
+    expect(recorded.accountStatus).not.toBe('closed')
+    await f.app.close()
+    apps.splice(apps.indexOf(f.app), 1)
+    const reopened = await buildApp({
+      databasePath: f.path,
+      frontendOrigin: testOrigin,
+      secureCookie: false,
+    })
+    apps.push(reopened)
+    const persisted = (
+      await testRequest(reopened, 'GET', `${f.base}/${bill.id}`, f.owner.cookie)
+    ).json().bill as BillView
+    expect(persisted.payments[0]).toMatchObject({
+      status: 'completed',
+      principalAmountCents: 4000,
+      referenceNumber: 'Fictional reference',
+    })
+    await testRequest(
+      reopened,
+      'POST',
+      `${debtBase}/${debt.id}/payments/${payment.debtPaymentId}/cancel`,
+      f.owner.cookie,
+      {},
+    )
+    expect(
+      (await testRequest(reopened, 'GET', `${f.base}/${bill.id}`, f.owner.cookie)).json().bill
+        .periods[0].paidCents,
+    ).toBe(0)
+  })
   it('stops a recurring schedule without hiding or preventing payment of existing obligations', async () => {
     const f = await setup(),
       bill = await f.create({ amountType: 'fixed', amountCents: 10000, estimatedAmountCents: null })
@@ -234,6 +389,21 @@ describe('bills persistence, payments and permissions', () => {
         actorMember = testRole(f.path, f.home, actor.id, role)
       const exclusive = await f.create(),
         joint = await f.create({ name: 'Joint bill', memberIds: [f.member, actorMember] })
+      const unauthorizedCompletion = await f.request(
+        'POST',
+        `/${joint.id}/periods/${joint.periods[0].id}/payments`,
+        {
+          idempotencyKey: randomUUID(),
+          amountCents: 1000,
+          paymentDate: '2026-10-01',
+          method: 'cash',
+          notes: null,
+          status: 'completed',
+        },
+        actor.cookie,
+      )
+      expect(unauthorizedCompletion.statusCode).toBe(403)
+      expect((await f.request('GET', `/${joint.id}`)).json().bill.payments).toHaveLength(0)
       expect((await f.act(exclusive, { action: 'archive_bill' }, actor.cookie)).statusCode).toBe(
         403,
       )

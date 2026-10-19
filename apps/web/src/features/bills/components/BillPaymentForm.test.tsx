@@ -4,6 +4,38 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { BillPeriodView } from '@goxfinance/shared'
 import { BillPaymentForm } from './BillPaymentForm'
 afterEach(cleanup)
+it('prefills actual billed and remaining amounts, supports custom edits and requires cleared confirmation', async () => {
+  const period = {
+    dueDate: '2026-10-01',
+    amountCents: 34218,
+    estimatedAmountCents: 30000,
+    remainingCents: 14218,
+  } as BillPeriodView
+  const save = vi.fn()
+  render(<BillPaymentForm period={period} save={save} close={() => {}} />)
+  const amount = screen.getByLabelText('Actual payment amount ($)') as HTMLInputElement
+  fireEvent.click(screen.getByRole('radio', { name: /Full billed amount/ }))
+  expect(amount.value).toBe('342.18')
+  fireEvent.click(screen.getByRole('radio', { name: /Remaining unpaid amount/ }))
+  expect(amount.value).toBe('142.18')
+  fireEvent.click(screen.getByRole('radio', { name: /Other amount/ }))
+  fireEvent.change(amount, { target: { value: '100.001' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save pending payment' }))
+  expect(save).not.toHaveBeenCalled()
+  expect(screen.getByRole('alert').textContent).toContain('two decimal places')
+  fireEvent.change(amount, { target: { value: '100.01' } })
+  fireEvent.change(screen.getByLabelText('Payment status'), { target: { value: 'completed' } })
+  fireEvent.submit(screen.getByRole('button', { name: 'Save payment' }).closest('form')!)
+  expect(save).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('checkbox', { name: /actually cleared/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save payment' }))
+  await waitFor(() => expect(save).toHaveBeenCalledOnce())
+  expect(save.mock.calls[0][0]).toMatchObject({
+    amountCents: 10001,
+    status: 'completed',
+    principalAmountCents: null,
+  })
+})
 it('never fills a payment from an estimate and retains input after failed persistence', async () => {
   const period = {
     id: 'period',

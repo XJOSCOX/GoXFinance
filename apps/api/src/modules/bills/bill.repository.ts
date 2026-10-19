@@ -179,12 +179,11 @@ export function billRepository(db: DatabaseConnection) {
                   paymentDate: linked.paymentDate,
                   method: linked.paymentMethod,
                   notes: linked.notes,
-                  status:
-                    linked.paymentStatus === 'cancelled'
-                      ? 'cancelled'
-                      : linked.paymentStatus === 'completed'
-                        ? 'completed'
-                        : 'pending',
+                  status: linked.paymentStatus,
+                  principalAmountCents: linked.principalAmountCents,
+                  interestAmountCents: linked.interestAmountCents,
+                  feesAmountCents: linked.feesAmountCents,
+                  referenceNumber: linked.referenceNumber,
                   updatedAt: linked.updatedAt,
                 }
               : {}),

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { billAverage, type BillAction, type BillPayment, type BillView } from '@goxfinance/shared'
 import { Button, Input } from '../../../components/ui'
 import { FormField, MoneyField, Select } from '../../../components/ui/FormField'
@@ -14,10 +14,12 @@ export function BillDetails({
   close,
   act,
   changed,
+  startPayment = false,
 }: {
   bill: BillView
   close: () => void
   act: (action: BillAction) => Promise<void>
+  startPayment?: boolean
   changed: () => Promise<void>
 }) {
   const [periodId, setPeriodId] = useState(
@@ -29,6 +31,13 @@ export function BillDetails({
   const period = bill.periods.find((item) => item.id === periodId)
   const [payment, setPayment] = useState<BillPayment | null | undefined>(undefined),
     [editing, setEditing] = useState(false)
+  const openedPayment = useRef(false)
+  useEffect(() => {
+    if (startPayment && bill.canManage && period && !openedPayment.current) {
+      openedPayment.current = true
+      setPayment(null)
+    }
+  }, [startPayment, bill.canManage, period])
   const [amount, setAmount] = useState<number | null>(null),
     [credit, setCredit] = useState<number | null>(0),
     [notes, setNotes] = useState('')
@@ -168,7 +177,7 @@ export function BillDetails({
                     </div>
                     {bill.canManage && item.status !== 'cancelled' && (
                       <div className="flex flex-wrap gap-2">
-                        {item.status === 'pending' && (
+                        {['pending', 'scheduled'].includes(item.status) && (
                           <Button
                             size="small"
                             disabled={busy}
@@ -205,6 +214,7 @@ export function BillDetails({
             {payment !== undefined && (
               <BillPaymentForm
                 period={period}
+                allowCompleted={!bill.requiresApproval}
                 payment={payment ?? undefined}
                 close={() => setPayment(undefined)}
                 save={async (input) => {

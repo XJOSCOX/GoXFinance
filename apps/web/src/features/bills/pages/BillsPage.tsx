@@ -37,6 +37,7 @@ export function BillsPage() {
   } = useBills(householdId)
   const [form, setForm] = useState<BillView | null | undefined>(undefined),
     [detailId, setDetailId] = useState('')
+  const [startPayment, setStartPayment] = useState(false)
   const [kind, setKind] = useState('recurring'),
     [query, setQuery] = useState(''),
     [member, setMember] = useState(''),
@@ -208,9 +209,26 @@ export function BillsPage() {
                   <p className="font-semibold tabular-nums">
                     {formatMoney(next?.amountCents ?? null)}
                   </p>
-                  <Button size="small" onClick={() => setDetailId(bill.id)}>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setStartPayment(false)
+                      setDetailId(bill.id)
+                    }}
+                  >
                     View
                   </Button>
+                  {bill.canManage && bill.status !== 'cancelled' && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setStartPayment(true)
+                        setDetailId(bill.id)
+                      }}
+                    >
+                      Record payment
+                    </Button>
+                  )}
                   {bill.canManage && (
                     <>
                       <Button size="small" onClick={() => setForm(bill)}>
@@ -261,11 +279,13 @@ export function BillsPage() {
       )}
       {detail && (
         <BillDetails
+          key={detail.id}
+          startPayment={startPayment}
           bill={detail}
           close={() => setDetailId('')}
           act={(action) => act(detail, action)}
           changed={async () => {
-            notify('success', 'Pending payment saved')
+            notify('success', 'Payment saved')
             await load()
           }}
         />

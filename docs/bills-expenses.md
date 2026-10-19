@@ -4,7 +4,7 @@
 
 - **Bills**: add a recurring schedule or a one-time obligation. Fixed amounts and variable budget estimates are separate fields. A one-time bill generates exactly one period.
 - Open a bill to choose a billing period, enter its actual billed amount, record an explicit credit, and inspect payment history. Entering an actual amount does not pay the bill.
-- **Mark paid / record partial** requires an entered payment amount and date. Saving records a **pending** payment. Confirm that saved payment to record actual money paid. An Owner-linked joint bill requires the Owner to approve confirmation and other sensitive changes.
+- **Mark paid / record partial** requires an entered payment amount and date. Saving defaults to a **pending** payment. You may explicitly confirm clearance when selecting Completed, or confirm a previously scheduled/pending record later. An Owner-linked joint bill requires the Owner to approve confirmation and other sensitive changes.
 - Partial payments leave a remaining amount. Excess payments appear as **overpaid**, and credits are recorded separately. An unknown actual bill amount stays unknown even if an estimate or payment exists.
 - Variable averages use actual billed amounts from the last 3, 6, or 12 completed periods and show the sample count. Applying an average to future estimates requires explicit confirmation.
 - **Expenses** records everyday purchases. Assign one responsible member and one or more category allocations whose integer-cent amounts equal the total. Corrections and voiding retain audit history. Voided expenses do not contribute to spending.
@@ -21,7 +21,7 @@ The shared `cashOutflows` model distinguishes purchase spending from cash paid:
 | Confirmed standalone bill payment without credit | Amount | Amount |
 | Confirmed standalone bill payment on credit | Amount | Zero |
 | Confirmed debt repayment without credit | Zero | Amount |
-| Pending, failed, cancelled, or voided record | Zero | Zero |
+| Scheduled, pending, failed, cancelled, or voided record | Zero | Zero |
 
 A debt-linked bill confirmation creates one authoritative debt payment in the same database transaction. The bill stores its ID. Reporting excludes that bill-payment alias and counts the authoritative debt payment once. Corrections/cancellations update that same debt payment; no second repayment is created. Reading bill history reflects corrections made through the debt manager. Unknown principal remains unknown: a bill payment does not invent a new debt balance.
 
@@ -60,3 +60,5 @@ Existing databases receive the application's verified pre-migration snapshot. Da
 - Integration tests use disposable fictional SQLite databases, reopen the API to verify persistence, check foreign keys, simulate audit-write failures, and exercise Owner protections, approvals, stale proposals, cross-household access, and linked-payment deduplication.
 
 The site is still the local React/Fastify application: `npm install`, then `npm run dev`, then open `http://localhost:1420`. Data remains in the configured SQLite file (default `data/goxfinance_web.sqlite`). No Income, Trading, bank account tracking, Supabase, or advanced charts are included.
+
+Enhanced amount presets, allocation fields, migration `0013`, and all five payment statuses are documented in [payment-options.md](payment-options.md).

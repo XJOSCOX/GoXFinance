@@ -57,8 +57,32 @@ export function billService(
       if (!payment) throw new BillError('Payment not found', 404)
       if (payment.status === 'cancelled')
         throw new BillError('Cancelled payments cannot be changed', 409)
-      if (action.action === 'confirm_payment' && payment.status !== 'pending')
+      if (action.action === 'confirm_payment' && !['pending', 'scheduled'].includes(payment.status))
         throw new BillError('Payment has already been confirmed', 409)
+      if (action.action === 'edit_payment') {
+        const stored = {
+          amountCents: payment.amountCents,
+          paymentDate: payment.paymentDate,
+          method: payment.method,
+          notes: payment.notes,
+          status: payment.status,
+          principalAmountCents: payment.principalAmountCents,
+          interestAmountCents: payment.interestAmountCents,
+          feesAmountCents: payment.feesAmountCents,
+          referenceNumber: payment.referenceNumber,
+        }
+        const next = billPaymentInputSchema.parse({
+          ...stored,
+          ...action.changes,
+          idempotencyKey: payment.id,
+        })
+        if (
+          next.status === 'cancelled' ||
+          (next.status === 'completed' && payment.status !== 'completed') ||
+          (payment.status === 'completed' && next.status !== 'completed')
+        )
+          throw new BillError('Use Confirm or Cancel to change a completed payment status', 409)
+      }
     }
   }
   function apply(user: PublicUser, householdId: string, id: string, input: unknown) {
@@ -109,6 +133,10 @@ export function billService(
               paymentDate: payment.paymentDate,
               paymentMethod: payment.method,
               notes: payment.notes,
+              principalAmountCents: payment.principalAmountCents,
+              interestAmountCents: payment.interestAmountCents,
+              feesAmountCents: payment.feesAmountCents,
+              referenceNumber: payment.referenceNumber,
               paymentStatus: 'completed',
             }).payment.id
           store.updatePayment(householdId, payment.id, {
@@ -127,6 +155,21 @@ export function billService(
               paymentDate: action.changes.paymentDate,
               paymentMethod: action.changes.method,
               notes: action.changes.notes,
+              ...(action.changes.principalAmountCents !== undefined
+                ? { principalAmountCents: action.changes.principalAmountCents }
+                : {}),
+              ...(action.changes.interestAmountCents !== undefined
+                ? { interestAmountCents: action.changes.interestAmountCents }
+                : {}),
+              ...(action.changes.feesAmountCents !== undefined
+                ? { feesAmountCents: action.changes.feesAmountCents }
+                : {}),
+              ...(action.changes.referenceNumber !== undefined
+                ? { referenceNumber: action.changes.referenceNumber }
+                : {}),
+              ...(action.changes.status !== undefined
+                ? { paymentStatus: action.changes.status }
+                : {}),
             })
           store.updatePayment(householdId, payment.id, action.changes)
         }
@@ -224,6 +267,22 @@ export function billService(
         }
         const paymentId = randomUUID(),
           now = new Date().toISOString()
+        if (values.status === 'completed') permissions.manage(user, bill)
+        const linkedId =
+          values.status === 'completed' && period.linkedDebtId
+            ? debtPayments.create(user, householdId, period.linkedDebtId, {
+                idempotencyKey: paymentId,
+                amountCents: values.amountCents,
+                paymentDate: values.paymentDate,
+                paymentMethod: values.method,
+                paymentStatus: 'completed',
+                notes: values.notes,
+                principalAmountCents: values.principalAmountCents,
+                interestAmountCents: values.interestAmountCents,
+                feesAmountCents: values.feesAmountCents,
+                referenceNumber: values.referenceNumber,
+              }).payment.id
+            : null
         store.insertPayment({
           ...values,
           id: paymentId,
@@ -232,12 +291,22 @@ export function billService(
           periodId,
           createdByUserId: user.id,
           debtId: period.linkedDebtId,
-          status: 'pending',
+          status: values.status,
+          debtPaymentId: linkedId,
+          confirmedAt: values.status === 'completed' ? now : null,
           createdAt: now,
           updatedAt: now,
         })
         store.touch(householdId, id)
-        store.audit(householdId, id, user.id, 'payment_recorded_pending', paymentId, null, values)
+        store.audit(
+          householdId,
+          id,
+          user.id,
+          `payment_recorded_${values.status}`,
+          paymentId,
+          null,
+          values,
+        )
         return view(user, find(user, householdId, id))
       })
     },

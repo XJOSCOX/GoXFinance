@@ -35,7 +35,7 @@ Owners can open **Database recovery** on the Household page. Full-database opera
 
 ## Bills, everyday expenses, and Overview
 
-**Bills** keeps recurring schedules and one-time obligations separate from their actual payments. Variable bills have independent periods, actual billed amounts, estimate snapshots, partial payments, credits, overpayments, and completed-period averages. Recording a payment saves it as pending until explicit confirmation. Sensitive changes on Owner-linked joint bills use Owner approvals; Owner-exclusive records stay protected. Linked debt payments share one authoritative transaction.
+**Bills** keeps recurring schedules and one-time obligations separate from their actual payments. Variable bills have independent periods, actual billed amounts, estimate snapshots, partial payments, credits, overpayments, and completed-period averages. Payments default to Pending; recording Completed requires explicit cleared confirmation. Sensitive changes on Owner-linked joint bills use Owner approvals; Owner-exclusive records stay protected. Linked debt payments share one authoritative transaction.
 
 **Expenses** records everyday purchases with a responsible member, payment method, searchable merchant/description, date and category filters, optional category splits, corrections, and audited voiding. Monthly summaries show category and member spending. No bank balance is changed.
 
@@ -59,3 +59,5 @@ npm run build
 ```
 
 See [architecture](docs/architecture.md) for module boundaries, migrations, and the PostgreSQL path. The preserved visual reference is [design-preview.png](docs/design-preview.png).
+
+Debt and bill payment amount presets, status handling, and payoff safeguards are described in [payment options](docs/payment-options.md).

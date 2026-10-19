@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { debtPaymentMethodSchema } from './debt-payments'
+import { debtPaymentMethodSchema, debtPaymentStatusSchema } from './debt-payments'
 
 const cents = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable()
 export const billFrequencySchema = z.enum([
@@ -68,24 +68,44 @@ export type Bill = BillInput & {
   createdAt: string
   updatedAt: string
 }
-export const billPaymentInputSchema = z
+const billPaymentFieldsSchema = z
   .object({
     idempotencyKey: z.uuid(),
     amountCents: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     paymentDate: z.iso.date(),
     method: debtPaymentMethodSchema,
     notes: z.string().trim().max(4000).nullable(),
+    status: debtPaymentStatusSchema.default('pending'),
+    principalAmountCents: cents.default(null),
+    interestAmountCents: cents.default(null),
+    feesAmountCents: cents.default(null),
+    referenceNumber: z.string().trim().max(120).nullable().default(null),
   })
   .strict()
-export type BillPaymentInput = z.infer<typeof billPaymentInputSchema>
-export type BillPayment = Omit<BillPaymentInput, 'idempotencyKey'> & {
+export const billPaymentInputSchema = billPaymentFieldsSchema.refine(
+  (value) =>
+    (value.principalAmountCents ?? 0) +
+      (value.interestAmountCents ?? 0) +
+      (value.feesAmountCents ?? 0) <=
+    value.amountCents,
+  'Principal, interest, and fees cannot exceed the payment',
+)
+export const billPaymentEditSchema = billPaymentFieldsSchema.omit({ idempotencyKey: true }).extend({
+  status: debtPaymentStatusSchema.optional(),
+  principalAmountCents: cents.optional(),
+  interestAmountCents: cents.optional(),
+  feesAmountCents: cents.optional(),
+  referenceNumber: z.string().trim().max(120).nullable().optional(),
+})
+export type BillPaymentInput = z.input<typeof billPaymentInputSchema>
+export type BillPaymentValues = z.output<typeof billPaymentInputSchema>
+export type BillPayment = Omit<BillPaymentValues, 'idempotencyKey'> & {
   id: string
   householdId: string
   billId: string
   periodId: string
   debtId: string | null
   debtPaymentId: string | null
-  status: 'pending' | 'completed' | 'cancelled'
   createdByUserId: string
   createdAt: string
   updatedAt: string
@@ -138,7 +158,7 @@ export const billActionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('edit_payment'),
     paymentId: z.uuid(),
-    changes: billPaymentInputSchema.omit({ idempotencyKey: true }),
+    changes: billPaymentEditSchema,
   }),
   z.object({ action: z.literal('confirm_payment'), paymentId: z.uuid() }),
   z.object({ action: z.literal('cancel_payment'), paymentId: z.uuid() }),

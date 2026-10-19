@@ -138,6 +138,10 @@ export const billPayments = sqliteTable(
     method: text('method').notNull(),
     status: text('status').notNull().default('pending'),
     notes: text('notes'),
+    principalAmountCents: integer('principal_amount_cents'),
+    interestAmountCents: integer('interest_amount_cents'),
+    feesAmountCents: integer('fees_amount_cents'),
+    referenceNumber: text('reference_number'),
     debtId: text('debt_id'),
     debtPaymentId: text('debt_payment_id'),
     confirmedAt: text('confirmed_at'),
@@ -162,7 +166,14 @@ export const billPayments = sqliteTable(
     }),
     check('bill_payment_link', sql`${table.debtPaymentId} is null or ${table.debtId} is not null`),
     check('bill_payment_amount', sql`${table.amountCents}>0`),
-    check('bill_payment_status', sql`${table.status} in ('pending','completed','cancelled')`),
+    check(
+      'bill_payment_allocation',
+      sql`(${table.principalAmountCents} is null or ${table.principalAmountCents} >= 0) and (${table.interestAmountCents} is null or ${table.interestAmountCents} >= 0) and (${table.feesAmountCents} is null or ${table.feesAmountCents} >= 0) and coalesce(${table.principalAmountCents},0) + coalesce(${table.interestAmountCents},0) + coalesce(${table.feesAmountCents},0) <= ${table.amountCents}`,
+    ),
+    check(
+      'bill_payment_status',
+      sql`${table.status} in ('scheduled','pending','completed','failed','cancelled')`,
+    ),
     check(
       'bill_payment_confirmed',
       sql`${table.status} <> 'completed' or ${table.confirmedAt} is not null`,
