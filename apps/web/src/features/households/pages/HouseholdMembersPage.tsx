@@ -71,7 +71,7 @@ export function HouseholdMembersPage() {
   }
 
   return <WorkspaceLayout title="Household">
-    <HouseholdOverview household={household} memberCount={loading || error ? null : members.length} canEdit={canSettings} canAdd={canAdd}
+    <HouseholdOverview household={household} canEdit={canSettings} canAdd={canAdd}
       onDetails={() => setShowDetails(true)} onEdit={() => setShowEdit(true)}
       onJoin={() => navigate('/household/join')} onAdd={() => setFormMember(null)}>
       {notice && <p role="status" className="my-4 rounded-lg border border-[#9cac9b]/20 bg-[#9cac9b]/10 p-3 text-sm text-[#b9c9b8]">{notice}</p>}

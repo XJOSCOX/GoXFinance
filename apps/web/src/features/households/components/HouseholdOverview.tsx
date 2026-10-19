@@ -2,9 +2,8 @@ import type { HouseholdSummary } from '@goxfinance/shared'
 import type { ReactNode } from 'react'
 import { Button, Card } from '../../../components/ui'
 
-export function HouseholdOverview({ household, memberCount, canEdit, canAdd, onDetails, onEdit, onJoin, onAdd, children }: {
+export function HouseholdOverview({ household, canEdit, canAdd, onDetails, onEdit, onJoin, onAdd, children }: {
   household: HouseholdSummary
-  memberCount: number | null
   canEdit: boolean
   canAdd: boolean
   onDetails: () => void
@@ -25,11 +24,8 @@ export function HouseholdOverview({ household, memberCount, canEdit, canAdd, onD
         <Button type="button" onClick={onJoin}>Join another</Button>
       </div>
     </div>
-    <div className="mt-7 border-t border-white/10 pt-5">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">People <span className="ml-1 text-sm font-normal text-slate-400">{memberCount === null ? '…' : memberCount}</span></h2>
-        {canAdd && <Button type="button" variant="primary" size="small" onClick={onAdd}>Add member</Button>}
-      </div>
+    <div className="mt-6 border-t border-white/10 pt-4">
+      {canAdd && <div className="flex justify-end"><Button type="button" variant="primary" size="small" onClick={onAdd}>Add member</Button></div>}
       {children}
     </div>
   </Card>

@@ -100,7 +100,7 @@ describe('website authentication', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Our home' })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Members in Our home' })).toBeNull()
-    expect(screen.getByRole('heading', { name: /People/ })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /People/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Add member' }))
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Blair Example' } })
     fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
