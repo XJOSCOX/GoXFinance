@@ -1,0 +1,21 @@
+# Storage architecture and migration plan
+
+## Current desktop storage
+
+GoXPlan's React screens call the `FinanceStore` interface in `src/lib/storage.ts`. The Tauri 2 desktop implementation uses the maintained Tauri SQL plugin with SQLite. Desktop data is written to `goxplan.sqlite` in Tauri's per-user app configuration directory for `com.goxplan.desktop`; it never requires a network service. The legacy Dexie adapter is lazy-loaded only in the browser development build or when the user explicitly checks the desktop WebView's old IndexedDB.
+
+SQLite migration `0001_initial.sql` creates the requested entity tables, UUID text primary keys, household foreign keys, relationship indexes, and schema version tracking. Money columns end in `_cents` and use `INTEGER`. The TypeScript adapter rejects sub-cent values and values outside JavaScript's safe integer range. APR and percentages are non-monetary `REAL` values. Timestamps are ISO 8601 UTC text (for example, `2026-10-18T12:00:00.000Z`); dates without times use `YYYY-MM-DD`. The initial household UUID is a local placeholder and becomes an ownership key in a future multi-household design. SQLite `PRAGMA` commands and Tauri's migration registration are storage mechanics; financial calculations remain in TypeScript.
+
+The tables include `household_members`, `income_sources`, `income_transactions`, `expenses`, `expense_transactions`, `debts`, `debt_payments`, `settlement_offers`, `settlement_payments`, `bank_accounts`, `savings_goals`, `trading_accounts`, `trading_transactions`, `monthly_budgets`, `categories`, and `application_settings`. The UI currently writes the established GoXPlan collections; the additional transaction, account, budget, and category tables are ready for future screens. `expense_transactions` stores one-time expenses and `trading_transactions` stores dated actual payouts. Payments linked to an offer go in `settlement_payments`; other payment records go in `debt_payments`.
+
+## Existing IndexedDB records
+
+Browser IndexedDB is origin and profile scoped. A Tauri WebView cannot access the database of a separate browser origin. The supported migration is a versioned JSON export from the old browser followed by a desktop import. The desktop also offers an explicit check for IndexedDB in its own WebView. Import validates the schema and foreign-key references before writing, inserts by UUID, verifies every imported ID, and leaves existing records and source IndexedDB untouched. A failed interrupted import can be rerun because UUID conflicts are ignored. Existing records with matching IDs win; review conflicts manually before treating the merge as final. Never remove the old store until record counts and important balances are verified.
+
+Native SQLite snapshots use the online SQLite backup API. Restore validates integrity and schema version, then merges inside a transaction with foreign-key validation. It does not overwrite or delete current rows. Snapshots live beside the database in an app-owned `backups` directory and are **not encrypted**. Optional AES-GCM encryption is available for portable JSON backups. Local database encryption and an optional app lock remain future work; they require a key management design, migration of the existing plain database, and a recovery plan.
+
+## Future PostgreSQL / Supabase path
+
+Keep the `FinanceStore` interface and add a separate PostgreSQL implementation. Define PostgreSQL migrations separately: use native `UUID`, `BIGINT` cents, `TIMESTAMPTZ`, boolean columns, and PostgreSQL check constraints. Keep UUIDs and versioned record changes so re-imports and sync operations are idempotent. Before any cloud rollout, introduce explicit household membership and ownership, a conflict policy based on record version and timestamps, authentication, and row-level security keyed by household membership. Test cross-household isolation in PostgreSQL. Cloud sync and authentication are disabled; there are no Supabase keys or credentials in this project.
+
+The current SQL plugin stores its SQLite file in Tauri's app configuration directory. If a future release moves it to a different OS-specific data directory, that release must perform a one-time verified file migration and retain a recoverable copy. Do not simply change the connection URL.
