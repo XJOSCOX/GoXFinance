@@ -78,7 +78,8 @@ describe('website authentication', () => {
     expect(await screen.findByRole('heading', { name: 'Set up your household' })).toBeTruthy()
     fireEvent.change(screen.getByPlaceholderText('Our household'), { target: { value: 'Our home' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create household' }))
-    expect(await screen.findByRole('heading', { name: 'Welcome, Alex Example' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
+    expect(screen.getByText(/Welcome, Alex Example/)).toBeTruthy()
     expect(window.location.pathname).toBe('/dashboard')
     fireEvent.click(screen.getByRole('button', { name: /Alex Example/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
@@ -90,7 +91,8 @@ describe('website authentication', () => {
     signedIn = true
     household = { id: householdId, name: 'Our home', role: 'owner', moveInDate: null, notes: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Welcome, Alex Example' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
+    expect(screen.getByText(/Welcome, Alex Example/)).toBeTruthy()
   })
 
   it('adds and deactivates a household member from the workspace', async () => {

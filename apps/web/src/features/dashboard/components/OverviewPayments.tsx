@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
@@ -18,7 +19,7 @@ function PaymentList({
   detail: string
 }) {
   return (
-    <Card className="min-w-0 p-5">
+    <div className="min-w-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h2 className="font-semibold">{title}</h2>
         <span className="text-sm font-semibold tabular-nums">{formatMoney(group.totalCents)}</span>
@@ -49,7 +50,7 @@ function PaymentList({
           <p className="py-6 text-sm text-slate-400">{empty}</p>
         )}
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -60,38 +61,52 @@ export function OverviewPayments({
   payments: HouseholdOverview['payments']
   home: string
 }) {
+  const [selected, setSelected] = useState<'completed' | 'pending' | 'scheduled'>('completed')
+  const labels = { completed: 'Completed', pending: 'Pending', scheduled: 'Scheduled' }
+  const details = {
+    completed: 'Cleared bill and debt payments. Everyday purchases appear in spending.',
+    pending: 'Awaiting clearance; excluded from cash paid.',
+    scheduled: 'Planned payments; excluded from cash paid.',
+  }
   return (
-    <section aria-label="Payments in reporting month" className="space-y-3">
-      <div>
-        <h2 className="font-semibold">Payments this reporting month</h2>
-        <p className="mt-1 text-xs text-slate-400">
-          By payment date. Linked bill and debt records count once; only completed payments have
-          cleared.
-        </p>
-      </div>
-      <div className="grid gap-5 xl:grid-cols-3">
+    <Card className="min-w-0 p-5 sm:p-6">
+      <section aria-label="Payments in reporting month" className="space-y-4">
+        <div>
+          <h2 className="font-semibold">Payment activity</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Selected month, by payment date. Linked bills and debts count once.
+          </p>
+        </div>
+        <div
+          className="grid grid-cols-3 gap-1 rounded-lg border border-white/[.07] bg-black/10 p-1"
+          aria-label="Payment status"
+        >
+          {(['completed', 'pending', 'scheduled'] as const).map((status) => (
+            <button
+              key={status}
+              type="button"
+              aria-pressed={selected === status}
+              onClick={() => setSelected(status)}
+              className={`min-w-0 rounded-md px-2 py-2 text-xs transition-colors focus-visible:outline focus-visible:outline-[#a9b8a9] ${selected === status ? 'bg-white/[.08] text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <span className="block">
+                {labels[status]}{' '}
+                <span className="text-slate-500">{payments[status].items.length}</span>
+              </span>
+              <span className="mt-1 block break-words tabular-nums">
+                {formatMoney(payments[status].totalCents)}
+              </span>
+            </button>
+          ))}
+        </div>
         <PaymentList
-          title="Scheduled payments"
-          group={payments.scheduled}
+          title={`${labels[selected]} payments`}
+          group={payments[selected]}
           home={home}
-          empty="No scheduled payments this month."
-          detail="Planned payments; not yet paid."
+          empty={`No ${selected} payments this month.`}
+          detail={details[selected]}
         />
-        <PaymentList
-          title="Pending payments"
-          group={payments.pending}
-          home={home}
-          empty="No pending payments this month."
-          detail="Awaiting clearance; not included in cash paid."
-        />
-        <PaymentList
-          title="Completed payments"
-          group={payments.completed}
-          home={home}
-          empty="No completed payments this month."
-          detail="Cleared bill and debt payments. Everyday purchases appear separately."
-        />
-      </div>
-    </section>
+      </section>
+    </Card>
   )
 }

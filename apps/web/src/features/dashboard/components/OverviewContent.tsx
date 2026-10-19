@@ -1,160 +1,90 @@
-import { OverviewPayments } from './OverviewPayments'
-import { Link } from 'react-router-dom'
 import type { HouseholdOverview } from '@goxfinance/shared'
-import { Card } from '../../../components/ui'
+import { Link } from 'react-router-dom'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { formatMoney } from '../../../lib/money'
-
+import { OverviewPayments } from './OverviewPayments'
+import { OverviewDebtSnapshot } from './OverviewDebtSnapshot'
+import { OverviewBills } from './OverviewBills'
+import { OverviewAttention } from './OverviewAttention'
 export function OverviewContent({ data, home }: { data: HouseholdOverview; home: string }) {
-  const summary = data.debts.summary,
-    debtTotal =
-      summary.confirmedBalanceCents + summary.estimatedBalanceCents + summary.unverifiedBalanceCents
+  const base = `/households/${home}`
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryStat
-          label="Household debt"
-          amount={formatMoney(debtTotal)}
-          detail={`${summary.countedObligationCount} obligations · known balances only`}
-        />
-        <SummaryStat
-          label="Monthly obligations"
-          amount={formatMoney(data.bills.householdMonthlyObligationsCents)}
-          detail="Bills and debt minimums; includes estimates"
-        />
-        <SummaryStat
-          label="Purchases this month"
-          amount={formatMoney(data.actual.spendingCents)}
-          detail="Everyday expenses + standalone bill payments"
-        />
-        <SummaryStat
-          label="Cash paid this month"
-          amount={formatMoney(data.actual.cashOutflowCents)}
-          detail="Confirmed payments; excludes credit purchases"
-        />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <SummaryStat
-          label="Confirmed income received"
-          amount={formatMoney(data.income.confirmedCents)}
-          detail="Actual net deposits in reporting month"
-        />
-        <SummaryStat
-          label="Net recorded cash flow"
-          amount={formatMoney(data.income.netRecordedCashFlowCents)}
-          detail="Confirmed income minus confirmed cash outflows. Not a bank balance or available cash."
-        />
-      </div>
-      <OverviewPayments payments={data.payments} home={home} />
-      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">Upcoming & overdue bills</h2>
-            <Link
-              className="text-xs text-[#b1beb0] hover:underline"
-              to={`/households/${home}/bills`}
-            >
-              View bills
-            </Link>
-          </div>
-          <div className="mt-4 divide-y divide-white/10">
-            {data.upcoming.length ? (
-              data.upcoming.map((period) => (
-                <div
-                  key={period.id}
-                  className="flex items-center justify-between gap-4 py-3 text-sm"
-                >
-                  <div>
-                    <p>{period.billName}</p>
-                    <p
-                      className={`mt-1 text-xs ${period.overdue ? 'text-amber-200' : 'text-slate-400'}`}
-                    >
-                      {period.dueDate}
-                      {period.overdue ? ' · Overdue' : ''}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="tabular-nums">{formatMoney(period.remainingCents)} remaining</p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      {formatMoney(period.paidCents)} paid
-                      {period.creditCents > 0 ? ` · ${formatMoney(period.creditCents)} credit` : ''}
-                    </p>
-                    {period.amountCents === null && (
-                      <p className="mt-1 text-xs text-slate-400">
-                        Estimate {formatMoney(period.estimatedAmountCents)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="py-8 text-sm text-slate-400">
-                No outstanding bill periods. Add bills to see upcoming obligations.
-              </p>
-            )}
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h2 className="font-semibold">Needs attention</h2>
-          <div className="mt-4 space-y-3 text-sm text-slate-400">
-            {data.payments.futureCompletedCount > 0 && (
-              <p>
-                {data.payments.futureCompletedCount} completed payments have future dates. They are
-                excluded from actual totals; review their dates or status.
-              </p>
-            )}
-            {summary.unknownBalanceCount > 0 && (
-              <p>{summary.unknownBalanceCount} debt balances are unknown.</p>
-            )}
-            {summary.unverifiedBalanceCents > 0 && (
-              <p>
-                {formatMoney(summary.unverifiedBalanceCents)} in debt balances remains unverified.
-              </p>
-            )}
-            {data.bills.overdueCount > 0 && (
-              <p>{data.bills.overdueCount} bill periods are overdue.</p>
-            )}
-            {data.bills.unknownRecurringCount > 0 && (
-              <p>{data.bills.unknownRecurringCount} recurring bills need an amount or estimate.</p>
-            )}
-            <p>{data.bills.estimatedRecurringCount} variable bills use budget estimates.</p>
-            <p>
-              Recorded cash flow excludes opening balances and transactions not entered in
-              GoXFinance. It is not available cash.
-            </p>
-          </div>
-        </Card>
-      </div>
-      <Card className="p-5">
-        <h2 className="font-semibold">This month at a glance</h2>
-        <div className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
-          <p>
-            <span className="block text-slate-400">Everyday expenses</span>
-            <strong className="mt-1 block">{data.expenses.length} purchases</strong>
-          </p>
-          <p>
-            <span className="block text-slate-400">Bills remaining this reporting month</span>
-            <strong className="mt-1 block">
-              {formatMoney(data.payments.remainingBills.amountCents)}
-            </strong>
-            <span className="mt-1 block text-xs text-slate-400">
-              After completed payments and credits.
-              {data.payments.remainingBills.unknownCount > 0
-                ? ` ${data.payments.remainingBills.unknownCount} amounts unknown; excluded from total.`
-                : ''}
-            </span>
-          </p>
-          <p>
-            <span className="block text-slate-400">Confirmed outflows</span>
-            <strong className="mt-1 block">{data.actual.transactionCount} transactions</strong>
-          </p>
+    <div className="space-y-6">
+      <section aria-label="Monthly cash flow">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <SummaryStat
+            label="Income received"
+            amount={formatMoney(data.income.confirmedCents)}
+            detail="Confirmed net deposits"
+          />
+          <SummaryStat
+            label="Cash paid"
+            amount={formatMoney(data.actual.cashOutflowCents)}
+            detail="Completed cash outflows only"
+          />
+          <SummaryStat
+            label="Net recorded cash flow"
+            tone={
+              data.income.netRecordedCashFlowCents < 0
+                ? 'negative'
+                : data.income.netRecordedCashFlowCents > 0
+                  ? 'positive'
+                  : 'default'
+            }
+            amount={formatMoney(data.income.netRecordedCashFlowCents)}
+            detail="Income received minus cash paid"
+          />
         </div>
-        <p className="mt-5 border-t border-white/10 pt-4 text-xs text-slate-500">
-          Credit-card purchases count as spending when purchased. Repayments count as cash paid, not
-          a second purchase. Debt-linked bill payments are counted once. Unknown amounts remain
-          unknown.
+        <p className="mt-3 text-xs text-slate-500">
+          For the selected month. Recorded cash flow is not your bank balance or available cash;
+          opening balances and unrecorded transactions are excluded.
         </p>
-      </Card>
+      </section>
+      <nav aria-label="Manage household finances" className="flex flex-wrap gap-2">
+        {[
+          ['bills', 'Manage bills'],
+          ['income', 'Record income'],
+          ['expenses', 'Record an expense'],
+          ['debts', 'Manage debts'],
+        ].map(([path, label]) => (
+          <Link
+            key={path}
+            to={`${base}/${path}`}
+            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-white/[.05] focus-visible:outline focus-visible:outline-[#a9b8a9]"
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="grid items-start gap-5 xl:grid-cols-[1.35fr_1fr]">
+        <OverviewBills data={data} home={home} />
+        <OverviewDebtSnapshot data={data} home={home} />
+      </div>
+      <section aria-label="Monthly spending and obligations" className="grid gap-3 sm:grid-cols-3">
+        <SummaryStat
+          label="Bills remaining"
+          amount={formatMoney(data.payments.remainingBills.amountCents)}
+          detail={`Due in selected month · includes budget estimates${data.payments.remainingBills.unknownCount ? ` · ${data.payments.remainingBills.unknownCount} unknown amounts excluded` : ''}`}
+        />
+        <SummaryStat
+          label="Monthly payment plan"
+          amount={formatMoney(data.bills.householdMonthlyObligationsCents)}
+          detail="Known current recurring bills and debt minimums, including estimates; linked obligations counted once"
+        />
+        <SummaryStat
+          label="Purchase spending"
+          amount={formatMoney(data.actual.spendingCents)}
+          detail="Selected month · expenses and standalone bill payments, including credit-card purchases"
+        />
+      </section>
+      <div className="grid items-start gap-5 xl:grid-cols-[1.35fr_1fr]">
+        <OverviewPayments payments={data.payments} home={home} />
+        <OverviewAttention data={data} home={home} />
+      </div>
+      <p className="border-t border-white/[.07] pt-4 text-xs leading-5 text-slate-500">
+        Credit-card repayments count as cash paid, not a second purchase. Debt-linked bill payments
+        count once. Pending and scheduled payments are excluded from cash paid.
+      </p>
     </div>
   )
 }
