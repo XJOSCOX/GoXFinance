@@ -68,4 +68,6 @@ Debt and bill payment amount presets, status handling, and payoff safeguards are
 
 ## Application audit
 
+The [final twenty-item manual checklist](docs/manual-qa-2026-10-19.md) records 19 verified items and one live linked-bill setup check, with fictional arithmetic examples and explicit browser/automated evidence.
+
 See the [2026-10-19 audit report](docs/application-audit-2026-10-19.md) for verified scenarios, data-preservation checks, fixes, and limitations. Future completed-payment dates are rejected; planned payments remain separate. QA uses an independent session cookie to avoid interfering with the normal localhost app.

@@ -1,5 +1,7 @@
 # Final local manual testing
 
+For the current twenty-item checklist, see [final manual QA — 2026-10-19](manual-qa-2026-10-19.md). The nine-item run below is retained as earlier-stage evidence.
+
 Completed on 2026-10-19 against the production website bundle at `http://localhost:1421`, using the in-app browser. **9/9 checklist items passed.** These were actual UI interactions with a real SQLite database and a stopped/restarted API, not simulated test results.
 
 ## Isolation
