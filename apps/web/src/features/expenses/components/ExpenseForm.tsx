@@ -11,6 +11,7 @@ import {
 } from '@goxfinance/shared'
 import { Button, Input } from '../../../components/ui'
 import { FormField, MoneyField, Select } from '../../../components/ui/FormField'
+import { FormSection } from '../../../components/ui/FormSection'
 import { Modal } from '../../../components/ui/Modal'
 import { errorMessage } from '../../../lib/api'
 
@@ -66,11 +67,12 @@ export function ExpenseForm({
     <Modal
       title={expense ? 'Edit expense' : 'Add expense'}
       onClose={close}
+      description="Record an everyday purchase and how it was paid."
       framed
-      className="max-w-2xl"
+      className="max-w-3xl"
     >
       <form
-        className="flex min-h-0 flex-col"
+        className="flex min-h-0 flex-1 flex-col"
         onSubmit={async (e) => {
           e.preventDefault()
           if (busy) return
@@ -85,100 +87,103 @@ export function ExpenseForm({
           }
         }}
       >
-        <div className="dialog-scroll min-h-0 space-y-5 overflow-y-auto p-5 sm:p-7">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Description">
-              <Input
+        <div className="dialog-scroll min-h-0 space-y-6 overflow-y-auto p-5 sm:p-6">
+          <FormSection title="Purchase details">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Description">
+                <Input
+                  required
+                  maxLength={240}
+                  value={value.description}
+                  onChange={(e) => update('description', e.target.value)}
+                />
+              </FormField>
+              <FormField label="Merchant (optional)">
+                <Input
+                  value={value.merchant ?? ''}
+                  onChange={(e) => update('merchant', e.target.value || null)}
+                />
+              </FormField>
+              <MoneyField
+                label="Total amount ($)"
                 required
-                maxLength={240}
-                value={value.description}
-                onChange={(e) => update('description', e.target.value)}
-              />
-            </FormField>
-            <FormField label="Merchant (optional)">
-              <Input
-                value={value.merchant ?? ''}
-                onChange={(e) => update('merchant', e.target.value || null)}
-              />
-            </FormField>
-            <MoneyField
-              label="Total amount ($)"
-              required
-              value={value.amountCents || null}
-              onChange={(amount) =>
-                setValue((current) => ({
-                  ...current,
-                  amountCents: amount ?? 0,
-                  allocations:
-                    current.allocations.length === 1
-                      ? [{ ...current.allocations[0], amountCents: amount ?? 0 }]
-                      : current.allocations,
-                }))
-              }
-            />
-            <FormField label="Transaction date">
-              <Input
-                required
-                type="date"
-                value={value.transactionDate}
-                onChange={(e) => update('transactionDate', e.target.value)}
-              />
-            </FormField>
-            <FormField label="Responsible member">
-              <Select
-                required
-                value={value.responsibleMemberId}
-                onChange={(e) => update('responsibleMemberId', e.target.value)}
-              >
-                {members
-                  .filter(
-                    (item) => item.status === 'active' || expense?.responsibleMemberId === item.id,
-                  )
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.fullName}
-                      {item.status !== 'active' ? ' (inactive)' : ''}
-                    </option>
-                  ))}
-              </Select>
-            </FormField>
-            <FormField label="Payment method">
-              <Select
-                value={value.paymentMethod}
-                onChange={(e) =>
+                value={value.amountCents || null}
+                onChange={(amount) =>
                   setValue((current) => ({
                     ...current,
-                    paymentMethod: e.target.value as ExpenseInput['paymentMethod'],
-                    linkedDebtId: null,
+                    amountCents: amount ?? 0,
+                    allocations:
+                      current.allocations.length === 1
+                        ? [{ ...current.allocations[0], amountCents: amount ?? 0 }]
+                        : current.allocations,
                   }))
                 }
-              >
-                {Object.entries(paymentMethodLabels).map(([id, label]) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-            {value.paymentMethod === 'credit_card' && (
-              <FormField label="Tracked credit card (optional)">
+              />
+              <FormField label="Transaction date">
+                <Input
+                  required
+                  type="date"
+                  value={value.transactionDate}
+                  onChange={(e) => update('transactionDate', e.target.value)}
+                />
+              </FormField>
+              <FormField label="Responsible member">
                 <Select
-                  value={value.linkedDebtId ?? ''}
-                  onChange={(e) => update('linkedDebtId', e.target.value || null)}
+                  required
+                  value={value.responsibleMemberId}
+                  onChange={(e) => update('responsibleMemberId', e.target.value)}
                 >
-                  <option value="">Untracked card</option>
-                  {debts
-                    .filter((item) => item.accountType === 'credit_card' && !item.isArchived)
+                  {members
+                    .filter(
+                      (item) =>
+                        item.status === 'active' || expense?.responsibleMemberId === item.id,
+                    )
                     .map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.creditorName}
+                        {item.fullName}
+                        {item.status !== 'active' ? ' (inactive)' : ''}
                       </option>
                     ))}
                 </Select>
               </FormField>
-            )}
-          </div>
-          <fieldset>
+              <FormField label="Payment method">
+                <Select
+                  value={value.paymentMethod}
+                  onChange={(e) =>
+                    setValue((current) => ({
+                      ...current,
+                      paymentMethod: e.target.value as ExpenseInput['paymentMethod'],
+                      linkedDebtId: null,
+                    }))
+                  }
+                >
+                  {Object.entries(paymentMethodLabels).map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+              {value.paymentMethod === 'credit_card' && (
+                <FormField label="Tracked credit card (optional)">
+                  <Select
+                    value={value.linkedDebtId ?? ''}
+                    onChange={(e) => update('linkedDebtId', e.target.value || null)}
+                  >
+                    <option value="">Untracked card</option>
+                    {debts
+                      .filter((item) => item.accountType === 'credit_card' && !item.isArchived)
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.creditorName}
+                        </option>
+                      ))}
+                  </Select>
+                </FormField>
+              )}
+            </div>
+          </FormSection>
+          <fieldset className="border-t border-white/[.08] pt-5">
             <legend className="mb-3 font-medium">Category allocations</legend>
             <div className="space-y-3">
               {value.allocations.map((allocation, index) => (
@@ -256,19 +261,21 @@ export function ExpenseForm({
               do not count as a second purchase.
             </p>
           </fieldset>
-          <FormField label="Notes">
-            <Input
-              value={value.notes ?? ''}
-              onChange={(e) => update('notes', e.target.value || null)}
-            />
-          </FormField>
+          <FormSection title="Notes" collapsible>
+            <FormField label="Notes">
+              <Input
+                value={value.notes ?? ''}
+                onChange={(e) => update('notes', e.target.value || null)}
+              />
+            </FormField>
+          </FormSection>
           {error && (
             <p role="alert" className="text-sm text-rose-300">
               {error}
             </p>
           )}
         </div>
-        <footer className="flex justify-end gap-2 border-t border-white/10 p-4">
+        <footer className="flex shrink-0 justify-end gap-2 border-t border-white/10 bg-black/10 px-5 py-4 sm:px-6">
           <Button type="button" disabled={busy} onClick={close}>
             Cancel
           </Button>
