@@ -10,6 +10,7 @@ import {
 } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { Button, Card } from '../../../components/ui'
+import { amountTone } from '../../../components/ui/semantic-tones'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { FinancialAudit } from '../../../components/financial/FinancialAudit'
 import { useNotify } from '../../../components/ui/useNotify'
@@ -104,12 +105,14 @@ export function TradingPage() {
             <SummaryStat
               compact
               label="Net realized P&L"
+              tone={amountTone(sumCents(data.results.map((r) => r.netCents)))}
               amount={formatMoney(sumCents(data.results.map((r) => r.netCents)))}
               detail="All recorded accounts; not deposited income"
             />
             <SummaryStat
               compact
               label="Payouts requested / approved"
+              tone="warning"
               amount={formatMoney(
                 sumCents(
                   data.payouts
@@ -122,6 +125,7 @@ export function TradingPage() {
             <SummaryStat
               compact
               label="Payout deposits received"
+              tone="positive"
               amount={formatMoney(
                 sumCents(
                   data.payouts.filter((p) => p.status === 'paid').map((p) => p.receivedCents ?? 0),

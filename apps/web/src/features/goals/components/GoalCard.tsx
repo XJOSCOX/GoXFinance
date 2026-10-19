@@ -1,6 +1,8 @@
 import type { Goal, GoalContribution, TradingData } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { toneStyles, type SemanticTone } from '../../../components/ui/semantic-tones'
 export function GoalCard({
   goal,
   contributions,
@@ -22,8 +24,16 @@ export function GoalCard({
       p.actualCents === null || goal.targetCents === 0
         ? 0
         : Math.min(100, Math.max(0, (p.actualCents / goal.targetCents) * 100))
+  const tone: SemanticTone =
+    p.incomplete || p.actualCents === null
+      ? 'warning'
+      : p.met
+        ? 'positive'
+        : atMost
+          ? 'negative'
+          : 'info'
   return (
-    <Card className="min-w-0 p-5">
+    <Card className={`min-w-0 border-t-2 p-5 ${toneStyles[tone].border}`}>
       <div className="flex flex-wrap justify-between gap-3">
         <div>
           <h2 className="font-semibold">{goal.name}</h2>
@@ -60,19 +70,21 @@ export function GoalCard({
             / {formatMoney(goal.targetCents)}
           </span>
         </p>
-        <span
-          className={`text-xs ${p.incomplete ? 'text-amber-200/80' : p.met ? 'text-[#b1beb0]' : 'text-slate-400'}`}
-        >
-          {p.incomplete
-            ? 'Incomplete source data'
-            : p.met
-              ? atMost
-                ? 'Within limit so far'
-                : 'Target met'
-              : atMost
-                ? 'Limit exceeded'
-                : 'Target not met'}
-        </span>
+        <StatusBadge
+          status="goal progress"
+          tone={tone}
+          label={
+            p.incomplete || p.actualCents === null
+              ? 'Incomplete source data'
+              : p.met
+                ? atMost
+                  ? 'Within limit so far'
+                  : 'Target met'
+                : atMost
+                  ? 'Limit exceeded'
+                  : 'Target not met'
+          }
+        />
       </div>
       <div
         role="progressbar"
@@ -83,12 +95,11 @@ export function GoalCard({
         aria-valuetext={formatMoney(p.actualCents) + ' of ' + formatMoney(goal.targetCents)}
         className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[.07]"
       >
-        <div
-          className={`h-full ${atMost && !p.met ? 'bg-[#b68b84]' : 'bg-[#a9b8a9]'}`}
-          style={{ width: percent + '%' }}
-        />
+        <div className={`h-full ${toneStyles[tone].bar}`} style={{ width: percent + '%' }} />
       </div>
-      <p className="mt-2 text-xs text-slate-400">
+      <p
+        className={`mt-2 text-xs ${atMost && p.overageCents != null && p.overageCents > 0 ? toneStyles.negative.text : toneStyles.neutral.text}`}
+      >
         {atMost
           ? 'Overage: ' + formatMoney(p.overageCents)
           : 'Shortfall: ' + formatMoney(p.shortfallCents)}

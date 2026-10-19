@@ -3,6 +3,7 @@ import { CircleCheck, CircleAlert } from 'lucide-react'
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { toneStyles } from '../../../components/ui/semantic-tones'
 
 export function OverviewAttention({ data, home }: { data: HouseholdOverview; home: string }) {
   const summary = data.debts.summary
@@ -39,9 +40,14 @@ export function OverviewAttention({ data, home }: { data: HouseholdOverview; hom
       : []),
   ]
   return (
-    <Card className="min-w-0 p-4">
+    <Card
+      className={`min-w-0 border-t-2 p-4 ${alerts.length ? toneStyles.warning.border : toneStyles.positive.border}`}
+    >
       <h2 className="flex items-center gap-2 font-semibold">
-        <CircleAlert size={16} className="text-slate-400" />
+        <CircleAlert
+          size={16}
+          className={alerts.length ? toneStyles.warning.text : toneStyles.positive.text}
+        />
         Needs attention
         {alerts.length > 0 && (
           <span className="ml-auto text-xs font-normal text-slate-500">{alerts.length}</span>
@@ -56,14 +62,14 @@ export function OverviewAttention({ data, home }: { data: HouseholdOverview; hom
                 className="flex items-start justify-between gap-3 py-2 text-sm text-slate-300 hover:text-white"
               >
                 <span>{alert.text}</span>
-                <span className="shrink-0 text-xs text-[#b1beb0]">Review</span>
+                <span className={`shrink-0 text-xs ${toneStyles.warning.text}`}>Review</span>
               </Link>
             </li>
           ))}
         </ul>
       ) : (
         <p className="mt-3 flex items-center gap-2 text-sm text-slate-400">
-          <CircleCheck size={16} className="text-[#a9b8a9]" />
+          <CircleCheck size={16} className={toneStyles.positive.text} />
           No data warnings to review.
         </p>
       )}

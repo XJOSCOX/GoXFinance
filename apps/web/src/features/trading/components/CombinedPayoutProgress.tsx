@@ -1,4 +1,5 @@
 import { combinedTradingProgress, type TradingData } from '@goxfinance/shared'
+import { toneStyles } from '../../../components/ui/semantic-tones'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 
@@ -28,7 +29,7 @@ export function CombinedPayoutProgress({ data }: { data: TradingData }) {
             : 'Combined estimate'}{' '}
           after each account's split
         </p>
-        <p className="mt-1 text-xl font-semibold tabular-nums">
+        <p className={`mt-1 text-xl font-semibold tabular-nums ${toneStyles.info.text}`}>
           {formatMoney(summary.estimatedTraderCents)}
         </p>
         <p className="mt-1 text-xs text-slate-500">

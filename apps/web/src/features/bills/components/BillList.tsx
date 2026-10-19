@@ -2,6 +2,8 @@ import { CalendarDays, Link2, MoreHorizontal, ReceiptText } from 'lucide-react'
 import type { BillView, FinancialCategory } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { toneStyles } from '../../../components/ui/semantic-tones'
 
 const columns = 'xl:grid-cols-[minmax(12rem,1.2fr)_minmax(0,2fr)_13rem]'
 const labels = ['Budget estimate', 'Confirmed bill', 'Paid', 'Still owed']
@@ -87,10 +89,6 @@ function BillListItem({
       : period?.overdue
         ? 'Overdue'
         : (period?.paymentStatus.replaceAll('_', ' ') ?? 'No periods')
-  const badge =
-    period?.overdue && bill.status === 'active'
-      ? 'border-amber-200/15 bg-amber-200/[.05] text-amber-200/80'
-      : 'border-white/10 bg-white/[.03] text-slate-400'
   return (
     <article
       aria-label={bill.name}
@@ -104,9 +102,7 @@ function BillListItem({
           >
             {bill.name}
           </button>
-          <span className={`rounded-md border px-2 py-0.5 text-[10px] capitalize ${badge}`}>
-            {status}
-          </span>
+          <StatusBadge status={status} />
         </div>
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
           <span>{category}</span>
@@ -133,7 +129,7 @@ function BillListItem({
           <div key={label} className="min-w-0">
             <dt className="text-[11px] text-slate-500 xl:sr-only">{label}</dt>
             <dd
-              className={`mt-1 tabular-nums xl:mt-0 ${index === 3 ? 'font-semibold' : 'text-sm text-slate-300'}`}
+              className={`mt-1 tabular-nums xl:mt-0 ${index === 3 ? `font-semibold ${period?.overdue ? toneStyles.negative.text : toneStyles.warning.text}` : index === 2 ? `text-sm ${toneStyles.positive.text}` : index === 0 ? `text-sm ${toneStyles.info.text}` : 'text-sm text-slate-300'}`}
             >
               {formatMoney(amounts[index])}
             </dd>

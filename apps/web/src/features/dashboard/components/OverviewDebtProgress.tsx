@@ -1,5 +1,6 @@
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
+import { toneStyles } from '../../../components/ui/semantic-tones'
 import { formatMoney } from '../../../lib/money'
 
 export function OverviewDebtProgress({ data }: { data: HouseholdOverview }) {
@@ -15,13 +16,13 @@ export function OverviewDebtProgress({ data }: { data: HouseholdOverview }) {
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-slate-400">Net balance reduction</p>
-              <p className="mt-1 font-semibold tabular-nums">
+              <p className={`mt-1 font-semibold tabular-nums ${toneStyles.info.text}`}>
                 {formatMoney(progress.reductionCents)}
               </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-400">Tracked remaining</p>
-              <p className="mt-1 font-semibold tabular-nums">
+              <p className={`mt-1 font-semibold tabular-nums ${toneStyles.info.text}`}>
                 {formatMoney(progress.remainingCents)}
               </p>
             </div>
@@ -40,7 +41,7 @@ export function OverviewDebtProgress({ data }: { data: HouseholdOverview }) {
             className="mt-3 h-2 overflow-hidden rounded-full bg-white/[.07]"
           >
             <div
-              className="h-full rounded-full bg-[#a9b8a9]"
+              className={`h-full rounded-full ${toneStyles.positive.bar}`}
               style={{ width: `${progress.percent ?? 0}%` }}
             />
           </div>

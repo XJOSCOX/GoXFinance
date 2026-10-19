@@ -1,6 +1,7 @@
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { OverviewBillAmounts } from './OverviewBillAmounts'
+import { toneStyles } from '../../../components/ui/semantic-tones'
 import { formatMoney } from '../../../lib/money'
 
 export function OverviewProgress({ data }: { data: HouseholdOverview }) {
@@ -44,7 +45,7 @@ export function OverviewProgress({ data }: { data: HouseholdOverview }) {
         className="mt-2 h-2 overflow-hidden rounded-full bg-white/[.07]"
       >
         <div
-          className="h-full rounded-full bg-[#a9b8a9] transition-[width]"
+          className={`h-full rounded-full transition-[width] ${toneStyles[progress.unknownCount > 0 ? 'warning' : progress.percent === 100 ? 'positive' : 'info'].bar}`}
           style={{ width: `${progress.percent ?? 0}%` }}
         />
       </div>

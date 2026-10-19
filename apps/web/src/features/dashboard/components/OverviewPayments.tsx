@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
+import { toneStyles, statusTone } from '../../../components/ui/semantic-tones'
 import { formatMoney } from '../../../lib/money'
 
 type PaymentGroup = HouseholdOverview['payments']['completed']
@@ -88,7 +89,7 @@ export function OverviewPayments({
               type="button"
               aria-pressed={selected === status}
               onClick={() => setSelected(status)}
-              className={`min-w-0 rounded-md px-2 py-2 text-xs transition-colors focus-visible:outline focus-visible:outline-[#a9b8a9] ${selected === status ? 'bg-white/[.08] text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`min-w-0 rounded-md px-2 py-2 text-xs transition-colors focus-visible:outline focus-visible:outline-[#a9b8a9] ${selected === status ? toneStyles[statusTone(status)].badge : toneStyles[statusTone(status)].text}`}
             >
               <span className="block">
                 {labels[status]}{' '}

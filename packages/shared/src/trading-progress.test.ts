@@ -27,6 +27,23 @@ const account = {
 } as TradingAccount
 const result = (id: string, day: string, netCents: number) =>
   ({ id, accountId: account.id, sessionDate: day, netCents }) as TradingResult
+it('keeps four qualifying days after a loss and needs only one more win, without a consecutive-day requirement', () => {
+  const rows = [
+    result('1', '2026-10-10', 15000),
+    result('2', '2026-10-11', 18000),
+    result('3', '2026-10-12', 17000),
+    result('4', '2026-10-13', 15000),
+    result('loss', '2026-10-14', -10000),
+  ]
+  expect(tradingPayoutProgress(account, rows, [], now)).toMatchObject({
+    qualifyingDays: 4,
+    targetMet: false,
+    netCents: 55000,
+  })
+  expect(
+    tradingPayoutProgress(account, [...rows, result('5', '2026-10-16', 15000)], [], now),
+  ).toMatchObject({ qualifyingDays: 5, targetMet: true, netCents: 70000 })
+})
 it('counts distinct net winning sessions, including copied trades, without counting gross or duplicate rows', () => {
   const rows = [
     result('1', '2026-10-10', 10000),

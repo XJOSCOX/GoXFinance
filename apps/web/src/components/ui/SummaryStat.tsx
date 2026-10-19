@@ -1,4 +1,5 @@
 import { Card } from './index'
+import { toneStyles, type SemanticTone } from './semantic-tones'
 export function SummaryStat({
   label,
   amount,
@@ -9,14 +10,15 @@ export function SummaryStat({
   label: string
   amount: string
   detail?: string
-  tone?: 'default' | 'positive' | 'negative'
+  tone?: 'default' | SemanticTone
   compact?: boolean
 }) {
+  const color = toneStyles[tone === 'default' ? 'neutral' : tone]
   return (
-    <Card className={compact ? 'min-w-0 p-3' : 'min-w-0 p-5'}>
+    <Card className={`${compact ? 'min-w-0 p-3' : 'min-w-0 p-5'} border-t-2 ${color.border}`}>
       <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
       <p
-        className={`${compact ? 'mt-2 text-xl' : 'mt-4 text-2xl'} font-semibold tabular-nums ${tone === 'negative' ? 'text-rose-200' : tone === 'positive' ? 'text-[#b1beb0]' : ''}`}
+        className={`${compact ? 'mt-2 text-xl' : 'mt-4 text-2xl'} font-semibold tabular-nums ${color.text}`}
       >
         {amount}
       </p>

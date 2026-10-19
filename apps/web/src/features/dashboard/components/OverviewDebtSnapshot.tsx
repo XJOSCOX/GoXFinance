@@ -3,6 +3,7 @@ import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 import { groupDebts } from '../../debts/lib/debt-groups'
+import { toneStyles, statusTone } from '../../../components/ui/semantic-tones'
 export function OverviewDebtSnapshot({ data, home }: { data: HouseholdOverview; home: string }) {
   const summary = data.debts.summary
   const total =
@@ -25,7 +26,7 @@ export function OverviewDebtSnapshot({ data, home }: { data: HouseholdOverview; 
       <div className="mt-3 divide-y divide-white/[.07]">
         {groups.map((group) => (
           <div key={group.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-            <span className="text-slate-300">
+            <span className={toneStyles[statusTone(group.id)].text}>
               {group.label}
               <span className="ml-2 text-xs text-slate-500">{group.debts.length}</span>
             </span>

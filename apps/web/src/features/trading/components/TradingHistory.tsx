@@ -9,6 +9,7 @@ import type {
 } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { amountTone, toneStyles } from '../../../components/ui/semantic-tones'
 export function TradingHistory({
   data,
   tab,
@@ -64,7 +65,9 @@ export function TradingHistory({
                   </td>
                   <td>{formatMoney(r.grossCents)}</td>
                   <td>{formatMoney(r.feesCents)}</td>
-                  <td>{formatMoney(r.netCents)}</td>
+                  <td className={toneStyles[amountTone(r.netCents)].text}>
+                    {formatMoney(r.netCents)}
+                  </td>
                   <td>
                     <div className="flex gap-1">
                       {r.canManage && (

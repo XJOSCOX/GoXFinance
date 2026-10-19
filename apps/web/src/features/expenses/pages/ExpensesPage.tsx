@@ -80,11 +80,13 @@ export function ExpensesPage() {
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <SummaryStat
           label="Monthly purchases"
+          tone="warning"
           amount={formatMoney(sumCents(active.map((item) => item.amountCents)))}
           detail="Everyday expenses in this selection"
         />
         <SummaryStat
           label="Paid without credit"
+          tone="info"
           amount={formatMoney(
             sumCents(
               active
@@ -96,6 +98,7 @@ export function ExpensesPage() {
         />
         <SummaryStat
           label="Credit-card purchases"
+          tone="warning"
           amount={formatMoney(
             sumCents(
               active

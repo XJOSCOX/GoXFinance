@@ -19,16 +19,19 @@ export function IncomeOverview({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <SummaryStat
           label="Confirmed income"
+          tone="positive"
           amount={formatMoney(summary.confirmedCents)}
           detail="Actual net deposits in reporting month"
         />
         <SummaryStat
           label="Pending income"
+          tone="warning"
           amount={formatMoney(summary.pendingCents)}
           detail={`Estimated net, not received · ${summary.pendingUnknownCount} unknown`}
         />
         <SummaryStat
           label="Expected future income"
+          tone="info"
           amount={formatMoney(summary.expectedCents)}
           detail={`Recorded expectations only · ${summary.expectedUnknownCount} unknown`}
         />

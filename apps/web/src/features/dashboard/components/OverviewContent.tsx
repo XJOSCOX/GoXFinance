@@ -16,12 +16,14 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
             <SummaryStat
               compact
               label="Income received"
+              tone="positive"
               amount={formatMoney(data.income.confirmedCents)}
               detail="Confirmed net deposits"
             />
             <SummaryStat
               compact
               label="Cash paid"
+              tone="warning"
               amount={formatMoney(data.actual.cashOutflowCents)}
               detail="Completed cash outflows only"
             />
@@ -44,6 +46,7 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
           <SummaryStat
             compact
             label="Bills remaining"
+            tone="warning"
             amount={formatMoney(
               data.payments.billAmounts.confirmedCount === 0 &&
                 data.payments.billAmounts.unconfirmedCount > 0
@@ -59,12 +62,14 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
           <SummaryStat
             compact
             label="Monthly payment plan"
+            tone="info"
             amount={formatMoney(data.bills.householdMonthlyObligationsCents)}
             detail="Known bills + debt minimums; includes estimates"
           />
           <SummaryStat
             compact
             label="Purchase spending"
+            tone="warning"
             amount={formatMoney(data.actual.spendingCents)}
             detail="Expenses + standalone bill payments"
           />

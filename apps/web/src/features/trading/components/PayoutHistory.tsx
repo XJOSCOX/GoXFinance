@@ -1,6 +1,7 @@
 import type { TradingData, TradingPayout } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 export function PayoutHistory({
   data,
   onPayout,
@@ -28,7 +29,7 @@ export function PayoutHistory({
               {rows.map((p) => (
                 <li key={p.id} className="flex flex-wrap justify-between gap-2">
                   <span>
-                    {name(p.accountId)} / {p.status}
+                    {name(p.accountId)} / <StatusBadge status={p.status} />
                   </span>
                   <span>
                     Requested {formatMoney(p.requestedCents)} / Received{' '}
@@ -48,8 +49,7 @@ export function PayoutHistory({
           <div className="flex flex-wrap justify-between gap-3">
             <div>
               <h3 className="font-semibold">
-                {name(p.accountId)}{' '}
-                <span className="ml-2 text-xs font-normal text-slate-400">{p.status}</span>
+                {name(p.accountId)} <StatusBadge status={p.status} className="ml-2" />
               </h3>
               <p className="mt-1 text-xs text-slate-500">
                 Requested {p.requestDate} / Deposit {p.depositDate ?? 'Not received'}

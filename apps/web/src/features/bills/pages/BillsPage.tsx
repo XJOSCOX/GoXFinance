@@ -97,16 +97,19 @@ export function BillsPage() {
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryStat
           label="Monthly bills"
+          tone="info"
           amount={formatMoney(summary.standaloneMonthlyCents)}
           detail="Known / estimated, excludes linked debt"
         />
         <SummaryStat
           label="Bills + debt obligations"
+          tone="info"
           amount={formatMoney(summary.householdMonthlyObligationsCents)}
           detail="Monthly equivalent; debt links counted once"
         />
         <SummaryStat
           label="Actual remaining"
+          tone="warning"
           amount={formatMoney(
             summary.unknownPeriodCount && !summary.confirmedPeriodCount
               ? null
@@ -120,6 +123,7 @@ export function BillsPage() {
         />
         <SummaryStat
           label="Overdue periods"
+          tone={summary.overdueCount > 0 ? 'negative' : 'neutral'}
           amount={String(summary.overdueCount)}
           detail={`${summary.unknownRecurringCount} unknown recurring amounts`}
         />

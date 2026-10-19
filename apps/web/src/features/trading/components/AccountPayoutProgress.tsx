@@ -5,6 +5,8 @@ import {
   type TradingPayout,
 } from '@goxfinance/shared'
 import { formatMoney } from '../../../lib/money'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { toneStyles, amountTone } from '../../../components/ui/semantic-tones'
 
 export function AccountPayoutProgress({
   account,
@@ -22,13 +24,13 @@ export function AccountPayoutProgress({
     <section className="mt-4 space-y-3 rounded-xl border border-white/10 bg-black/10 p-4">
       <div className="flex flex-wrap justify-between gap-2 text-sm">
         <h3 className="font-medium">Winning-day progress{perAccount ? ' · each account' : ''}</h3>
-        <span>
+        <span className={toneStyles[progress.targetMet ? 'positive' : 'info'].text}>
           {progress.qualifyingDays ?? 'Unknown'} / {progress.target ?? 'Unknown'} days
         </span>
       </div>
       {progress.target != null && progress.target > 0 && progress.qualifyingDays != null && (
         <progress
-          className="h-2 w-full accent-[#b2bfaf]"
+          className={`h-2 w-full ${toneStyles[progress.targetMet ? 'positive' : 'info'].accent}`}
           aria-label={`${account.nickname} winning-day progress`}
           value={Math.min(progress.qualifyingDays, progress.target)}
           max={progress.target}
@@ -38,14 +40,21 @@ export function AccountPayoutProgress({
         Net session result at least {formatMoney(progress.threshold)} · Since{' '}
         {progress.start ?? 'Unknown'}. {progress.sessionCount} recorded sessions.
       </p>
+      <p className="text-xs text-slate-400">
+        Not consecutive: losing days do not erase qualifying wins.
+      </p>
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <dt className="text-xs text-slate-500">Recorded net profit</dt>
-          <dd>{formatMoney(progress.netCents)}</dd>
+          <dd className={toneStyles[amountTone(progress.netCents)].text}>
+            {formatMoney(progress.netCents)}
+          </dd>
         </div>
         <div>
           <dt className="text-xs text-slate-500">Estimated payout after split</dt>
-          <dd className="font-semibold">{formatMoney(progress.estimate?.traderCents ?? null)}</dd>
+          <dd className={`font-semibold ${toneStyles.info.text}`}>
+            {formatMoney(progress.estimate?.traderCents ?? null)}
+          </dd>
         </div>
       </dl>
       {progress.reservedCents > 0 && (
@@ -55,9 +64,13 @@ export function AccountPayoutProgress({
         </p>
       )}
       <p className="text-xs text-slate-500">
-        {progress.targetMet
-          ? 'Recorded day target met. '
-          : 'Day target not yet met or incomplete. '}
+        <StatusBadge
+          status={progress.targetMet ? 'target met' : 'in progress'}
+          tone={progress.targetMet ? 'positive' : 'info'}
+          label={
+            progress.targetMet ? 'Recorded day target met' : 'Day target in progress / incomplete'
+          }
+        />{' '}
         Estimate only, not confirmed income or payout eligibility.
       </p>
       {progress.currentSessionIncluded && (

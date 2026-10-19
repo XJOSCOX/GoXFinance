@@ -1,4 +1,5 @@
 import type { HouseholdOverview } from '@goxfinance/shared'
+import { toneStyles } from '../../../components/ui/semantic-tones'
 import { formatMoney } from '../../../lib/money'
 
 type Amounts = HouseholdOverview['payments']['billAmounts']
@@ -31,7 +32,11 @@ export function OverviewBillAmounts({ amounts }: { amounts: Amounts }) {
         {metrics.map(([label, amount, detail]) => (
           <div key={label} className="min-w-0">
             <dt className="text-xs text-slate-400">{label}</dt>
-            <dd className="mt-1 font-semibold tabular-nums">{formatMoney(amount)}</dd>
+            <dd
+              className={`mt-1 font-semibold tabular-nums ${toneStyles[label === 'Budget estimates' ? 'info' : label === 'Actually paid' ? 'positive' : label === 'Still owed' ? 'warning' : 'neutral'].text}`}
+            >
+              {formatMoney(amount)}
+            </dd>
             <p className="mt-1 text-xs text-slate-500">{detail}</p>
           </div>
         ))}

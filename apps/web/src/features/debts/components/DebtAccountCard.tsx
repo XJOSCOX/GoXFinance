@@ -7,6 +7,7 @@ import {
   type HouseholdMember,
 } from '@goxfinance/shared'
 import { Button } from '../../../components/ui'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 
 export function DebtAccountCard({
   debt,
@@ -56,9 +57,7 @@ export function DebtAccountCard({
         {people.length > 1 && <p className="text-[10px] text-slate-500">Shared account</p>}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 lg:col-span-2">
-        <span className="rounded-md border border-white/[.07] bg-white/[.035] px-2 py-1 text-[11px] text-slate-300">
-          {paymentStatusLabels[debt.paymentStatus]}
-        </span>
+        <StatusBadge status={debt.paymentStatus} label={paymentStatusLabels[debt.paymentStatus]} />
         {debt.isArchived && <span className="text-[10px] text-slate-500">Archived</span>}
       </div>
       <div className="min-w-0 lg:col-span-2 lg:text-right">
@@ -68,7 +67,7 @@ export function DebtAccountCard({
         <p className="break-words text-lg font-semibold tabular-nums tracking-tight">
           {money(debt.currentBalanceCents)}
         </p>
-        <p className="mt-1 text-[10px] capitalize text-slate-500">{debt.confidence}</p>
+        <StatusBadge status={debt.confidence} className="mt-1 text-[10px]" />
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1 lg:col-span-2">
         <Button size="small" onClick={onView} aria-label={'View ' + debt.creditorName}>
