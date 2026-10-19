@@ -25,14 +25,16 @@ const initial = (debt?: Debt | null): DebtInput => ({
   memberAssignments: debt?.memberAssignments ?? [],
 })
 
-export function DebtFormDialog({ debt, members, debts, role, currentMemberId, onClose, onSave }: {
+export function DebtFormDialog({ debt, members, debts, role, currentMemberId, onClose, onSave, requestMode = false }: {
   debt?: Debt | null; members: HouseholdMember[]; debts: Debt[]; role: string; currentMemberId?: string;
-  onClose: () => void; onSave: (input: DebtInput) => Promise<void>
+  onClose: () => void; onSave: (input: DebtInput, reason?: string, requestKey?: string) => Promise<void>; requestMode?: boolean
 }) {
   const [form, setForm] = useState<DebtInput>(() => initial(debt))
   const [money, setMoney] = useState<Record<MoneyField, string>>(() => Object.fromEntries(moneyFields.map(field => [field, moneyText(debt?.[field])])) as Record<MoneyField, string>)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [reason, setReason] = useState('')
+  const [requestKey] = useState(() => crypto.randomUUID())
   const set = <K extends keyof DebtInput>(key: K, value: DebtInput[K]) => setForm(current => ({ ...current, [key]: value }))
   const label = 'mb-1 block text-xs font-medium text-slate-400'
   const select = 'h-10 w-full rounded-lg border border-white/10 bg-[#151716] px-3 text-sm text-white'
@@ -49,11 +51,12 @@ export function DebtFormDialog({ debt, members, debts, role, currentMemberId, on
     }
     if (!form.memberAssignments?.length) { setError('Assign at least one household member'); return }
     setBusy(true)
-    try { await onSave({ ...form, ...parsedMoney }); onClose() }
+    try { await onSave({ ...form, ...parsedMoney }, reason.trim(), requestKey); onClose() }
     catch (failure) { setError(errorMessage(failure)) }
     finally { setBusy(false) }
   }
-  return <Modal title={debt ? 'Edit debt' : 'Add debt'} onClose={onClose}><form onSubmit={event => void submit(event)} className="space-y-5">
+  return <Modal title={requestMode ? 'Request account changes' : debt ? 'Edit debt' : 'Add debt'} onClose={onClose}><form onSubmit={event => void submit(event)} className="space-y-5">
+    {requestMode && <p className="text-sm text-slate-400">Changes take effect only after the household Owner approves.</p>}
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="sm:col-span-2"><span className={label}>Creditor *</span><Input required maxLength={160} value={form.creditorName} onChange={event => set('creditorName', event.target.value)} /></label>
       <label><span className={label}>Nickname</span><Input value={form.accountNickname ?? ''} onChange={event => set('accountNickname', event.target.value || null)} /></label>
@@ -68,16 +71,17 @@ export function DebtFormDialog({ debt, members, debts, role, currentMemberId, on
       {(['nextDueDate', 'lastPaymentDate', 'openedDate', 'closedDate', 'chargedOffDate'] as const).map(field => <label key={field}><span className={label}>{field.replace(/([A-Z])/g, ' $1')}</span><Input type="date" value={form[field] ?? ''} onChange={event => set(field, event.target.value || null)} /></label>)}
     </div>
     {debt && <p className="text-xs text-slate-400">Update the current balance through the account’s Balance History tab.</p>}
-    <fieldset className="border-t border-white/10 pt-4"><legend className="text-sm font-semibold">Responsible members *</legend><div className="mt-2 space-y-2">{members.filter(member => member.status === 'active' && (role !== 'editor' || member.id === currentMemberId) && (role === 'owner' || member.accessRole !== 'owner')).map(member => {
+    <fieldset className="border-t border-white/10 pt-4"><legend className="text-sm font-semibold">Responsible members *</legend><div className="mt-2 space-y-2">{members.filter(member => member.status === 'active' && (requestMode || role !== 'editor' || member.id === currentMemberId) && (requestMode || role === 'owner' || member.accessRole !== 'owner')).map(member => {
       const assignment = form.memberAssignments?.find(item => item.memberId === member.id)
-      return <div key={member.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(assignment)} disabled={Boolean(debt) && role !== 'owner'} onChange={event => set('memberAssignments', event.target.checked ? [...(form.memberAssignments ?? []), { memberId: member.id, responsibility: 'primary' }] : (form.memberAssignments ?? []).filter(item => item.memberId !== member.id))}/>{member.fullName}</label>{assignment && <select aria-label={`${member.fullName} responsibility`} className={select + ' w-auto'} value={assignment.responsibility} disabled={Boolean(debt) && role !== 'owner'} onChange={event => set('memberAssignments', (form.memberAssignments ?? []).map(item => item.memberId === member.id ? { ...item, responsibility: event.target.value as typeof item.responsibility } : item))}><option value="primary">Primary</option><option value="joint">Joint</option><option value="authorized_user">Authorized user</option><option value="other">Other</option></select>}</div>
+      return <div key={member.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(assignment)} disabled={Boolean(debt) && role !== 'owner' && !requestMode} onChange={event => set('memberAssignments', event.target.checked ? [...(form.memberAssignments ?? []), { memberId: member.id, responsibility: 'primary' }] : (form.memberAssignments ?? []).filter(item => item.memberId !== member.id))}/>{member.fullName}</label>{assignment && <select aria-label={`${member.fullName} responsibility`} className={select + ' w-auto'} value={assignment.responsibility} disabled={Boolean(debt) && role !== 'owner' && !requestMode} onChange={event => set('memberAssignments', (form.memberAssignments ?? []).map(item => item.memberId === member.id ? { ...item, responsibility: event.target.value as typeof item.responsibility } : item))}><option value="primary">Primary</option><option value="joint">Joint</option><option value="authorized_user">Authorized user</option><option value="other">Other</option></select>}</div>
     })}</div></fieldset>
     <div className="grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2"><label><span className={label}>Collection agency</span><Input value={form.collectionAgency ?? ''} onChange={event => set('collectionAgency', event.target.value || null)}/></label><label><span className={label}>Original creditor</span><Input value={form.originalCreditor ?? ''} onChange={event => set('originalCreditor', event.target.value || null)}/></label>
       <label className="sm:col-span-2"><span className={label}>Linked original account</span><select className={select} value={form.linkedOriginalDebtId ?? ''} onChange={event => set('linkedOriginalDebtId', event.target.value || null)}><option value="">None</option>{debts.filter(item => !item.isArchived && item.id !== debt?.id).map(item => <option key={item.id} value={item.id}>{item.creditorName}{item.accountNickname ? ` · ${item.accountNickname}` : ''}</option>)}</select></label>
       <label className="sm:col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.duplicateLinkVerified ?? false} onChange={event => set('duplicateLinkVerified', event.target.checked)}/>Verify these records represent the same obligation</label>
     </div>
     <label className="block"><span className={label}>Notes</span><textarea className={select + ' h-24 py-2'} maxLength={4000} value={form.notes ?? ''} onChange={event => set('notes', event.target.value || null)}/></label>
+    {requestMode && <label className="block"><span className={label}>Reason for Owner approval *</span><textarea required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} className={select + ' h-24 py-2'}/></label>}
     {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
-    <div className="flex justify-end gap-2"><Button type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save debt'}</Button></div>
+    <div className="flex justify-end gap-2"><Button type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : requestMode ? 'Request approval' : 'Save debt'}</Button></div>
   </form></Modal>
 }

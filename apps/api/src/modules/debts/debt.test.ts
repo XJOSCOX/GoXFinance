@@ -139,7 +139,7 @@ describe('household debt API', () => {
     expect(created.statusCode).toBe(201)
     expect((await request(app, 'GET', base, owner.cookie)).json().summary.confirmedBalanceCents).toBe(12345)
     expect((await request(app, 'PATCH', `${base}/${created.json().debt.id}`, admin.cookie,
-      { creditorName: 'Updated creditor' })).statusCode).toBe(200)
+      { creditorName: 'Updated creditor' })).statusCode).toBe(403)
     const db = new Database(databasePath)
     db.pragma('foreign_keys = ON')
     expect(() => db.prepare('INSERT INTO debt_members (debt_id,household_id,household_member_id,responsibility,created_at) VALUES (?,?,?,?,?)')

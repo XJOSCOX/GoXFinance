@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { accountStatusLabels, paymentStatusLabels, type Debt, type DebtPayment, type DebtPaymentInput } from '@goxfinance/shared'
+import { accountStatusLabels, paymentStatusLabels, type Debt, type DebtPayment, type DebtPaymentInput, type HouseholdMember } from '@goxfinance/shared'
 import { Button } from '../../../components/ui'
 import { Modal } from '../../../components/ui/Modal'
 import { useNotify } from '../../../components/ui/useNotify'
@@ -17,8 +17,8 @@ import { RequestActionDialog } from './RequestActionDialog'
 const money = (cents: number | null) => cents == null ? 'Unknown' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
 type Tab = 'overview' | 'payments' | 'balances' | 'requests'
 
-export function DebtDetailsDialog({ householdId, debt, canCreate, canModify, owner, onClose, onDebtChanged }: {
-  householdId: string; debt: Debt; canCreate: boolean; canModify: boolean; owner: boolean; onClose: () => void; onDebtChanged: () => Promise<void>
+export function DebtDetailsDialog({ householdId, debt, canCreate, canModify, owner, members = [], debts = [], onClose, onDebtChanged }: {
+  householdId: string; debt: Debt; members?: HouseholdMember[]; debts?: Debt[]; canCreate: boolean; canModify: boolean; owner: boolean; onClose: () => void; onDebtChanged: () => Promise<void>
 }) {
   const notify = useNotify()
   const { payments, history, overview, loading, error, refresh } = useDebtActivity(householdId, debt.id)
@@ -90,7 +90,7 @@ export function DebtDetailsDialog({ householdId, debt, canCreate, canModify, own
           className={`rounded-lg px-3 py-2 text-sm transition-colors ${tab === value ? 'bg-[#aab9a9]/[.13] font-medium text-[#d8e5d7]' : 'text-slate-400 hover:bg-white/[.04] hover:text-white'}`}>{label}</button>)}
     </div>
     {tab === 'overview' && <div><dl className="grid gap-4 sm:grid-cols-2">{fields.map(([name, value]) => <div key={name} className="border-b border-white/[.06] pb-3"><dt className="text-xs text-slate-500">{name}</dt><dd className="mt-1 text-sm font-medium">{value}</dd></div>)}</dl>{debt.notes && <div className="mt-5"><p className="text-xs text-slate-500">Notes</p><p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">{debt.notes}</p></div>}</div>}
-    {tab === 'requests' && <DebtChangeRequestsPanel householdId={householdId} debtId={debt.id} owner={owner} onChanged={async () => { await refresh(); await onDebtChanged() }} />}
+    {tab === 'requests' && <DebtChangeRequestsPanel members={members} debts={debts} householdId={householdId} debtId={debt.id} owner={owner} onChanged={async () => { await refresh(); await onDebtChanged() }} />}
     {(tab === 'payments' || tab === 'balances') && (loading ? <p role="status" className="py-8 text-sm text-slate-400">Loading history…</p> : error ? <div><p role="alert" className="text-sm text-rose-300">{error}</p><Button className="mt-3" onClick={() => void refresh()}>Try again</Button></div> : overview && (
       tab === 'payments' ? <PaymentHistory payments={payments} overview={overview} canCreate={canCreate} canModify={canModify || canRequest} busy={busy} requestMode={canRequest}
         onAdd={() => setFormPayment(null)} onEdit={setFormPayment} onCancel={payment => canRequest ? setRequestAction({ payment, action: 'cancel_payment' }) : setCancelTarget(payment)} onConfirm={payment => canRequest ? setRequestAction({ payment, action: 'confirm_payment' }) : void confirm(payment)} onAudit={payment => void showAudit(payment)} />

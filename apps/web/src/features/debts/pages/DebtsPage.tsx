@@ -10,6 +10,7 @@ import { errorMessage } from '../../../lib/api'
 import { listMembers } from '../../households/api/householdClient'
 import { useHousehold } from '../../households/hooks/useHousehold'
 import { useAuth } from '../../auth/hooks/useAuth'
+import { submitDebtChange } from '../api/changeClient'
 import { archiveDebt, createDebt, listDebts, restoreDebt, updateDebt } from '../api/debtClient'
 import { DebtFormDialog } from '../components/DebtFormDialog'
 import { DebtSummary } from '../components/DebtSummary'
@@ -32,6 +33,8 @@ export function DebtsPage() {
   const [detail, setDetail] = useState<Debt | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<Debt | null>(null)
   const [busy, setBusy] = useState(false)
+  const [archiveReason, setArchiveReason] = useState('')
+  const [archiveRequestKey, setArchiveRequestKey] = useState('')
   const [query, setQuery] = useState('')
   const [memberFilter, setMemberFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -68,6 +71,10 @@ export function DebtsPage() {
     if (ownerExclusive || (debt.createdByUserId !== user.id && !debt.memberAssignments.some(item => item.memberId === currentMember?.id))) return false
     return !archive || household?.role !== 'editor' || debt.memberAssignments.every(item => item.memberId === currentMember?.id)
   }
+  function requiresApproval(debt: Debt) {
+    return household?.role !== 'owner' && canManage(debt) && debt.memberAssignments.some(item =>
+      members.find(member => member.id === item.memberId)?.accessRole === 'owner')
+  }
   function canModifyPayment(debt: Debt) {
     return canManage(debt) && (household?.role === 'owner' || !debt.memberAssignments.some(item =>
       members.find(member => member.id === item.memberId)?.accessRole === 'owner'))
@@ -78,7 +85,17 @@ export function DebtsPage() {
     setDebts(updated)
     setDetail(current => current ? updated.find(item => item.id === current.id) ?? current : null)
   }
-  async function save(input: DebtInput) {
+  async function save(input: DebtInput, reason?: string, requestKey?: string) {
+    if (formDebt && requiresApproval(formDebt)) {
+      const changes = Object.fromEntries(Object.entries(input).filter(([key, value]) =>
+        JSON.stringify(value) !== JSON.stringify(formDebt[key as keyof Debt])))
+      if (!Object.keys(changes).length) throw new Error('Enter at least one change')
+      await submitDebtChange(householdId, formDebt.id, { action: 'edit_account', changes,
+        reason: reason ?? '', idempotencyKey: requestKey! })
+      setRequestRefresh(value => value + 1)
+      notify('success', 'Account changes submitted for Owner approval')
+      return
+    }
     if (formDebt) await updateDebt(householdId, formDebt.id, input)
     else await createDebt(householdId, input)
     setDebts((await listDebts(householdId)).debts)
@@ -87,6 +104,14 @@ export function DebtsPage() {
   async function changeArchive(target: Debt) {
     setBusy(true)
     try {
+      if (requiresApproval(target)) {
+        await submitDebtChange(householdId, target.id, { action: target.isArchived ? 'restore_account' : 'archive_account',
+          reason: archiveReason.trim(), idempotencyKey: archiveRequestKey })
+        setRequestRefresh(value => value + 1)
+        notify('success', 'Submitted for Owner approval')
+        setArchiveTarget(null)
+        return
+      }
       if (target.isArchived) await restoreDebt(householdId, target.id)
       else await archiveDebt(householdId, target.id)
       setDebts((await listDebts(householdId)).debts)
@@ -105,7 +130,8 @@ export function DebtsPage() {
         {!loading && !error && summary.accountCount > 0 && canWrite && <Button variant="primary" className="gap-2" onClick={() => setFormDebt(null)}><Plus size={16}/> Add debt</Button>}
       </div>
     </div>
-    {household.role === 'owner' && <DebtChangeRequestsPanel householdId={householdId} owner refreshToken={requestRefresh} onChanged={refreshDetail} hideEmpty />}
+    {household.role === 'owner' && <DebtChangeRequestsPanel householdId={householdId} owner members={members} debts={debts} refreshToken={requestRefresh} onChanged={refreshDetail} hideEmpty />}
+    {household.role !== 'owner' && household.role !== 'viewer' && <DebtChangeRequestsPanel householdId={householdId} owner={false} members={members} debts={debts} refreshToken={requestRefresh} onChanged={refreshDetail} hideEmpty />}
     {loading ? <Card className="p-8 text-sm text-slate-400" role="status">Loading debts…</Card> : error ? <Card className="p-6"><p role="alert" className="text-rose-300">{error}</p><Button className="mt-3" onClick={() => window.location.reload()}>Try again</Button></Card> : summary.accountCount === 0 && !showArchived ?
       <DebtEmptyState canAdd={canWrite} archivedCount={archivedCount} onAdd={() => setFormDebt(null)} onShowArchived={() => setShowArchived(true)} /> : <>
       {summary.accountCount > 0 && <DebtSummary summary={summary} members={members} />}
@@ -116,12 +142,12 @@ export function DebtsPage() {
         <select aria-label="Filter by payment status" className={selectClass} value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All statuses</option>{Object.entries(paymentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         <select aria-label="Sort debts" className={selectClass} value={sort} onChange={event => setSort(event.target.value)}><option value="updated">Recently updated</option><option value="balance">Highest balance</option><option value="creditor">Creditor name</option></select></div>
         <label className="mt-4 flex items-center gap-2 border-t border-white/[.06] pt-3 text-xs text-slate-400"><input type="checkbox" checked={showArchived} onChange={event => setShowArchived(event.target.checked)}/>Show archived{archivedCount ? ` (${archivedCount})` : ''}</label></Card>
-      {visible.length ? <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">{visible.map(debt => <DebtAccountCard key={debt.id} debt={debt} members={members} canEdit={!debt.isArchived && canManage(debt)} canArchive={canManage(debt, true)} onView={() => setDetail(debt)} onEdit={() => setFormDebt(debt)} onArchive={() => setArchiveTarget(debt)} />)}</div>
+      {visible.length ? <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">{visible.map(debt => <DebtAccountCard key={debt.id} debt={debt} members={members} canEdit={!debt.isArchived && canManage(debt)} canArchive={canManage(debt, true) || requiresApproval(debt)} requestMode={requiresApproval(debt)} onView={() => setDetail(debt)} onEdit={() => setFormDebt(debt)} onArchive={() => { setArchiveTarget(debt); setArchiveReason(''); setArchiveRequestKey(crypto.randomUUID()) }} />)}</div>
       : <Card className="flex flex-col items-center px-6 py-12 text-center"><span className="rounded-xl border border-white/10 bg-white/[.03] p-3 text-slate-400"><Search size={22}/></span><h3 className="mt-4 font-medium">No matching accounts</h3><p className="mt-1 text-sm text-slate-400">Try a different search or filter.</p><Button variant="ghost" className="mt-4 gap-1" onClick={() => { setQuery(''); setMemberFilter(''); setTypeFilter(''); setStatusFilter('') }}>Clear filters <ArrowRight size={14}/></Button></Card>}
     </>}
-    {formDebt !== undefined && <DebtFormDialog key={formDebt?.id ?? 'new'} debt={formDebt} members={members} debts={debts} role={household.role} currentMemberId={currentMember?.id} onClose={() => setFormDebt(undefined)} onSave={save} />}
-    {detail && <DebtDetailsDialog householdId={householdId} debt={detail} owner={household.role === 'owner'} canCreate={!detail.isArchived && canManage(detail)}
+    {formDebt !== undefined && <DebtFormDialog key={formDebt?.id ?? 'new'} debt={formDebt} members={members} debts={debts} role={household.role} currentMemberId={currentMember?.id} requestMode={Boolean(formDebt && requiresApproval(formDebt))} onClose={() => setFormDebt(undefined)} onSave={save} />}
+    {detail && <DebtDetailsDialog householdId={householdId} debt={detail} members={members} debts={debts} owner={household.role === 'owner'} canCreate={!detail.isArchived && canManage(detail)}
       canModify={!detail.isArchived && canModifyPayment(detail)} onClose={() => setDetail(null)} onDebtChanged={refreshDetail} />}
-    {archiveTarget && <Modal title={archiveTarget.isArchived ? 'Restore debt?' : 'Archive debt?'} onClose={() => setArchiveTarget(null)}><p className="text-sm text-slate-400">{archiveTarget.creditorName} will {archiveTarget.isArchived ? 'return to active totals' : 'be hidden from active totals'}. The record remains in SQLite.</p><div className="mt-5 flex justify-end gap-2"><Button onClick={() => setArchiveTarget(null)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={() => void changeArchive(archiveTarget)}>{busy ? 'Saving…' : 'Confirm'}</Button></div></Modal>}
+    {archiveTarget && <Modal title={archiveTarget.isArchived ? 'Restore debt?' : 'Archive debt?'} onClose={() => setArchiveTarget(null)}><p className="text-sm text-slate-400">{archiveTarget.creditorName} will {archiveTarget.isArchived ? 'return to active totals' : 'be hidden from active totals'}. The record remains in SQLite.</p>{requiresApproval(archiveTarget) && <label className="mt-4 block text-xs text-slate-400">Reason for Owner approval<textarea required maxLength={2000} value={archiveReason} onChange={event => setArchiveReason(event.target.value)} className="mt-2 h-20 w-full rounded-lg border border-white/10 bg-[#151716] p-3 text-sm"/><span className="mt-2 block">The account stays unchanged until the Owner approves.</span></label>}<div className="mt-5 flex justify-end gap-2"><Button onClick={() => setArchiveTarget(null)}>Cancel</Button><Button variant="primary" disabled={busy || (requiresApproval(archiveTarget) && !archiveReason.trim())} onClick={() => void changeArchive(archiveTarget)}>{busy ? 'Saving…' : requiresApproval(archiveTarget) ? 'Request approval' : 'Confirm'}</Button></div></Modal>}
   </div></WorkspaceLayout>
 }

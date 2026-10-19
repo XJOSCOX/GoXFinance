@@ -27,8 +27,9 @@ export function changeService(households: HouseholdRepository, debts: DebtServic
     },
     submit(user: PublicUser, householdId: string, debtId: string, input: unknown) {
       return store.transaction(() => {
-        debts.authorizeChangeRequest(user, householdId, debtId)
         const values = debtChangeInputSchema.parse(input)
+        const debt = debts.authorizeChangeRequest(user, householdId, debtId, values.action === 'restore_account')
+        if (values.action === 'restore_account' && !debt.isArchived) throw new PaymentError('Debt is not archived', 409)
         const paymentId = 'paymentId' in values ? values.paymentId : null
         const payload = 'changes' in values ? values.changes : {}
         const existing = store.findKey(householdId, user.id, values.idempotencyKey)
@@ -40,14 +41,17 @@ export function changeService(households: HouseholdRepository, debts: DebtServic
         if (store.list(householdId).some(item => item.status === 'pending' && item.debtId === debtId &&
           item.proposedByUserId === user.id && item.paymentId === paymentId)) throw new PaymentError('A request for this record is already pending', 409)
         const state = snapshot(user, householdId, debtId, paymentId)
+        if (values.action === 'edit_account') debts.previewAccountChange(user, householdId, debtId, values.changes)
         if (values.action === 'edit_payment') payments.previewEdit(user, householdId, debtId, values.paymentId, values.changes)
         if (values.action === 'cancel_payment' && state.payment?.paymentStatus === 'cancelled') throw new PaymentError('Payment is already cancelled', 409)
         if (values.action === 'confirm_payment' && !['scheduled', 'pending'].includes(state.payment?.paymentStatus ?? '')) throw new PaymentError('Payment cannot be confirmed', 409)
         const id = randomUUID(), now = new Date().toISOString()
-        const original = 'payment' in state ? state.payment : { balanceCents: state.debt.currentBalanceCents, verifiedAt: state.debt.balanceVerifiedAt }
+        const original = 'payment' in state ? state.payment : values.action === 'verify_balance'
+          ? { balanceCents: state.debt.currentBalanceCents, effectiveDate: state.debt.balanceVerifiedAt?.slice(0, 10) ?? null }
+          : state.debt
         store.submit({ id, householdId, debtId, paymentId, proposedByUserId: user.id, action: values.action,
           payloadJson: JSON.stringify(payload), originalJson: JSON.stringify(original), baseHash: fingerprint(state),
-          reason: values.reason, idempotencyKey: values.idempotencyKey, activeTarget: paymentId ?? 'balance', createdAt: now, updatedAt: now })
+          reason: values.reason, idempotencyKey: values.idempotencyKey, activeTarget: paymentId ?? 'account', createdAt: now, updatedAt: now })
         return id
       })
     },
@@ -65,7 +69,7 @@ export function changeService(households: HouseholdRepository, debts: DebtServic
         debts.requireOwner(user, householdId, request.debtId)
         if (request.proposedByUserId === user.id) throw new PaymentError('You cannot approve your own request', 403)
         if (action === 'reject') { store.finish(householdId, id, user.id, 'rejected', note); return }
-        debts.authorizeChangeRequest({ id: request.proposedByUserId }, householdId, request.debtId)
+        debts.authorizeChangeRequest({ id: request.proposedByUserId }, householdId, request.debtId, request.action === 'restore_account')
         if (fingerprint(snapshot(user, householdId, request.debtId, request.paymentId)) !== request.baseHash) {
           throw new PaymentError('The account or payment changed. Reject this request and ask for a new proposal.', 409)
         }
@@ -73,7 +77,11 @@ export function changeService(households: HouseholdRepository, debts: DebtServic
         if (request.action === 'edit_payment') payments.update(user, householdId, request.debtId, request.paymentId!, payload)
         else if (request.action === 'cancel_payment') payments.cancel(user, householdId, request.debtId, request.paymentId!)
         else if (request.action === 'confirm_payment') payments.confirm(user, householdId, request.debtId, request.paymentId!)
-        else payments.verifyBalance(user, householdId, request.debtId, { ...payload, idempotencyKey: request.id })
+        else if (request.action === 'edit_account') debts.update(user, householdId, request.debtId, payload)
+        else if (request.action === 'archive_account') debts.archive(user, householdId, request.debtId)
+        else if (request.action === 'restore_account') debts.restore(user, householdId, request.debtId)
+        else if (request.action === 'verify_balance') payments.verifyBalance(user, householdId, request.debtId, { ...payload, idempotencyKey: request.id })
+        else throw new PaymentError('Unsupported change request', 400)
         store.finish(householdId, id, user.id, 'approved', note)
       })
     },

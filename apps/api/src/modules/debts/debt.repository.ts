@@ -11,6 +11,11 @@ export function debtRepository(db: DatabaseConnection) {
       responsibility: member.responsibility as Debt['memberAssignments'][number]['responsibility'] })) } as Debt
   }
   const key = (householdId: string, id: string) => and(eq(debts.householdId, householdId), eq(debts.id, id))
+  function nextUpdatedAt(householdId: string, id: string) {
+    const current = db.select({ updatedAt: debts.updatedAt }).from(debts).where(key(householdId, id)).get()
+    // Distinguish even same-millisecond edits/reversions in approval fingerprints.
+    return new Date(Math.max(Date.now(), Date.parse(current!.updatedAt) + 1)).toISOString()
+  }
   return {
     list(householdId: string) {
       return db.select().from(debts).where(eq(debts.householdId, householdId)).all().map(hydrate)
@@ -34,7 +39,7 @@ export function debtRepository(db: DatabaseConnection) {
       return this.find(householdId, id)!
     },
     update(householdId: string, id: string, values: DebtValues) {
-      const now = new Date().toISOString()
+      const now = nextUpdatedAt(householdId, id)
       const { memberAssignments, ...fields } = values
       db.transaction(tx => {
         tx.update(debts).set({ ...fields, updatedAt: now }).where(key(householdId, id)).run()
@@ -45,7 +50,7 @@ export function debtRepository(db: DatabaseConnection) {
       return this.find(householdId, id)!
     },
     setArchived(householdId: string, id: string, isArchived: boolean) {
-      db.update(debts).set({ isArchived, updatedAt: new Date().toISOString() }).where(key(householdId, id)).run()
+      db.update(debts).set({ isArchived, updatedAt: nextUpdatedAt(householdId, id) }).where(key(householdId, id)).run()
       return this.find(householdId, id)!
     },
   }

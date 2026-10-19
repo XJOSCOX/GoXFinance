@@ -19,8 +19,8 @@ export const debtChangeRequests = sqliteTable('debt_change_requests', {
   uniqueIndex('debt_change_pending_target').on(table.householdId, table.debtId, table.proposedByUserId, table.activeTarget),
   index('debt_change_household_status').on(table.householdId, table.status),
   check('debt_change_status', sql`${table.status} in ('pending','approved','rejected','cancelled')`),
-  check('debt_change_action', sql`${table.action} in ('edit_payment','cancel_payment','confirm_payment','verify_balance')`),
-  check('debt_change_target', sql`(${table.action} = 'verify_balance' and ${table.paymentId} is null) or (${table.action} <> 'verify_balance' and ${table.paymentId} is not null)`),
+  check('debt_change_action', sql`${table.action} in ('edit_payment','cancel_payment','confirm_payment','verify_balance','edit_account','archive_account','restore_account')`),
+  check('debt_change_target', sql`(${table.action} in ('verify_balance','edit_account','archive_account','restore_account') and ${table.paymentId} is null) or (${table.action} in ('edit_payment','cancel_payment','confirm_payment') and ${table.paymentId} is not null)`),
   check('debt_change_review', sql`(${table.status} = 'pending' and ${table.activeTarget} is not null and ${table.reviewedByUserId} is null) or (${table.status} <> 'pending' and ${table.activeTarget} is null and ${table.reviewedByUserId} is not null)`),
 ])
 export const debtChangeAudit = sqliteTable('debt_change_audit', {

@@ -45,3 +45,21 @@ it('offers withdrawal without exposing Owner approve/reject actions to the reque
   expect(screen.queryByRole('button', { name: 'Confirm rejection' })).toBeNull()
   expect(screen.getByRole('button', { name: 'Withdraw request' })).toBeTruthy()
 })
+
+it('shows account assignment changes as names and responsibilities, and archive state explicitly', async () => {
+  vi.mocked(client.listDebtChanges).mockResolvedValue({ requests: [{ ...request, action: 'edit_account', paymentId: null,
+    proposedChanges: { memberAssignments: [{ memberId: 'member', responsibility: 'joint' }] },
+    originalValues: { memberAssignments: [{ memberId: 'member', responsibility: 'primary' }] } }] })
+  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}}
+    members={[{ id: 'member', fullName: 'Test Owner', householdId: 'home', linkedUserId: 'owner', relationship: 'self',
+      status: 'active', notes: null, accessRole: 'owner', plannedAccessRole: 'viewer', createdAt: '', updatedAt: '' }]}/></NotificationProvider>)
+  fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
+  expect(screen.getByText('Test Owner (primary)')).toBeTruthy()
+  expect(screen.getByText('Test Owner (joint)')).toBeTruthy()
+  cleanup()
+  vi.mocked(client.listDebtChanges).mockResolvedValue({ requests: [{ ...request, action: 'archive_account', paymentId: null,
+    proposedChanges: {}, originalValues: { isArchived: false } }] })
+  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}}/></NotificationProvider>)
+  fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
+  expect(screen.getByText('Change archive state from active to archived.')).toBeTruthy()
+})
