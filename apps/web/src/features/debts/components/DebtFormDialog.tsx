@@ -1,3 +1,4 @@
+import { CategoryPicker } from '../../categories/components/CategoryPicker'
 import { moneyText, parseMoney } from '../../../lib/payment-money'
 import { useState, type FormEvent } from 'react'
 import {
@@ -39,6 +40,7 @@ const moneyLabels: Record<MoneyField, string> = {
 }
 const initial = (debt?: Debt | null): DebtInput => ({
   creditorName: debt?.creditorName ?? '',
+  categoryId: debt?.categoryId ?? null,
   accountNickname: debt?.accountNickname ?? null,
   accountType: debt?.accountType ?? 'credit_card',
   accountStatus: debt?.accountStatus ?? 'unknown',
@@ -186,6 +188,12 @@ export function DebtFormDialog({
                 </select>
               </label>
             </div>
+            <CategoryPicker
+              home={members[0]?.householdId ?? ''}
+              value={form.categoryId}
+              optional
+              onChange={(id) => set('categoryId', id)}
+            />
             <label className="block">
               <span className={label}>Nickname</span>
               <Input

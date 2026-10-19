@@ -1,3 +1,4 @@
+import { expenseCategories } from './categories'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -26,6 +27,7 @@ export const bills = sqliteTable(
       .references(() => users.id),
     name: text('name').notNull(),
     category: text('category').notNull(),
+    categoryId: text('category_id').references(() => expenseCategories.id),
     kind: text('kind').notNull(),
     amountType: text('amount_type').notNull(),
     amountCents: integer('amount_cents'),
@@ -42,6 +44,7 @@ export const bills = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => [
+    index('bills_category_idx').on(table.householdId, table.categoryId),
     uniqueIndex('bills_id_household').on(table.id, table.householdId),
     index('bills_household_status_due').on(table.householdId, table.status, table.nextDueDate),
     uniqueIndex('bills_active_debt')
@@ -96,6 +99,7 @@ export const billPeriods = sqliteTable(
     billingPeriod: text('billing_period').notNull().default(''),
     name: text('name').notNull(),
     category: text('category').notNull(),
+    categoryId: text('category_id').references(() => expenseCategories.id),
     amountCents: integer('amount_cents'),
     estimatedAmountCents: integer('estimated_amount_cents'),
     linkedDebtId: text('linked_debt_id'),
@@ -105,6 +109,7 @@ export const billPeriods = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => [
+    index('bill_periods_category_idx').on(table.householdId, table.categoryId),
     uniqueIndex('bill_period_due').on(table.householdId, table.billId, table.dueDate),
     uniqueIndex('bill_period_scope').on(table.id, table.householdId, table.billId),
     index('bill_period_household_due').on(table.householdId, table.dueDate),

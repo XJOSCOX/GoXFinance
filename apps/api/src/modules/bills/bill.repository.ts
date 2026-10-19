@@ -1,3 +1,4 @@
+import { categoryRepository } from '../categories/category.repository'
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import type { Bill, BillInput, BillPayment, BillChangeRequest } from '@goxfinance/shared'
@@ -32,6 +33,8 @@ export function billRepository(db: DatabaseConnection) {
     } as Bill
   }
   return {
+    resolveCategory: (...args: Parameters<ReturnType<typeof categoryRepository>['resolveBill']>) =>
+      categoryRepository(db).resolveBill(...args),
     linkedPaymentAudit(householdId: string, billId: string) {
       return db
         .select({ id: debtPaymentAudit.id })
@@ -121,6 +124,7 @@ export function billRepository(db: DatabaseConnection) {
               : dueDate,
           name: bill.name,
           category: bill.category,
+          categoryId: bill.categoryId,
           amountCents: bill.amountType === 'fixed' ? bill.amountCents : null,
           estimatedAmountCents: bill.estimatedAmountCents,
           linkedDebtId: bill.linkedDebtId,

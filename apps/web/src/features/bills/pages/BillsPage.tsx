@@ -1,3 +1,5 @@
+import { useCategories } from '../../categories/hooks/useCategories'
+import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
@@ -35,6 +37,7 @@ export function BillsPage() {
     loading,
     refresh: load,
   } = useBills(householdId)
+  const { categories, refresh: refreshCategories } = useCategories(householdId)
   const [form, setForm] = useState<BillView | null | undefined>(undefined),
     [detailId, setDetailId] = useState('')
   const [startPayment, setStartPayment] = useState(false)
@@ -64,7 +67,7 @@ export function BillsPage() {
       item.kind === kind &&
       `${item.name} ${item.category}`.toLowerCase().includes(query.toLowerCase()) &&
       (!member || item.memberIds.includes(member)) &&
-      (!category || item.category === category),
+      (!category || item.categoryId === category),
   )
   return (
     <WorkspaceLayout title="Bills">
@@ -81,6 +84,15 @@ export function BillsPage() {
           </Button>
         )}
       </header>
+      <div className="mb-4">
+        <ManageCategoriesButton
+          home={householdId}
+          onChanged={async () => {
+            await refreshCategories()
+            await load()
+          }}
+        />
+      </div>
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryStat
           label="Monthly bills"
@@ -154,8 +166,11 @@ export function BillsPage() {
             onChange={(e) => setCategory(e.target.value)}
           >
             <option value="">All categories</option>
-            {[...new Set(bills.map((item) => item.category))].sort().map((item) => (
-              <option key={item}>{item}</option>
+            {categories.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+                {item.archived ? ' (archived)' : ''}
+              </option>
             ))}
           </Select>
         </div>
@@ -195,8 +210,9 @@ export function BillsPage() {
                 <div className="min-w-0">
                   <h2 className="font-semibold">{bill.name}</h2>
                   <p className="mt-1 text-xs text-slate-400">
-                    {bill.category} · {bill.amountType} · {bill.frequency ?? 'One-time'} ·{' '}
-                    {bill.status}
+                    {categories.find((category) => category.id === bill.categoryId)?.name ??
+                      bill.category}{' '}
+                    · {bill.amountType} · {bill.frequency ?? 'One-time'} · {bill.status}
                     {bill.linkedDebtId ? ' · Linked debt' : ''}
                   </p>
                   <p className="mt-2 text-sm">

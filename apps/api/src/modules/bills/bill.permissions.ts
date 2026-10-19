@@ -61,6 +61,14 @@ export function billPermissions(
   function validate(user: PublicUser, householdId: string, input: BillInput, current?: Bill) {
     const ctx = context(user, householdId)
     if (ctx.role === 'viewer') throw new BillError('Permission denied', 403)
+    const category = store.resolveCategory(
+      householdId,
+      input.categoryId,
+      input.category,
+      current?.categoryId,
+    )
+    input.categoryId = category.id
+    input.category = category.name
     if (current && current.kind !== input.kind)
       throw new BillError('A bill cannot change between recurring and one-time', 409)
     for (const id of input.memberIds) {

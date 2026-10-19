@@ -1,3 +1,4 @@
+import { expenseCategories } from './categories'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -13,21 +14,6 @@ import { householdMembers } from './household-members'
 import { debts } from './debts'
 import { users } from './users'
 
-export const expenseCategories = sqliteTable(
-  'expense_categories',
-  {
-    id: text('id').primaryKey(),
-    householdId: text('household_id')
-      .notNull()
-      .references(() => households.id),
-    name: text('name').notNull(),
-    createdAt: text('created_at').notNull(),
-  },
-  (table) => [
-    uniqueIndex('expense_category_name').on(table.householdId, table.name),
-    uniqueIndex('expense_category_scope').on(table.id, table.householdId),
-  ],
-)
 export const expenses = sqliteTable(
   'expenses',
   {

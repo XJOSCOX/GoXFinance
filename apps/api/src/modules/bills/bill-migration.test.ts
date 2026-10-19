@@ -166,7 +166,19 @@ it.each([9, 10, 13, 14])(
     const upgraded = openDatabase(path)
     try {
       tables.forEach((table, index) =>
-        expect(upgraded.sqlite.prepare(`SELECT * FROM ${table}`).all()).toEqual(original[index]),
+        expect(
+          upgraded.sqlite
+            .prepare(`SELECT * FROM ${table}`)
+            .all()
+            .map((row) =>
+              Object.fromEntries(
+                Object.keys((original[index][0] ?? {}) as object).map((key) => [
+                  key,
+                  (row as Record<string, unknown>)[key],
+                ]),
+              ),
+            ),
+        ).toEqual(original[index]),
       )
       if (count >= 10) {
         expect(

@@ -1,10 +1,13 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
+import {
+  financialFingerprint as hash,
+  financialFingerprintMatches,
+} from '../../utils/financial-fingerprint'
 import { billActionSchema, billRequestSchema, type PublicUser } from '@goxfinance/shared'
 import type { BillRepository } from './bill.repository'
 import type { BillService } from './bill.service'
 import { BillError, type BillPermissions } from './bill.permissions'
 
-const hash = (data: unknown) => createHash('sha256').update(JSON.stringify(data)).digest('hex')
 export function billRequestsService(
   store: BillRepository,
   bills: BillService,
@@ -17,13 +20,16 @@ export function billRequestsService(
       payments: store.payments(householdId, id),
     }
   }
-  function stateHash(user: PublicUser, householdId: string, id: string) {
+  function fingerprintState(user: PublicUser, householdId: string, id: string) {
     const state = snapshot(user, householdId, id)
-    return hash({
+    return {
       ...state,
       debts: permissions.linkedDebts(user, state.bill),
       linkedPaymentAudit: store.linkedPaymentAudit(householdId, id),
-    })
+    }
+  }
+  function stateHash(user: PublicUser, householdId: string, id: string) {
+    return hash(fingerprintState(user, householdId, id))
   }
   function authorize(user: Pick<PublicUser, 'id'>, householdId: string, id: string) {
     const bill = bills.find(user, householdId, id)
@@ -118,7 +124,13 @@ export function billRequestsService(
             throw new BillError('Cannot review your own request', 403)
           if (action === 'approve') {
             authorize({ id: request.proposedByUserId }, householdId, request.billId)
-            if (stateHash(user, householdId, request.billId) !== request.baseHash)
+            if (
+              !financialFingerprintMatches(
+                fingerprintState(user, householdId, request.billId),
+                request.baseHash,
+                request.originalJson,
+              )
+            )
               throw new BillError(
                 'The bill or payment changed. Reject this request and submit a new one.',
                 409,

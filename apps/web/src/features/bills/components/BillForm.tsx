@@ -1,3 +1,4 @@
+import { CategoryPicker } from '../../categories/components/CategoryPicker'
 import { useState } from 'react'
 import {
   billInputSchema,
@@ -92,14 +93,14 @@ export function BillForm({
                   onChange={(e) => update('name', e.target.value)}
                 />
               </FormField>
-              <FormField label="Category">
-                <Input
-                  required
-                  maxLength={80}
-                  value={value.category}
-                  onChange={(e) => update('category', e.target.value)}
-                />
-              </FormField>
+              <CategoryPicker
+                home={members[0]?.householdId ?? ''}
+                value={value.categoryId}
+                label={value.category}
+                onChange={(id, name) =>
+                  setValue((current) => ({ ...current, categoryId: id, category: name }))
+                }
+              />
               <FormField label="Bill type">
                 <Select
                   disabled={!!bill}

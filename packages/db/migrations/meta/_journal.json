@@ -106,6 +106,13 @@
       "when": 1792423709929,
       "tag": "0014_funny_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1792434826972,
+      "tag": "0015_unified_financial_categories",
+      "breakpoints": true
     }
   ]
 }

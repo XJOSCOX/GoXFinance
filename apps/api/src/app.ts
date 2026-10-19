@@ -1,3 +1,6 @@
+import { categoryRepository } from './modules/categories/category.repository'
+import { categoryService } from './modules/categories/category.service'
+import { registerCategoryRoutes } from './modules/categories/category.routes'
 import { incomeRepository } from './modules/income/income.repository'
 import { incomeService } from './modules/income/income.service'
 import { incomePermissions } from './modules/income/income.permissions'
@@ -96,6 +99,11 @@ export async function buildApp(options: AppOptions) {
     invitations,
     accessService(householdStore, memberStore, accessRepository(db)),
     memberRequestService(householdStore, memberRequestRepository(db), memberStore),
+  )
+  registerCategoryRoutes(
+    app,
+    auth,
+    categoryService(categoryRepository(db), financialAccess(householdStore, memberStore)),
   )
   const debts = debtService(householdStore, memberStore, debtRepository(db))
   registerDebtRoutes(app, auth, debts)

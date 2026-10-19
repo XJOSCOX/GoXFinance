@@ -41,7 +41,7 @@ export function expenseService(
     user: PublicUser,
     home: string,
     values: ExpenseInput,
-    existingMemberId?: string,
+    existing?: Pick<ExpenseInput, 'responsibleMemberId' | 'allocations'>,
   ) {
     const ctx = permissions.context(user, home),
       person = ctx.people.find((item) => item.id === values.responsibleMemberId)
@@ -51,7 +51,7 @@ export function expenseService(
         400,
       )
     if (ctx.role === 'viewer') throw new FinancialError('Permission denied', 403)
-    if (!person || (person.status !== 'active' && person.id !== existingMemberId))
+    if (!person || (person.status !== 'active' && person.id !== existing?.responsibleMemberId))
       throw new FinancialError('Select an active household member', 400)
     if (
       ctx.role !== 'owner' &&
@@ -62,7 +62,15 @@ export function expenseService(
     const categories = store.categories(home)
     if (
       values.allocations.some(
-        (item) => !categories.some((category) => category.id === item.categoryId),
+        (item) =>
+          !categories.some(
+            (category) =>
+              category.id === item.categoryId &&
+              (!category.archived ||
+                existing?.allocations.some(
+                  (allocation) => allocation.categoryId === item.categoryId,
+                )),
+          ),
       )
     )
       throw new FinancialError('Select categories from this household', 400)
@@ -127,7 +135,7 @@ export function expenseService(
           throw new FinancialError('Only authorized members can edit this expense', 403)
         if (before.voided || before.revision !== revision)
           throw new FinancialError('Expense changed or was voided. Refresh before editing.', 409)
-        validate(user, home, values, before.responsibleMemberId)
+        validate(user, home, values, before)
         const after = store.update(home, id, revision, values)
         store.audit(home, id, user.id, 'corrected', before, after)
         return view(user, home, after)

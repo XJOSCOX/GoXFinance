@@ -1,53 +1,95 @@
+import { expenseCategories } from './categories'
 import { sql } from 'drizzle-orm'
-import { check, foreignKey, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core'
 import { households } from './households'
 import { users } from './users'
 
-export const debts = sqliteTable('debts', {
-  id: text('id').primaryKey(),
-  householdId: text('household_id').notNull().references(() => households.id),
-  createdByUserId: text('created_by_user_id').notNull().references(() => users.id),
-  creditorName: text('creditor_name').notNull(),
-  accountNickname: text('account_nickname'),
-  accountType: text('account_type').notNull(),
-  accountStatus: text('account_status').notNull().default('unknown'),
-  paymentStatus: text('payment_status').notNull().default('unknown'),
-  originalBalanceCents: integer('original_balance_cents'),
-  currentBalanceCents: integer('current_balance_cents'),
-  pastDueAmountCents: integer('past_due_amount_cents'),
-  creditLimitCents: integer('credit_limit_cents'),
-  interestRateApr: text('interest_rate_apr'),
-  minimumPaymentCents: integer('minimum_payment_cents'),
-  dueDay: integer('due_day'),
-  nextDueDate: text('next_due_date'),
-  lastPaymentDate: text('last_payment_date'),
-  openedDate: text('opened_date'),
-  closedDate: text('closed_date'),
-  chargedOffDate: text('charged_off_date'),
-  collectionAgency: text('collection_agency'),
-  originalCreditor: text('original_creditor'),
-  linkedOriginalDebtId: text('linked_original_debt_id'),
-  duplicateLinkVerified: integer('duplicate_link_verified', { mode: 'boolean' }).notNull().default(false),
-  balanceVerifiedAt: text('balance_verified_at'),
-  confidence: text('confidence').notNull().default('unverified'),
-  notes: text('notes'),
-  isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-}, table => [
-  uniqueIndex('debts_id_household_unique').on(table.id, table.householdId),
-  index('debts_household_archived_idx').on(table.householdId, table.isArchived),
-  index('debts_household_status_idx').on(table.householdId, table.paymentStatus),
-  index('debts_original_idx').on(table.linkedOriginalDebtId),
-  foreignKey({ columns: [table.linkedOriginalDebtId, table.householdId],
-    foreignColumns: [table.id, table.householdId], name: 'debts_original_household_fk' }),
-  check('debts_original_not_self', sql`${table.linkedOriginalDebtId} is null or ${table.linkedOriginalDebtId} <> ${table.id}`),
-  check('debts_verified_link', sql`${table.duplicateLinkVerified} = 0 or ${table.linkedOriginalDebtId} is not null`),
-  check('debts_due_day', sql`${table.dueDay} is null or ${table.dueDay} between 1 and 31`),
-  check('debts_original_balance', sql`${table.originalBalanceCents} is null or ${table.originalBalanceCents} >= 0`),
-  check('debts_current_balance', sql`${table.currentBalanceCents} is null or ${table.currentBalanceCents} >= 0`),
-  check('debts_past_due', sql`${table.pastDueAmountCents} is null or ${table.pastDueAmountCents} >= 0`),
-  check('debts_limit', sql`${table.creditLimitCents} is null or ${table.creditLimitCents} >= 0`),
-  check('debts_minimum', sql`${table.minimumPaymentCents} is null or ${table.minimumPaymentCents} >= 0`),
-  check('debts_confidence', sql`${table.confidence} in ('confirmed','estimated','unverified')`),
-])
+export const debts = sqliteTable(
+  'debts',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id')
+      .notNull()
+      .references(() => households.id),
+    createdByUserId: text('created_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    creditorName: text('creditor_name').notNull(),
+    categoryId: text('category_id').references(() => expenseCategories.id),
+    accountNickname: text('account_nickname'),
+    accountType: text('account_type').notNull(),
+    accountStatus: text('account_status').notNull().default('unknown'),
+    paymentStatus: text('payment_status').notNull().default('unknown'),
+    originalBalanceCents: integer('original_balance_cents'),
+    currentBalanceCents: integer('current_balance_cents'),
+    pastDueAmountCents: integer('past_due_amount_cents'),
+    creditLimitCents: integer('credit_limit_cents'),
+    interestRateApr: text('interest_rate_apr'),
+    minimumPaymentCents: integer('minimum_payment_cents'),
+    dueDay: integer('due_day'),
+    nextDueDate: text('next_due_date'),
+    lastPaymentDate: text('last_payment_date'),
+    openedDate: text('opened_date'),
+    closedDate: text('closed_date'),
+    chargedOffDate: text('charged_off_date'),
+    collectionAgency: text('collection_agency'),
+    originalCreditor: text('original_creditor'),
+    linkedOriginalDebtId: text('linked_original_debt_id'),
+    duplicateLinkVerified: integer('duplicate_link_verified', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    balanceVerifiedAt: text('balance_verified_at'),
+    confidence: text('confidence').notNull().default('unverified'),
+    notes: text('notes'),
+    isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('debts_id_household_unique').on(table.id, table.householdId),
+    index('debts_household_archived_idx').on(table.householdId, table.isArchived),
+    index('debts_household_status_idx').on(table.householdId, table.paymentStatus),
+    index('debts_category_idx').on(table.householdId, table.categoryId),
+    index('debts_original_idx').on(table.linkedOriginalDebtId),
+    foreignKey({
+      columns: [table.linkedOriginalDebtId, table.householdId],
+      foreignColumns: [table.id, table.householdId],
+      name: 'debts_original_household_fk',
+    }),
+    check(
+      'debts_original_not_self',
+      sql`${table.linkedOriginalDebtId} is null or ${table.linkedOriginalDebtId} <> ${table.id}`,
+    ),
+    check(
+      'debts_verified_link',
+      sql`${table.duplicateLinkVerified} = 0 or ${table.linkedOriginalDebtId} is not null`,
+    ),
+    check('debts_due_day', sql`${table.dueDay} is null or ${table.dueDay} between 1 and 31`),
+    check(
+      'debts_original_balance',
+      sql`${table.originalBalanceCents} is null or ${table.originalBalanceCents} >= 0`,
+    ),
+    check(
+      'debts_current_balance',
+      sql`${table.currentBalanceCents} is null or ${table.currentBalanceCents} >= 0`,
+    ),
+    check(
+      'debts_past_due',
+      sql`${table.pastDueAmountCents} is null or ${table.pastDueAmountCents} >= 0`,
+    ),
+    check('debts_limit', sql`${table.creditLimitCents} is null or ${table.creditLimitCents} >= 0`),
+    check(
+      'debts_minimum',
+      sql`${table.minimumPaymentCents} is null or ${table.minimumPaymentCents} >= 0`,
+    ),
+    check('debts_confidence', sql`${table.confidence} in ('confirmed','estimated','unverified')`),
+  ],
+)

@@ -1,19 +1,9 @@
 import { z } from 'zod'
 import { debtPaymentMethodSchema } from './debt-payments'
+import type { FinancialCategory } from './categories'
 
-export const defaultExpenseCategories = [
-  'Food & Dining',
-  'Groceries',
-  'Transportation',
-  'Shopping',
-  'Household Supplies',
-  'Health',
-  'Entertainment',
-  'Children & Family',
-  'Travel',
-  'Other',
-] as const
-export type ExpenseCategory = { id: string; householdId: string; name: string; createdAt: string }
+export type ExpenseCategory = Pick<FinancialCategory, 'id' | 'householdId' | 'name' | 'createdAt'> &
+  Partial<Pick<FinancialCategory, 'archived'>>
 export const expenseInputSchema = z
   .object({
     responsibleMemberId: z.uuid(),

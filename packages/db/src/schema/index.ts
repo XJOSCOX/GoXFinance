@@ -13,3 +13,5 @@ export * from './debt-change-requests'
 export * from './bills'
 export * from './expenses'
 export * from './income'
+
+export * from './categories'

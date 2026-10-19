@@ -1,3 +1,4 @@
+import { categoryRepository } from '../categories/category.repository'
 import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import type { Debt, DebtValues } from '@goxfinance/shared'
@@ -7,16 +8,28 @@ import { debtBalanceHistory, debtMembers, debts } from '../../../../../packages/
 export function debtRepository(db: DatabaseConnection) {
   function hydrate(row: typeof debts.$inferSelect): Debt {
     const members = db.select().from(debtMembers).where(eq(debtMembers.debtId, row.id)).all()
-    return { ...row, memberAssignments: members.map(member => ({ memberId: member.householdMemberId,
-      responsibility: member.responsibility as Debt['memberAssignments'][number]['responsibility'] })) } as Debt
+    return {
+      ...row,
+      memberAssignments: members.map((member) => ({
+        memberId: member.householdMemberId,
+        responsibility:
+          member.responsibility as Debt['memberAssignments'][number]['responsibility'],
+      })),
+    } as Debt
   }
-  const key = (householdId: string, id: string) => and(eq(debts.householdId, householdId), eq(debts.id, id))
+  const key = (householdId: string, id: string) =>
+    and(eq(debts.householdId, householdId), eq(debts.id, id))
   function nextUpdatedAt(householdId: string, id: string) {
-    const current = db.select({ updatedAt: debts.updatedAt }).from(debts).where(key(householdId, id)).get()
+    const current = db
+      .select({ updatedAt: debts.updatedAt })
+      .from(debts)
+      .where(key(householdId, id))
+      .get()
     // Distinguish even same-millisecond edits/reversions in approval fingerprints.
     return new Date(Math.max(Date.now(), Date.parse(current!.updatedAt) + 1)).toISOString()
   }
   return {
+    validateCategory: categoryRepository(db).assign,
     list(householdId: string) {
       return db.select().from(debts).where(eq(debts.householdId, householdId)).all().map(hydrate)
     },
@@ -28,29 +41,68 @@ export function debtRepository(db: DatabaseConnection) {
       const id = randomUUID()
       const now = new Date().toISOString()
       const { memberAssignments, ...fields } = values
-      db.transaction(tx => {
-        tx.insert(debts).values({ id, householdId, createdByUserId, ...fields, createdAt: now, updatedAt: now }).run()
-        if (fields.currentBalanceCents !== null) tx.insert(debtBalanceHistory).values({ id: randomUUID(), householdId, debtId: id,
-          balanceCents: fields.currentBalanceCents, effectiveDate: fields.balanceVerifiedAt?.slice(0, 10) ?? now.slice(0, 10),
-          source: 'initial', recordedByUserId: createdByUserId, notes: fields.balanceVerifiedAt ? 'Initial verified account balance' : 'Initial entry; creditor verification date not supplied', createdAt: now }).run()
-        for (const member of memberAssignments) tx.insert(debtMembers).values({ debtId: id, householdId,
-          householdMemberId: member.memberId, responsibility: member.responsibility, createdAt: now }).run()
+      db.transaction((tx) => {
+        tx.insert(debts)
+          .values({ id, householdId, createdByUserId, ...fields, createdAt: now, updatedAt: now })
+          .run()
+        if (fields.currentBalanceCents !== null)
+          tx.insert(debtBalanceHistory)
+            .values({
+              id: randomUUID(),
+              householdId,
+              debtId: id,
+              balanceCents: fields.currentBalanceCents,
+              effectiveDate: fields.balanceVerifiedAt?.slice(0, 10) ?? now.slice(0, 10),
+              source: 'initial',
+              recordedByUserId: createdByUserId,
+              notes: fields.balanceVerifiedAt
+                ? 'Initial verified account balance'
+                : 'Initial entry; creditor verification date not supplied',
+              createdAt: now,
+            })
+            .run()
+        for (const member of memberAssignments)
+          tx.insert(debtMembers)
+            .values({
+              debtId: id,
+              householdId,
+              householdMemberId: member.memberId,
+              responsibility: member.responsibility,
+              createdAt: now,
+            })
+            .run()
       })
       return this.find(householdId, id)!
     },
     update(householdId: string, id: string, values: DebtValues) {
       const now = nextUpdatedAt(householdId, id)
       const { memberAssignments, ...fields } = values
-      db.transaction(tx => {
-        tx.update(debts).set({ ...fields, updatedAt: now }).where(key(householdId, id)).run()
-        tx.delete(debtMembers).where(and(eq(debtMembers.householdId, householdId), eq(debtMembers.debtId, id))).run()
-        for (const member of memberAssignments) tx.insert(debtMembers).values({ debtId: id, householdId,
-          householdMemberId: member.memberId, responsibility: member.responsibility, createdAt: now }).run()
+      db.transaction((tx) => {
+        tx.update(debts)
+          .set({ ...fields, updatedAt: now })
+          .where(key(householdId, id))
+          .run()
+        tx.delete(debtMembers)
+          .where(and(eq(debtMembers.householdId, householdId), eq(debtMembers.debtId, id)))
+          .run()
+        for (const member of memberAssignments)
+          tx.insert(debtMembers)
+            .values({
+              debtId: id,
+              householdId,
+              householdMemberId: member.memberId,
+              responsibility: member.responsibility,
+              createdAt: now,
+            })
+            .run()
       })
       return this.find(householdId, id)!
     },
     setArchived(householdId: string, id: string, isArchived: boolean) {
-      db.update(debts).set({ isArchived, updatedAt: nextUpdatedAt(householdId, id) }).where(key(householdId, id)).run()
+      db.update(debts)
+        .set({ isArchived, updatedAt: nextUpdatedAt(householdId, id) })
+        .where(key(householdId, id))
+        .run()
       return this.find(householdId, id)!
     },
   }

@@ -21,6 +21,7 @@ import {
   queueRestore,
   restoreQueuedSnapshot,
   verifySnapshot,
+  migrationHashes,
 } from '../sqlite-backups'
 import { initializeEncryptedDatabase } from './initialize-database'
 import { encryptedCopy, reserveNewFile } from './encrypted-copy'
@@ -63,7 +64,7 @@ it('encrypts automatic pre-migration snapshots and independently validates their
   try {
     expect(
       upgraded.sqlite.prepare('SELECT COUNT(*) count FROM __drizzle_migrations').get(),
-    ).toEqual({ count: 15 })
+    ).toEqual({ count: migrationHashes().length })
   } finally {
     upgraded.sqlite.close()
   }

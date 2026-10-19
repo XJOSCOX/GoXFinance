@@ -12,7 +12,8 @@ export const billFrequencySchema = z.enum([
 export const billInputSchema = z
   .object({
     name: z.string().trim().min(1).max(160),
-    category: z.string().trim().min(1).max(80),
+    category: z.string().trim().min(1).max(120),
+    categoryId: z.uuid().nullable().optional(),
     kind: z.enum(['recurring', 'one_time']),
     amountType: z.enum(['fixed', 'variable']),
     amountCents: cents,
@@ -123,6 +124,7 @@ export type BillPeriod = {
   linkedDebtId: string | null
   name: string
   category: string
+  categoryId?: string | null
   createdAt: string
   updatedAt: string
 }

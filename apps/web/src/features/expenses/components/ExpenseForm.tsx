@@ -52,7 +52,10 @@ export function ExpenseForm({
           notes: null,
           allocations: [
             {
-              categoryId: categories.find((item) => item.name === 'Other')?.id ?? '',
+              categoryId:
+                categories.find((item) => !item.archived && item.name === 'Other')?.id ??
+                categories.find((item) => !item.archived)?.id ??
+                '',
               amountCents: 0,
             },
           ],
@@ -201,11 +204,19 @@ export function ExpenseForm({
                         )
                       }
                     >
-                      {categories.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
+                      {categories
+                        .filter(
+                          (item) =>
+                            !item.archived ||
+                            expense?.allocations.some(
+                              (allocation) => allocation.categoryId === item.id,
+                            ),
+                        )
+                        .map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
                     </Select>
                   </FormField>
                   <MoneyField
@@ -240,13 +251,20 @@ export function ExpenseForm({
               className="mt-3"
               type="button"
               size="small"
-              disabled={value.allocations.length >= categories.length}
+              disabled={
+                !categories.some(
+                  (category) =>
+                    !category.archived &&
+                    !value.allocations.some((item) => item.categoryId === category.id),
+                )
+              }
               onClick={() =>
                 update('allocations', [
                   ...value.allocations,
                   {
                     categoryId: categories.find(
                       (category) =>
+                        !category.archived &&
                         !value.allocations.some((item) => item.categoryId === category.id),
                     )!.id,
                     amountCents: 0,

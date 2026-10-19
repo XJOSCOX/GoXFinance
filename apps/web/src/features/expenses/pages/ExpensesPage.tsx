@@ -1,3 +1,4 @@
+import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { localBillDate, sumCents, type Expense } from '@goxfinance/shared'
@@ -73,6 +74,9 @@ export function ExpensesPage() {
           </Button>
         )}
       </header>
+      <div className="mb-4">
+        <ManageCategoriesButton home={householdId} onChanged={load} />
+      </div>
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <SummaryStat
           label="Monthly purchases"

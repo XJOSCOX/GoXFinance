@@ -1,3 +1,4 @@
+import { useCategories } from '../../categories/hooks/useCategories'
 import { PaymentReviewSummary } from './PaymentReviewSummary'
 import { formatMoney } from '../../../lib/money'
 import { useCallback, useEffect, useState } from 'react'
@@ -41,7 +42,13 @@ export function DebtChangeRequestsPanel({
   members?: HouseholdMember[]
   debts?: Debt[]
 }) {
+  const { categories } = useCategories(householdId)
   function displayValue(key: string, value: unknown) {
+    if (key === 'categoryId')
+      return (
+        categories.find((category) => category.id === value)?.name ??
+        (value ? 'Category unavailable' : 'No category')
+      )
     if (key === 'memberAssignments' && Array.isArray(value))
       return value
         .map((item) => {

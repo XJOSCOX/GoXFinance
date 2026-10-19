@@ -1,6 +1,7 @@
+import { categoryRepository } from '../categories/category.repository'
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq } from 'drizzle-orm'
-import { defaultExpenseCategories, type ExpenseInput } from '@goxfinance/shared'
+import { type ExpenseInput } from '@goxfinance/shared'
 import {
   expenses,
   expenseAllocations,
@@ -52,16 +53,7 @@ export function expenseRepository(db: DatabaseConnection) {
         .all()
     },
     initialize(home: string) {
-      for (const name of defaultExpenseCategories)
-        db.insert(expenseCategories)
-          .values({
-            id: randomUUID(),
-            householdId: home,
-            name,
-            createdAt: new Date().toISOString(),
-          })
-          .onConflictDoNothing()
-          .run()
+      categoryRepository(db).initialize(home)
     },
     list(home: string) {
       return db

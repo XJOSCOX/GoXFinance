@@ -30,3 +30,7 @@ Payment forms share amount selectors, optional breakdown fields, clearance revie
 ## Income
 
 `features/income` composes source management, work/receipt forms, history, and summaries. The API income module separates routes, service transactions, ownership authorization, repository SQL, and paycheck value validation. Shared income contracts and decimal-safe calculations contain no database dependencies. Migration 0014 adds source, transaction, and audit tables with scoped foreign keys and idempotency/active-paycheck uniqueness. See [Income](income.md) for financial rules, revision semantics, and PostgreSQL mappings.
+
+## Financial categories
+
+`features/categories` provides a shared selector, catalog manager, metadata editor and separate-measure totals. The API category module owns Owner-only catalog management and household-scoped assignments; financial modules retain their own permission and approval rules. New households provision defaults atomically with household creation. Category reads do not provision or recreate renamed defaults. The existing `expense_categories` table remains the sole catalog so historical allocation UUIDs survive. Additive migration 0015 associates bills, billing periods and debts without changing recorded amounts or historical labels. See [Categories](categories.md) for backup, migration, reporting and PostgreSQL details.

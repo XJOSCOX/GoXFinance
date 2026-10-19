@@ -23,6 +23,7 @@ const assignments = z.array(debtAssignmentSchema).min(1, 'Assign at least one ho
   .refine(items => new Set(items.map(item => item.memberId)).size === items.length, 'Select each member once')
 const debtFieldsSchema = z.object({
   creditorName: z.string().trim().min(1, 'Enter a creditor').max(160),
+  categoryId: z.uuid().nullable().optional(),
   accountNickname: z.string().trim().max(120).nullable().default(null),
   accountType: debtTypeSchema,
   accountStatus: accountStatusSchema.default('unknown'),

@@ -9,6 +9,19 @@ export function registerOverviewRoutes(
   auth: AuthService,
   service: ReturnType<typeof overviewService>,
 ) {
+  app.get('/api/households/:householdId/categories/report', (request) => {
+    const user = auth.currentUser(request.cookies[auth.sessionCookieName])
+    const { householdId } = z.object({ householdId: z.uuid() }).parse(request.params)
+    const { month = localBillDate().slice(0, 7) } = z
+      .object({
+        month: z
+          .string()
+          .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+          .optional(),
+      })
+      .parse(request.query)
+    return { rows: service.get(user, householdId, month).categoryTotals, month }
+  })
   app.get('/api/households/:householdId/overview', (request) => {
     const user = auth.currentUser(request.cookies[auth.sessionCookieName]),
       { householdId } = z.object({ householdId: z.uuid() }).parse(request.params)

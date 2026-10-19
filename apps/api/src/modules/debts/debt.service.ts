@@ -42,6 +42,7 @@ export function debtService(
     existing?: Debt,
   ) {
     const ctx = context(user, householdId)
+    repository.validateCategory(householdId, values.categoryId, existing?.categoryId)
     if (values.balanceVerifiedAt && values.balanceVerifiedAt.slice(0, 10) > localBillDate())
       throw new DebtError('A verified balance cannot have a future date', 400)
     for (const assignment of values.memberAssignments) {

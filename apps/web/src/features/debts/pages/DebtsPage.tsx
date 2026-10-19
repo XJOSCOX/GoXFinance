@@ -1,3 +1,5 @@
+import { useCategories } from '../../categories/hooks/useCategories'
+import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
@@ -48,6 +50,8 @@ export function DebtsPage() {
   const [archiveRequestKey, setArchiveRequestKey] = useState('')
   const [filters, setFilters] = useState(emptyDebtFilters)
   const { query, member: memberFilter, type: typeFilter, status: statusFilter, sort } = filters
+  const { categories, refresh: refreshCategories } = useCategories(householdId)
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [requestRefresh, setRequestRefresh] = useState(0)
   useEffect(() => {
@@ -81,6 +85,7 @@ export function DebtsPage() {
         .filter(
           (debt) =>
             debt.isArchived === showArchived &&
+            (!categoryFilter || debt.categoryId === categoryFilter) &&
             `${debt.creditorName} ${debt.accountNickname ?? ''} ${debt.collectionAgency ?? ''}`
               .toLowerCase()
               .includes(query.toLowerCase()) &&
@@ -96,7 +101,7 @@ export function DebtsPage() {
               ? a.creditorName.localeCompare(b.creditorName)
               : b.updatedAt.localeCompare(a.updatedAt),
         ),
-    [debts, showArchived, query, memberFilter, typeFilter, statusFilter, sort],
+    [debts, showArchived, query, memberFilter, typeFilter, statusFilter, sort, categoryFilter],
   )
   const groups = useMemo(() => groupDebts(visible), [visible])
   if (!household)
@@ -219,6 +224,23 @@ export function DebtsPage() {
             </Button>
           )}
         </header>
+        <div className="flex flex-wrap gap-2">
+          <select
+            aria-label="Filter debt category"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="rounded-lg border border-white/10 bg-[#151716] px-3 py-2 text-sm"
+          >
+            <option value="">All categories</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+                {category.archived ? ' (archived)' : ''}
+              </option>
+            ))}
+          </select>
+          <ManageCategoriesButton home={householdId} onChanged={refreshCategories} />
+        </div>
         {household.role === 'owner' && (
           <DebtChangeRequestsPanel
             householdId={householdId}
