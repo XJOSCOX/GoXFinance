@@ -106,6 +106,11 @@ export function tradingRepository(db: DatabaseConnection) {
           .run()
       else db.insert(tradingResults).values(values).run()
     },
+    removeResult(home: string, id: string) {
+      db.delete(tradingResults)
+        .where(and(eq(tradingResults.householdId, home), eq(tradingResults.id, id)))
+        .run()
+    },
     writePayout(values: typeof tradingPayouts.$inferInsert, update = false) {
       if (update)
         db.update(tradingPayouts)

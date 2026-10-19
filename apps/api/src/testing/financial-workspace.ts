@@ -37,13 +37,13 @@ export async function setup(encrypted: boolean) {
     { home, member } = await testHome(app, owner.cookie),
     base = `/api/households/${home}`
   const send = (
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     suffix: string,
     body?: object,
     cookie = owner.cookie,
   ) => testRequest(app, method, base + suffix, cookie, body)
   async function ok(
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     suffix: string,
     body?: object,
     cookie = owner.cookie,

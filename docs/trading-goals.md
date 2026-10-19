@@ -81,3 +81,12 @@ Use an isolated household with fictional data before real entry:
 7. Verify Owner, Admin, Editor, Viewer and cross-household behavior; refresh and restart the API; verify backup/recovery in the configured SQLite mode.
 
 Remaining limits: manual entry only; no official rule/eligibility engine, broker connection, automatic bank reconciliation or market data. Session conventions are user-configured. Goal history recalculates against current target definitions, limited to 12 periods. Native build currently retains the existing non-blocking frontend bundle-size warning. Manual end-to-end acceptance remains with the user after this implementation.
+
+
+## Separate daily profit and loss
+
+Daily summaries accept nonnegative profit, loss and fees in integer cents. Gross is profit minus loss; net is gross minus fees. Select one or multiple accounts, enter shared amounts once, explicitly apply them, then review or adjust each account before saving. Batch creation is atomic and idempotent. No result creates household income.
+
+Migration 0020 only adds nullable profit/loss columns. Historical gross-only summaries and copied events retain an unknown breakdown; no historical split is inferred. Corrections can retain gross-only mode or supply a complete breakdown. Copied events continue using their existing signed gross fields and event correction workflow.
+
+Daily-summary deletion requires current revision, confirmation and a reason. Permission checks, audit snapshots, submission retirement and deletion run in one transaction. Deleted summaries leave performance/goal totals; delayed retries cannot recreate them. Audit history remains in SQLite. Deleting a result does not cancel a payout or its Income deposit.

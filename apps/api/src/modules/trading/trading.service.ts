@@ -279,6 +279,12 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           checkRevision(old.revision, 'revision' in parsed ? parsed.revision : 0)
         }
         if ('idempotencyKey' in parsed) {
+          if (
+            store
+              .history(home, parsed.idempotencyKey)
+              .some((a) => a.action === 'result_submission_retired')
+          )
+            throw new FinancialError('This submission was deleted; create a new entry', 409)
           const previous = store
             .results(home)
             .find((r) => r.idempotencyKey === parsed.idempotencyKey)
@@ -307,6 +313,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           row = {
             ...old,
             ...values,
+            profitCents: values.profitCents ?? null,
+            lossCents: values.lossCents ?? null,
             id: id ?? randomUUID(),
             householdId: home,
             sessionDate,
@@ -332,6 +340,23 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           values,
         )
         return row
+      })
+    },
+    deleteResult(user: PublicUser, home: string, id: string, body: unknown) {
+      return store.atomic(() => {
+        const parsed = editTradingSchema(
+          z.object({ confirmation: z.literal('DELETE') }).strict(),
+        ).parse(body)
+        permissions.context(user, home)
+        const old = store.results(home).find((r) => r.id === id)
+        if (!old) throw new FinancialError('Daily result not found', 404)
+        const parent = account(user, home, old.accountId)
+        permissions.manage(user, home, parent.responsibleMemberId, true)
+        checkRevision(old.revision, parsed.revision)
+        store.audit(home, user.id, 'result_deleted', id, old, { reason: parsed.reason })
+        store.audit(home, user.id, 'result_submission_retired', old.idempotencyKey, null, { id })
+        store.removeResult(home, id)
+        return { id }
       })
     },
     saveResults(user: PublicUser, home: string, body: unknown): TradingResult[] {

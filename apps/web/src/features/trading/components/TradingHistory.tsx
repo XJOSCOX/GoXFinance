@@ -14,6 +14,7 @@ export function TradingHistory({
   data,
   tab,
   onResult,
+  onDeleteResult,
   onPayout,
   onGroup,
   onEvent,
@@ -22,6 +23,7 @@ export function TradingHistory({
   data: TradingData
   tab: string
   onResult: (r: TradingResult) => void
+  onDeleteResult: (r: TradingResult) => void
   onPayout: (p: TradingPayout) => void
   onGroup: (g: CopyGroup) => void
   onEvent: (e: CopyEvent) => void
@@ -37,11 +39,13 @@ export function TradingHistory({
     <Card className="min-w-0 p-4">
       <h2 className="font-semibold">Daily result history</h2>
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[960px] text-left text-sm [&_td]:whitespace-nowrap [&_td]:px-3 [&_th]:px-3">
           <thead className="text-xs text-slate-500">
             <tr>
               <th className="py-2">Account</th>
               <th>Session</th>
+              <th>Profit</th>
+              <th>Loss</th>
               <th>Gross</th>
               <th>Fees</th>
               <th>Net</th>
@@ -63,6 +67,8 @@ export function TradingHistory({
                     {r.sessionDate}
                     <span className="block text-xs text-slate-500">{r.timezone}</span>
                   </td>
+                  <td className={r.profitCents == null ? 'text-slate-500' : toneStyles.positive.text}>{formatMoney(r.profitCents ?? null)}</td>
+                  <td className={r.lossCents == null ? 'text-slate-500' : toneStyles.negative.text}>{formatMoney(r.lossCents ?? null)}</td>
                   <td>{formatMoney(r.grossCents)}</td>
                   <td>{formatMoney(r.feesCents)}</td>
                   <td className={toneStyles[amountTone(r.netCents)].text}>
@@ -72,7 +78,12 @@ export function TradingHistory({
                     <div className="flex gap-1">
                       {r.canManage && (
                         <Button size="small" onClick={() => onResult(r)}>
-                          Correct
+                          Edit
+                        </Button>
+                      )}
+                      {r.canManage && (
+                        <Button size="small" variant="ghost" onClick={() => onDeleteResult(r)}>
+                          Delete
                         </Button>
                       )}
                       <Button

@@ -5,6 +5,9 @@ import { AmountField } from '../../../components/financial/EntryFields'
 import { readMoney, text, optionalText } from '../../../lib/financial-entry'
 import { FormField } from '../../../components/ui/FormField'
 import { Input } from '../../../components/ui'
+import { ProfitLossFields } from './ProfitLossFields'
+import { resultAmounts, type ResultAmounts } from '../lib/result-amounts'
+import { moneyText } from '../../../lib/financial-entry'
 import { TradingAccountSelect } from './TradingAccountSelect'
 export function ResultForm({
   result,
@@ -18,6 +21,12 @@ export function ResultForm({
   close: () => void
 }) {
   const [id, setId] = useState(result?.accountId ?? accounts[0]?.id ?? '')
+  const [split, setSplit] = useState(!result || result.profitCents != null)
+  const [amounts, setAmounts] = useState<ResultAmounts>({
+    profit: moneyText(result?.profitCents),
+    loss: moneyText(result?.lossCents),
+    fees: moneyText(result?.feesCents),
+  })
   const account = accounts.find((a) => a.id === id)
   return (
     <FinancialEditor
@@ -29,8 +38,14 @@ export function ResultForm({
         tradingResultSchema.parse({
           accountId: id,
           sessionAt: new Date(text(data, 'sessionAt')).toISOString(),
-          grossCents: readMoney(data, 'grossCents', true),
-          feesCents: readMoney(data, 'feesCents', true),
+          ...(split
+            ? resultAmounts(amounts)
+            : {
+                grossCents: readMoney(data, 'grossCents', true),
+                feesCents: readMoney(data, 'feesCents', true),
+                profitCents: null,
+                lossCents: null,
+              }),
           tradeCount:
             optionalText(data, 'tradeCount') === null ? null : Number(text(data, 'tradeCount')),
           notes: optionalText(data, 'notes'),
@@ -67,19 +82,39 @@ export function ResultForm({
         Session grouping: {result?.timezone ?? account?.timezone}, starts at{' '}
         {result?.sessionStart ?? account?.sessionStart}. Dates identify the session's start date.
       </p>
+      {result && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={split} onChange={(e) => setSplit(e.target.checked)} />
+          Enter separate profit and loss
+        </label>
+      )}
+      {!split && (
+        <p className="text-xs text-slate-400">
+          Historical profit/loss breakdown is unknown. Keep the signed gross result or enter a
+          verified breakdown.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <AmountField
-          label="Gross realized P&L ($, losses negative)"
-          name="grossCents"
-          value={result?.grossCents}
-          required
-        />
-        <AmountField
-          label="Commissions and fees ($)"
-          name="feesCents"
-          value={result?.feesCents}
-          required
-        />
+        {split ? (
+          <div className="sm:col-span-2">
+            <ProfitLossFields value={amounts} onChange={setAmounts} />
+          </div>
+        ) : (
+          <>
+            <AmountField
+              label="Gross realized P&L ($, losses negative)"
+              name="grossCents"
+              value={result?.grossCents}
+              required
+            />
+            <AmountField
+              label="Commissions and fees ($)"
+              name="feesCents"
+              value={result?.feesCents}
+              required
+            />
+          </>
+        )}
         <FormField label="Number of trades (optional)">
           <Input name="tradeCount" type="number" min="0" defaultValue={result?.tradeCount ?? ''} />
         </FormField>

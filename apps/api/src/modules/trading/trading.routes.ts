@@ -75,6 +75,10 @@ export function registerTradingRoutes(
       .code(201)
       .send({ records: trading.saveResults(user(r), params.parse(r.params).householdId, r.body) }),
   )
+  app.delete(base + '/results/:id', (r) => {
+    const p = params.parse(r.params)
+    return { record: trading.deleteResult(user(r), p.householdId, p.id!, r.body) }
+  })
   app.post(base + '/payouts', (r, reply) =>
     reply
       .code(201)

@@ -93,6 +93,26 @@ it.each([false, true])(
         )
       sqlite
         .prepare(
+          'INSERT INTO trading_results(id,household_id,created_by_user_id,idempotency_key,created_at,updated_at,account_id,session_at,session_date,timezone,session_start,gross_cents,fees_cents,net_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        )
+        .run(
+          randomUUID(),
+          home,
+          user,
+          randomUUID(),
+          now,
+          now,
+          account,
+          now,
+          '2026-01-01',
+          'America/Chicago',
+          '18:00',
+          -5000,
+          100,
+          -5100,
+        )
+      sqlite
+        .prepare(
           'INSERT INTO financial_goals(id,household_id,created_by_user_id,idempotency_key,created_at,updated_at,name,goal_type,target_cents,period,start_date,end_date,responsible_member_id,direction,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         )
         .run(
@@ -148,6 +168,19 @@ it.each([false, true])(
       expect(
         migrated.sqlite.prepare('SELECT id,amount_cents FROM goal_contributions').get(),
       ).toEqual({ id: contribution, amount_cents: 500 })
+      expect(
+        migrated.sqlite
+          .prepare(
+            'SELECT gross_cents,fees_cents,net_cents,profit_cents,loss_cents FROM trading_results',
+          )
+          .get(),
+      ).toEqual({
+        gross_cents: -5000,
+        fees_cents: 100,
+        net_cents: -5100,
+        profit_cents: null,
+        loss_cents: null,
+      })
       expect(migrated.sqlite.pragma('foreign_key_check')).toEqual([])
       expect(migrated.sqlite.pragma('integrity_check', { simple: true })).toBe('ok')
     } finally {

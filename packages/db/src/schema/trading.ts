@@ -86,6 +86,8 @@ export const tradingResults = sqliteTable(
     timezone: text('timezone').notNull(),
     sessionStart: text('session_start').notNull(),
     grossCents: integer('gross_cents').notNull(),
+    profitCents: integer('profit_cents'),
+    lossCents: integer('loss_cents'),
     feesCents: integer('fees_cents').notNull(),
     netCents: integer('net_cents').notNull(),
     tradeCount: integer('trade_count'),

@@ -18,3 +18,9 @@ export const saveTrading = (home: string, kind: string, body: unknown, id?: stri
     method: id ? 'PATCH' : 'POST',
     body: JSON.stringify(body),
   })
+
+export const removeTradingResult = (home: string, id: string, body: unknown) =>
+  apiRequest(`households/${home}/trading/results/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify(body),
+  })

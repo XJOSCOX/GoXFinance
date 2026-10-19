@@ -18,12 +18,13 @@ import { formatMoney } from '../../../lib/money'
 import { useHousehold } from '../../households/hooks/useHousehold'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useTrading } from '../hooks/useTrading'
-import { saveTrading, removeTradingAccount } from '../api/tradingClient'
+import { saveTrading, removeTradingAccount, removeTradingResult } from '../api/tradingClient'
 import { AccountRemovalDialog } from '../components/AccountRemovalDialog'
 import { AccountForm } from '../components/AccountForm'
 import { AccountRulesForm } from '../components/AccountRulesForm'
 import { EditRuleForm } from '../components/EditRuleForm'
 import { CombinedPayoutProgress } from '../components/CombinedPayoutProgress'
+import { ResultRemovalDialog } from '../components/ResultRemovalDialog'
 import { ResultForm } from '../components/ResultForm'
 import { DailyResultsForm } from '../components/DailyResultsForm'
 import { PayoutForm } from '../components/PayoutForm'
@@ -50,6 +51,7 @@ export function TradingPage() {
     [tab, setTab] = useState('accounts'),
     [editor, setEditor] = useState<Editor | null>(null),
     [audit, setAudit] = useState('')
+  const [resultRemoval, setResultRemoval] = useState<TradingResult | null>(null)
   const [showDeleted, setShowDeleted] = useState(false)
   const [removal, setRemoval] = useState<TradingAccount | null>(null)
   const [ruleEditor, setRuleEditor] = useState<{
@@ -211,6 +213,7 @@ export function TradingPage() {
             <TradingHistory
               data={data}
               tab={tab}
+              onDeleteResult={setResultRemoval}
               onResult={(record) => setEditor({ kind: 'results', record })}
               onPayout={(record) => setEditor({ kind: 'payouts', record })}
               onGroup={(record) => setEditor({ kind: 'groups', record })}
@@ -290,6 +293,17 @@ export function TradingPage() {
         <FinancialAudit
           path={`households/${home}/trading/audit/${audit}`}
           close={() => setAudit('')}
+        />
+      )}
+      {resultRemoval && (
+        <ResultRemovalDialog
+          result={resultRemoval}
+          close={() => setResultRemoval(null)}
+          save={async (body) => {
+            await removeTradingResult(home, resultRemoval.id, body)
+            await refresh()
+            notify('success', 'Daily result deleted; audit history retained')
+          }}
         />
       )}
       {removal && (

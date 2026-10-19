@@ -74,11 +74,21 @@ export const tradingResultSchema = z
     accountId: z.uuid(),
     sessionAt: z.iso.datetime(),
     grossCents: money,
+    profitCents: positive.nullable().optional(),
+    lossCents: positive.nullable().optional(),
     feesCents: positive,
     tradeCount: z.number().int().nonnegative().max(100000).nullable(),
     notes: z.string().trim().max(4000).nullable(),
   })
   .strict()
+  .refine(
+    (v) =>
+      (v.profitCents == null && v.lossCents == null) ||
+      (v.profitCents != null &&
+        v.lossCents != null &&
+        v.grossCents === v.profitCents - v.lossCents),
+    'Enter both profit and loss; gross must equal profit minus loss',
+  )
   .refine(
     (v) => Number.isSafeInteger(v.grossCents - v.feesCents),
     'Net P&L exceeds the supported range',
