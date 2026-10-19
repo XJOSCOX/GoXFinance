@@ -161,6 +161,8 @@ export function payoutService(
             .find((p) => p.idempotencyKey === parsed.idempotencyKey)
           if (trading.replay(home, user.id, previous, v)) return previous
         }
+        if (parent.deletedAt && !id)
+          throw new FinancialError('Restore this account before adding payouts', 409)
         if (old) {
           checkRevision(old.revision, 'revision' in parsed ? parsed.revision : 0)
           if (old.accountId !== v.accountId)

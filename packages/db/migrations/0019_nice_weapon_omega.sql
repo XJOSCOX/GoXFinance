@@ -1,0 +1,1 @@
+ALTER TABLE `trading_accounts` ADD `deleted_at` text;

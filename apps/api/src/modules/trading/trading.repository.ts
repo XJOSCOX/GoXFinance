@@ -8,6 +8,8 @@ import {
   tradingRuleSnapshots,
   copyEventResults,
   copyEvents,
+  copyGroupMembers,
+  financialGoals,
 } from '../../../../../packages/db/src/schema'
 import type { DatabaseConnection } from '../../db/connection'
 export function tradingRepository(db: DatabaseConnection) {
@@ -63,6 +65,33 @@ export function tradingRepository(db: DatabaseConnection) {
           )
           .run()
       else db.insert(tradingAccounts).values(values).run()
+    },
+    hasAccountHistory(home: string, id: string) {
+      return !!(
+        db
+          .select()
+          .from(tradingResults)
+          .where(and(eq(tradingResults.householdId, home), eq(tradingResults.accountId, id)))
+          .get() ||
+        db
+          .select()
+          .from(tradingPayouts)
+          .where(and(eq(tradingPayouts.householdId, home), eq(tradingPayouts.accountId, id)))
+          .get() ||
+        db.select().from(copyGroupMembers).where(eq(copyGroupMembers.accountId, id)).get() ||
+        db.select().from(copyEventResults).where(eq(copyEventResults.accountId, id)).get() ||
+        db.select().from(financialGoals).where(eq(financialGoals.tradingAccountId, id)).get()
+      )
+    },
+    removeAccount(home: string, id: string) {
+      db.delete(tradingRuleSnapshots)
+        .where(
+          and(eq(tradingRuleSnapshots.householdId, home), eq(tradingRuleSnapshots.accountId, id)),
+        )
+        .run()
+      db.delete(tradingAccounts)
+        .where(and(eq(tradingAccounts.householdId, home), eq(tradingAccounts.id, id)))
+        .run()
     },
     writeResult(values: typeof tradingResults.$inferInsert, update = false) {
       if (update)

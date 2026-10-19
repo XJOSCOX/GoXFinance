@@ -6,9 +6,23 @@ GoXFinance records manually entered external activity. It does not connect crede
 
 ## Sessions and realized results
 
+### Adding multiple accounts
+
+Use **Duplicate** on an account to reuse its setup, or **Add account** to start fresh. Choose 1–20 accounts and review each nickname and optional last-four identifier. Duplication resets balance, activation date, status, notes and external identifier; it never copies results, payouts, income links or rule history. A new rule snapshot can be entered explicitly. When adding multiple accounts, balances and activation dates start unknown and can be entered separately afterward.
+
+`POST /api/households/:householdId/trading/accounts/batch` accepts an idempotency key and an array of validated account inputs. All accounts and audits save in one transaction. Replaying the same request returns the same account IDs; changing its payload with the same key is rejected. Nicknames must differ within the batch. Each account is separately authorized, including on retries. This uses existing account and audit tables without changing stored records or migrations.
+
+### Removing an extra account
+
+**Delete** opens a confirmation with two choices. **Hide account** sets an audited deletion timestamp and removes the card from the default register. Enable **Show hidden accounts** to restore it. Historical results, payouts, income and reports remain intact. New results, payouts and copied activity require restoring the account first; existing historical entries remain correctable.
+
+**Delete permanently instead** requires typing the account name. The server allows this only when there are no linked results, payouts, income sources, copy groups/events or goals. Account metadata and rule snapshots are removed atomically; deletion audits remain. Retired submission keys prevent a retry from recreating a permanently deleted account. Both operations enforce household permissions and record revisions. Migration 0019 adds only nullable `trading_accounts.deleted_at`; existing records are preserved.
+
 Each account has an explicit IANA timezone and session start time. Session dates are labeled by the **start calendar date** in that timezone. For example, with an 18:00 boundary, an entry at 17:59 belongs to the preceding session. This convention is configurable tracking metadata, not a claim about current Topstep rules. The timestamp picker uses the device timezone; stored timestamps are UTC ISO 8601, and results retain their account timezone/boundary snapshots through corrections. Weekly performance buckets start Monday. Trading goals have their own explicitly selected timezone and boundary so daily/weekly rollover does not assume midnight.
 
 There is one manual daily summary per account/session, corrected in place with revision checks and an audit trail. Gross and fees are integer cents; net is gross minus fees, and may be negative or zero. Performance filters sum only the selected accounts' actual result rows. No net result is inferred from nominal tier or position size.
+
+**Record daily result** supports selecting one, several or all manageable visible accounts. Each account requires explicit gross P&L and fees; nothing is copied into confirmed results automatically. A shared timestamp is interpreted using each account's stored timezone and boundary. `POST .../trading/results/batch` saves all selected summaries and audits atomically, rejects repeated account IDs and existing session results, and safely replays submission keys. Corrections remain per-account with their existing audit trails.
 
 ## Copy groups
 
@@ -17,6 +31,8 @@ Groups designate a lead, distinct followers and quantity multipliers. No instruc
 ## Payouts and income
 
 A payout batch is a parent container for independent account payout records. Requested and approved amounts never create income. Each account can be approved, rejected, received or cancelled independently. Batch summaries are not additional financial transactions. Matching requests without distinct external references are rejected as ambiguous duplicates; retry keys also prevent repeated submissions.
+
+The payout form links directly to the multiple-account batch form. **Select all accounts** is available in payout batches, copy groups, copied events and daily summaries. A batch request amount can be explicitly applied to selected accounts and individually adjusted before saving. Applying a requested amount never confirms a deposit; received payouts still require independent actual receipt details.
 
 A paid payout requires explicit receipt confirmation, actual net received amount and actual deposit date. It either creates a dedicated irregular trading-payout Income source/deposit or links an existing confirmed trading deposit with exactly matching member, amount and date. A transaction can link to only one payout. Requested versus received differences are displayed rather than guessing fees/profit splits. Changes to a paid payout update the same Income transaction atomically; cancellation cancels its linked deposit, preserving history. Direct Income editing of linked deposits is blocked: correct them in Trading. Terminal rejected/cancelled payouts are retained and a new request must be recorded for subsequent activity. No past payments or income are manufactured.
 

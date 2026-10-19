@@ -10,7 +10,7 @@ import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { AmountField, DateField } from '../../../components/financial/EntryFields'
 import { readMoney, text, optionalText } from '../../../lib/financial-entry'
 import { FormField, Select } from '../../../components/ui/FormField'
-import { Input } from '../../../components/ui'
+import { Input, Button } from '../../../components/ui'
 import { TradingAccountSelect } from './TradingAccountSelect'
 export function PayoutForm({
   payout,
@@ -18,12 +18,14 @@ export function PayoutForm({
   income,
   save,
   close,
+  onBatch,
 }: {
   payout?: TradingPayout
   accounts: TradingAccount[]
   income: IncomeData | null
   save: (body: unknown) => Promise<void>
   close: () => void
+  onBatch?: () => void
 }) {
   const [id, setId] = useState(payout?.accountId ?? accounts[0]?.id ?? ''),
     [status, setStatus] = useState(payout?.status ?? 'requested')
@@ -53,6 +55,11 @@ export function PayoutForm({
         })
       }
     >
+      {!payout && onBatch && accounts.length > 1 && (
+        <Button type="button" size="small" onClick={onBatch}>
+          Record for multiple accounts / Select all
+        </Button>
+      )}
       <p className="text-xs text-slate-400">
         This records activity you performed outside GoXFinance. It does not submit a withdrawal
         request or check provider eligibility.

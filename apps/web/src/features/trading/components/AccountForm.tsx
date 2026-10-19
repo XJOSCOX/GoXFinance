@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { tradingAccountSchema, type TradingAccount, type HouseholdMember } from '@goxfinance/shared'
+import {
+  tradingAccountSchema,
+  tradingAccountBatchSchema,
+  type TradingAccount,
+  type HouseholdMember,
+} from '@goxfinance/shared'
+import { AccountIdentities, type AccountIdentity } from './AccountIdentities'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { AmountField, DateField } from '../../../components/financial/EntryFields'
 import { text, optionalText, readMoney } from '../../../lib/financial-entry'
@@ -7,29 +13,55 @@ import { Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 export function AccountForm({
   account,
+  template,
   members,
   save,
   close,
 }: {
   account?: TradingAccount
+  template?: TradingAccount
   members: HouseholdMember[]
-  save: (body: unknown) => Promise<void>
+  save: (body: unknown, batch?: boolean) => Promise<void>
   close: () => void
 }) {
-  const [stage, setStage] = useState(account?.stage ?? 'combine'),
+  const defaults =
+    account ??
+    (template
+      ? {
+          ...template,
+          nickname: '',
+          maskedExternalId: null,
+          reportedBalanceCents: null,
+          activationDate: null,
+          status: 'active',
+          notes: null,
+        }
+      : undefined)
+  const [count, setCount] = useState(1)
+  const [identities, setIdentities] = useState<AccountIdentity[]>([
+    { nickname: template ? `${template.nickname.slice(0, 110)} copy` : '', maskedExternalId: '' },
+  ])
+  const [stage, setStage] = useState(defaults?.stage ?? 'combine'),
     [rules, setRules] = useState(false)
   return (
     <FinancialEditor
-      title={account ? 'Edit Topstep account' : 'Add Topstep account'}
+      title={
+        account ? 'Edit Topstep account' : template ? 'Duplicate account' : 'Add Topstep accounts'
+      }
       record={account}
-      save={save}
+      submitLabel={
+        account ? 'Save account' : count === 1 ? 'Create account' : `Create ${count} accounts`
+      }
+      save={(body) => save(body, !account && count > 1)}
       close={close}
-      build={(data) =>
-        tradingAccountSchema.parse({
+      build={(data) => {
+        const values = tradingAccountSchema.parse({
           responsibleMemberId: text(data, 'responsibleMemberId'),
           provider: 'Topstep',
-          nickname: text(data, 'nickname'),
-          maskedExternalId: optionalText(data, 'maskedExternalId'),
+          nickname: account ? text(data, 'nickname') : identities[0].nickname,
+          maskedExternalId: account
+            ? optionalText(data, 'maskedExternalId')
+            : identities[0].maskedExternalId || null,
           stage,
           xfaPath: stage === 'xfa' ? text(data, 'xfaPath') : 'not_applicable',
           tierCents: readMoney(data, 'tierCents'),
@@ -57,14 +89,55 @@ export function AccountForm({
               }
             : null,
         })
-      }
+        return !account && count > 1
+          ? tradingAccountBatchSchema.parse(
+              identities.slice(0, count).map((identity) => ({
+                ...values,
+                ...identity,
+                maskedExternalId: identity.maskedExternalId || null,
+              })),
+            )
+          : values
+      }}
     >
+      {!account && (
+        <AccountIdentities
+          rows={identities}
+          count={count}
+          onCount={(next) => {
+            setCount(next)
+            setIdentities((rows) =>
+              Array.from(
+                { length: Math.max(next, rows.length) },
+                (_, i) =>
+                  rows[i] ?? {
+                    nickname: `${(rows[0].nickname || 'Account').slice(0, 110)} ${i + 1}`,
+                    maskedExternalId: '',
+                  },
+              ),
+            )
+          }}
+          onChange={(index, field, value) =>
+            setIdentities((rows) =>
+              rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+            )
+          }
+        />
+      )}
+      {template && (
+        <p className="text-xs text-slate-400">
+          Setup copied from {template.nickname}. Balances, identifiers, results, payouts and rule
+          history are not copied.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Nickname">
-          <Input name="nickname" defaultValue={account?.nickname} required maxLength={120} />
-        </FormField>
+        {account && (
+          <FormField label="Nickname">
+            <Input name="nickname" defaultValue={defaults?.nickname} required maxLength={120} />
+          </FormField>
+        )}
         <FormField label="Responsible member">
-          <Select name="responsibleMemberId" defaultValue={account?.responsibleMemberId} required>
+          <Select name="responsibleMemberId" defaultValue={defaults?.responsibleMemberId} required>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.fullName}
@@ -83,39 +156,53 @@ export function AccountForm({
           <FormField label="XFA path">
             <Select
               name="xfaPath"
-              defaultValue={account?.xfaPath === 'not_applicable' ? 'standard' : account?.xfaPath}
+              defaultValue={defaults?.xfaPath === 'not_applicable' ? 'standard' : defaults?.xfaPath}
             >
               <option value="standard">Standard</option>
               <option value="consistency">Consistency</option>
             </Select>
           </FormField>
         )}
-        <FormField label="External identifier (last four only)">
-          <Input
-            name="maskedExternalId"
-            defaultValue={account?.maskedExternalId ?? ''}
-            maxLength={12}
-          />
-        </FormField>
-        <AmountField name="tierCents" label="Nominal account tier ($)" value={account?.tierCents} />
+        {account && (
+          <FormField label="External identifier (last four only)">
+            <Input
+              name="maskedExternalId"
+              defaultValue={defaults?.maskedExternalId ?? ''}
+              maxLength={12}
+            />
+          </FormField>
+        )}
         <AmountField
-          name="reportedBalanceCents"
-          label="Reported trading balance ($)"
-          value={account?.reportedBalanceCents}
+          name="tierCents"
+          label="Nominal account tier ($)"
+          value={defaults?.tierCents}
         />
+        {count === 1 && (
+          <AmountField
+            name="reportedBalanceCents"
+            label="Reported trading balance ($)"
+            value={defaults?.reportedBalanceCents}
+          />
+        )}
         <AmountField
           name="maximumLossCents"
           label="Maximum loss limit ($)"
-          value={account?.maximumLossCents}
+          value={defaults?.maximumLossCents}
         />
         <AmountField
           name="dailyLossCents"
           label="Daily loss limit ($)"
-          value={account?.dailyLossCents}
+          value={defaults?.dailyLossCents}
         />
-        <DateField name="activationDate" label="Activation date" value={account?.activationDate} />
+        {count === 1 && (
+          <DateField
+            name="activationDate"
+            label="Activation date"
+            value={defaults?.activationDate}
+          />
+        )}
         <FormField label="Status">
-          <Select name="status" defaultValue={account?.status ?? 'active'}>
+          <Select name="status" defaultValue={defaults?.status ?? 'active'}>
             {['active', 'passed', 'failed', 'closed', 'paused'].map((s) => (
               <option key={s}>{s}</option>
             ))}
@@ -124,7 +211,7 @@ export function AccountForm({
         <FormField label="Trading timezone (IANA)">
           <Input
             name="timezone"
-            defaultValue={account?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
+            defaultValue={defaults?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
             required
             placeholder="America/Chicago"
           />
@@ -133,18 +220,24 @@ export function AccountForm({
           <Input
             type="time"
             name="sessionStart"
-            defaultValue={account?.sessionStart ?? ''}
+            defaultValue={defaults?.sessionStart ?? ''}
             required
           />
         </FormField>
       </div>
+      {count > 1 && (
+        <p className="text-xs text-slate-400">
+          New account balances and activation dates start unknown. Enter them separately after
+          creation.
+        </p>
+      )}
       <p className="text-xs text-slate-400">
         Session dates use the local date when the session starts. Enter the boundary you use; no
         official provider boundary is assumed. Nominal tiers and simulated balances are not
         household cash.
       </p>
       <FormField label="Notes">
-        <Input name="notes" defaultValue={account?.notes ?? ''} maxLength={4000} />
+        <Input name="notes" defaultValue={defaults?.notes ?? ''} maxLength={4000} />
       </FormField>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={rules} onChange={(e) => setRules(e.target.checked)} />

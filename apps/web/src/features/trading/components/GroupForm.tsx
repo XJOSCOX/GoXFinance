@@ -4,6 +4,7 @@ import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { text } from '../../../lib/financial-entry'
 import { Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
+import { AccountSelectionToolbar } from './AccountSelectionToolbar'
 export function GroupForm({
   group,
   accounts,
@@ -38,6 +39,7 @@ export function GroupForm({
         <Input name="name" defaultValue={group?.name} required />
       </FormField>
       <div className="space-y-3">
+        <AccountSelectionToolbar accounts={accounts} selected={selected} onChange={setSelected} />
         {accounts.map((account) => (
           <div
             key={account.id}

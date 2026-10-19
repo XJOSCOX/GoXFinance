@@ -11,12 +11,16 @@ export function TradingAccounts({
   results,
   members,
   onEdit,
+  onDuplicate,
+  onRemove,
   onAudit,
 }: {
   accounts: TradingAccount[]
   results: TradingResult[]
   members: HouseholdMember[]
   onEdit: (a: TradingAccount) => void
+  onDuplicate: (a: TradingAccount) => void
+  onRemove: (a: TradingAccount) => void
   onAudit: (id: string) => void
 }) {
   return (
@@ -46,8 +50,13 @@ export function TradingAccounts({
                     : ''}
                 </p>
               </div>
-              <div className="flex items-start gap-1">
-                {account.canManage && (
+              <div className="flex flex-wrap items-start gap-1">
+                {account.canManage && !account.deletedAt && (
+                  <Button size="small" onClick={() => onDuplicate(account)}>
+                    Duplicate
+                  </Button>
+                )}
+                {account.canManage && !account.deletedAt && (
                   <Button size="small" onClick={() => onEdit(account)}>
                     Edit
                   </Button>
@@ -55,6 +64,11 @@ export function TradingAccounts({
                 <Button size="small" variant="ghost" onClick={() => onAudit(account.id)}>
                   History
                 </Button>
+                {account.canManage && (
+                  <Button size="small" variant="ghost" onClick={() => onRemove(account)}>
+                    {account.deletedAt ? 'Restore / Delete' : 'Delete'}
+                  </Button>
+                )}
               </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">

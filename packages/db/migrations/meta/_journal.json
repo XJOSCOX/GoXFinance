@@ -134,6 +134,13 @@
       "when": 1792444790878,
       "tag": "0018_left_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1792445689586,
+      "tag": "0019_nice_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

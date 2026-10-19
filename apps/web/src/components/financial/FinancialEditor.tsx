@@ -10,6 +10,7 @@ export function FinancialEditor({
   save,
   close,
   children,
+  submitLabel = 'Save record',
 }: {
   title: string
   record?: { revision: number }
@@ -17,6 +18,7 @@ export function FinancialEditor({
   save: (body: unknown) => Promise<void>
   close: () => void
   children: ReactNode
+  submitLabel?: string
 }) {
   const key = useRef(crypto.randomUUID()),
     pending = useRef(false),
@@ -81,7 +83,7 @@ export function FinancialEditor({
             Cancel
           </Button>
           <Button variant="primary" disabled={busy}>
-            {busy ? 'Saving...' : 'Save record'}
+            {busy ? 'Saving...' : submitLabel}
           </Button>
         </footer>
       </form>

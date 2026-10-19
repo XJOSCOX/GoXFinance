@@ -17,9 +17,11 @@ import { formatMoney } from '../../../lib/money'
 import { useHousehold } from '../../households/hooks/useHousehold'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useTrading } from '../hooks/useTrading'
-import { saveTrading } from '../api/tradingClient'
+import { saveTrading, removeTradingAccount } from '../api/tradingClient'
+import { AccountRemovalDialog } from '../components/AccountRemovalDialog'
 import { AccountForm } from '../components/AccountForm'
 import { ResultForm } from '../components/ResultForm'
+import { DailyResultsForm } from '../components/DailyResultsForm'
 import { PayoutForm } from '../components/PayoutForm'
 import { GroupForm } from '../components/GroupForm'
 import { CopyEventForm } from '../components/CopyEventForm'
@@ -28,7 +30,7 @@ import { TradingAccounts } from '../components/TradingAccounts'
 import { TradingPerformance } from '../components/TradingPerformance'
 import { TradingHistory } from '../components/TradingHistory'
 type Editor =
-  | { kind: 'accounts'; record?: TradingAccount }
+  | { kind: 'accounts'; record?: TradingAccount; template?: TradingAccount }
   | { kind: 'results'; record?: TradingResult }
   | { kind: 'payouts'; record?: TradingPayout }
   | { kind: 'groups'; record?: CopyGroup }
@@ -43,21 +45,23 @@ export function TradingPage() {
     [tab, setTab] = useState('accounts'),
     [editor, setEditor] = useState<Editor | null>(null),
     [audit, setAudit] = useState('')
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [removal, setRemoval] = useState<TradingAccount | null>(null)
   const household = households.find((h) => h.id === home)
   useEffect(() => {
     if (household && selected?.id !== home) select(home)
   }, [home, household, selected?.id, select])
   const accounts = data?.accounts ?? [],
-    managed = accounts.filter((a) => a.canManage),
+    managed = accounts.filter((a) => a.canManage && !a.deletedAt),
     canCreate = data?.canCreate ?? household?.role !== 'viewer'
   const allowedMembers = members.filter(
     (m) => household?.role === 'owner' || m.linkedUserId === user?.id,
   )
-  const save = async (body: unknown) => {
+  const save = async (body: unknown, batch = false) => {
     if (!editor) return
-    await saveTrading(home, editor.kind, body, editor.record?.id)
+    await saveTrading(home, batch ? 'accounts/batch' : editor.kind, body, editor.record?.id)
     await refresh()
-    notify('success', 'Trading record saved')
+    notify('success', batch ? 'Trading accounts created' : 'Trading record saved')
   }
   return (
     <WorkspaceLayout title="Trading">
@@ -163,13 +167,25 @@ export function TradingPage() {
             </div>
           )}
           {tab === 'accounts' ? (
-            <TradingAccounts
-              accounts={accounts}
-              results={data.results}
-              members={members}
-              onEdit={(record) => setEditor({ kind: 'accounts', record })}
-              onAudit={setAudit}
-            />
+            <>
+              <label className="mb-3 flex items-center gap-2 text-xs text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={showDeleted}
+                  onChange={(e) => setShowDeleted(e.target.checked)}
+                />
+                Show hidden accounts ({accounts.filter((a) => a.deletedAt).length})
+              </label>
+              <TradingAccounts
+                accounts={accounts.filter((a) => showDeleted || !a.deletedAt)}
+                results={data.results}
+                members={members}
+                onEdit={(record) => setEditor({ kind: 'accounts', record })}
+                onDuplicate={(template) => setEditor({ kind: 'accounts', template })}
+                onRemove={setRemoval}
+                onAudit={setAudit}
+              />
+            </>
           ) : tab === 'performance' ? (
             <TradingPerformance data={data} />
           ) : (
@@ -188,15 +204,27 @@ export function TradingPage() {
       {editor?.kind === 'accounts' && (
         <AccountForm
           account={editor.record}
+          template={editor.template}
           members={allowedMembers}
           save={save}
           close={() => setEditor(null)}
         />
       )}
-      {editor?.kind === 'results' && (
+      {editor?.kind === 'results' && !editor.record && (
+        <DailyResultsForm
+          accounts={managed}
+          save={async (body) => {
+            await saveTrading(home, 'results/batch', body)
+            await refresh()
+            notify('success', 'Daily results recorded')
+          }}
+          close={() => setEditor(null)}
+        />
+      )}
+      {editor?.kind === 'results' && editor.record && (
         <ResultForm
           result={editor.record}
-          accounts={managed}
+          accounts={editor.record ? accounts.filter((a) => a.canManage) : managed}
           save={save}
           close={() => setEditor(null)}
         />
@@ -204,8 +232,9 @@ export function TradingPage() {
       {editor?.kind === 'payouts' && (
         <PayoutForm
           payout={editor.record}
-          accounts={managed}
+          accounts={editor.record ? accounts.filter((a) => a.canManage) : managed}
           income={income}
+          onBatch={() => setEditor({ kind: 'batches' })}
           save={save}
           close={() => setEditor(null)}
         />
@@ -213,7 +242,7 @@ export function TradingPage() {
       {editor?.kind === 'groups' && (
         <GroupForm
           group={editor.record}
-          accounts={managed}
+          accounts={editor.record ? accounts.filter((a) => a.canManage) : managed}
           save={save}
           close={() => setEditor(null)}
         />
@@ -234,6 +263,24 @@ export function TradingPage() {
         <FinancialAudit
           path={`households/${home}/trading/audit/${audit}`}
           close={() => setAudit('')}
+        />
+      )}
+      {removal && (
+        <AccountRemovalDialog
+          account={removal}
+          close={() => setRemoval(null)}
+          save={async (permanent) => {
+            await removeTradingAccount(home, removal, permanent)
+            await refresh()
+            notify(
+              'success',
+              permanent
+                ? 'Account permanently deleted'
+                : removal.deletedAt
+                  ? 'Account restored'
+                  : 'Account hidden',
+            )
+          }}
         />
       )}
     </WorkspaceLayout>

@@ -41,6 +41,19 @@ export function registerTradingRoutes(
     const p = params.parse(r.params)
     return { record: trading.saveAccount(user(r), p.householdId, r.body, p.id) }
   })
+  app.delete(base + '/accounts/:id', (r) => {
+    const p = params.parse(r.params)
+    return { record: trading.setAccountDeleted(user(r), p.householdId, p.id!, r.body, true) }
+  })
+  app.post(base + '/accounts/:id/restore', (r) => {
+    const p = params.parse(r.params)
+    return { record: trading.setAccountDeleted(user(r), p.householdId, p.id!, r.body, false) }
+  })
+  app.post(base + '/accounts/batch', (r, reply) =>
+    reply
+      .code(201)
+      .send({ records: trading.saveAccounts(user(r), params.parse(r.params).householdId, r.body) }),
+  )
   app.post(base + '/results', (r, reply) =>
     reply
       .code(201)
@@ -50,6 +63,11 @@ export function registerTradingRoutes(
     const p = params.parse(r.params)
     return { record: trading.saveResult(user(r), p.householdId, r.body, p.id) }
   })
+  app.post(base + '/results/batch', (r, reply) =>
+    reply
+      .code(201)
+      .send({ records: trading.saveResults(user(r), params.parse(r.params).householdId, r.body) }),
+  )
   app.post(base + '/payouts', (r, reply) =>
     reply
       .code(201)

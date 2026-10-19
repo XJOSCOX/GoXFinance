@@ -10,6 +10,7 @@ import { AmountField } from '../../../components/financial/EntryFields'
 import { readMoney, text, optionalText } from '../../../lib/financial-entry'
 import { Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
+import { AccountSelectionToolbar } from './AccountSelectionToolbar'
 export function CopyEventForm({
   event,
   groups,
@@ -114,6 +115,13 @@ export function CopyEventForm({
         confirmed monetary P&amp;L. Daily summaries cannot overlap trade-level or manual results for
         the same session.
       </p>
+      {!event && group && (
+        <AccountSelectionToolbar
+          accounts={group.members.map((m) => ({ id: m.accountId }))}
+          selected={selected}
+          onChange={setSelected}
+        />
+      )}
       {group?.members.map((member) => {
         const row = event?.entries.find((e) => e.accountId === member.accountId),
           account = accounts.find((a) => a.id === member.accountId)

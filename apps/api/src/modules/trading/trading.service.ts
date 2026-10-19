@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
 import {
   tradingAccountSchema,
+  tradingResultBatchSchema,
   tradingResultSchema,
   tradingSessionDate,
   createTradingSchema,
@@ -12,6 +14,8 @@ import {
 import { FinancialError } from '../households/financial-access'
 import { checkRevision, type TradingPermissions } from './trading.permissions'
 import type { TradingRepository } from './trading.repository'
+import { createAccounts } from './account-batch.service'
+import { saveTradingBatch } from './trading-batch'
 export function tradingService(store: TradingRepository, permissions: TradingPermissions) {
   function account(user: PublicUser, home: string, id: string) {
     permissions.context(user, home)
@@ -80,6 +84,56 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
       permissions.context(user, home)
       return store.accounts(home).map((r) => accountView(user, home, r))
     },
+    setAccountDeleted(user: PublicUser, home: string, id: string, body: unknown, deleted: boolean) {
+      return store.atomic(() => {
+        const input = z
+          .object({ revision: z.number().int().positive(), permanent: z.boolean().optional() })
+          .strict()
+          .parse(body)
+        const old = account(user, home, id)
+        permissions.manage(user, home, old.responsibleMemberId, true)
+        checkRevision(old.revision, input.revision)
+        if (input.permanent) {
+          if (!deleted)
+            throw new FinancialError('Permanent deletion is not a restore operation', 400)
+          if (old.incomeSourceId || store.hasAccountHistory(home, id))
+            throw new FinancialError(
+              'This account has linked history. Hide it instead to preserve financial records.',
+              409,
+            )
+          store.removeAccount(home, id)
+          store.audit(home, user.id, 'account_permanently_deleted', id, old, null)
+          store.audit(home, user.id, 'account_submission_retired', old.idempotencyKey, null, { id })
+          return null
+        }
+        if (!!old.deletedAt === deleted) return accountView(user, home, old)
+        const now = new Date().toISOString()
+        const row = {
+          ...old,
+          deletedAt: deleted ? now : null,
+          updatedAt: now,
+          revision: old.revision + 1,
+        }
+        store.writeAccount(row, true)
+        store.audit(home, user.id, deleted ? 'account_deleted' : 'account_restored', id, old, row)
+        return accountView(user, home, row)
+      })
+    },
+    saveAccounts(user: PublicUser, home: string, body: unknown): TradingAccount[] {
+      return createAccounts(
+        store,
+        permissions,
+        user,
+        home,
+        body,
+        (entry) => this.saveAccount(user, home, entry),
+        (id) => {
+          const row = account(user, home, id)
+          permissions.manage(user, home, row.responsibleMemberId, true)
+          return accountView(user, home, row)
+        },
+      )
+    },
     saveAccount(user: PublicUser, home: string, body: unknown, id?: string) {
       return store.atomic(() => {
         const parsed = id
@@ -87,6 +141,7 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           : createTradingSchema(tradingAccountSchema).parse(body)
         const values = parsed.values,
           old = id ? account(user, home, id) : undefined
+        if (old?.deletedAt) throw new FinancialError('Restore this account before editing it', 409)
         permissions.manage(
           user,
           home,
@@ -100,6 +155,15 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           old?.responsibleMemberId === values.responsibleMemberId,
         )
         if ('idempotencyKey' in parsed) {
+          if (
+            store
+              .history(home, parsed.idempotencyKey)
+              .some((a) => a.action === 'account_submission_retired')
+          )
+            throw new FinancialError(
+              'This submission was permanently deleted. Start a new account entry.',
+              409,
+            )
           const previous = store
             .accounts(home)
             .find((a) => a.idempotencyKey === parsed.idempotencyKey)
@@ -151,6 +215,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           values = parsed.values
         const parent = account(user, home, values.accountId)
         permissions.manage(user, home, parent.responsibleMemberId, true)
+        if (parent.deletedAt && !id)
+          throw new FinancialError('Restore this account before adding results', 409)
         const old = id ? store.results(home).find((r) => r.id === id) : undefined
         if (id && !old) throw new FinancialError('Daily result not found', 404)
         if (old) {
@@ -162,7 +228,7 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           const previous = store
             .results(home)
             .find((r) => r.idempotencyKey === parsed.idempotencyKey)
-          if (replay(home, user.id, previous, values)) return previous
+          if (replay(home, user.id, previous, values)) return previous!
         }
         const timezone = old?.timezone ?? parent.timezone,
           sessionStart = old?.sessionStart ?? parent.sessionStart
@@ -213,6 +279,32 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         )
         return row
       })
+    },
+    saveResults(user: PublicUser, home: string, body: unknown): TradingResult[] {
+      const parsed = createTradingSchema(tradingResultBatchSchema).parse(body)
+      return saveTradingBatch(
+        store,
+        user,
+        home,
+        parsed,
+        'results_batch_created',
+        (values) =>
+          permissions.manage(
+            user,
+            home,
+            account(user, home, values.accountId).responsibleMemberId,
+            true,
+          ),
+        (entry) => {
+          const row = this.saveResult(user, home, entry)
+          return this.results(user, home).find((r) => r.id === row.id)!
+        },
+        (id) => {
+          const row = this.results(user, home).find((r) => r.id === id)
+          if (!row) throw new FinancialError('Daily result not found', 404)
+          return row
+        },
+      )
     },
     history(user: PublicUser, home: string, id: string) {
       permissions.context(user, home)

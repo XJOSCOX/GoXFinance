@@ -94,6 +94,11 @@ export function copyService(
             updatedAt: now,
             revision: (old?.revision ?? 0) + 1,
           }
+        if (members.some((m) => trading.account(user, home, m.accountId).deletedAt))
+          throw new FinancialError(
+            'Remove deleted accounts from the group or restore them first',
+            409,
+          )
         store.writeGroup(row, members, !!old)
         trades.audit(
           home,
@@ -166,6 +171,8 @@ export function copyService(
             timezone = previous?.timezone ?? account.timezone,
             sessionStart = previous?.sessionStart ?? account.sessionStart,
             sessionDate = tradingSessionDate(v.sessionAt, timezone, sessionStart)
+          if (account.deletedAt && !id)
+            throw new FinancialError('Restore deleted accounts before adding copied events', 409)
           if (
             trades
               .results(home)
