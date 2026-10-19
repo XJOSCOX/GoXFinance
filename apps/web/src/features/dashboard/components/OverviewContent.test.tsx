@@ -38,6 +38,18 @@ function overview(): HouseholdOverview {
     },
     actual: { spendingCents: 0, cashOutflowCents: 5000, transactionCount: 1 },
     payments: {
+      billAmounts: {
+        periodCount: 0,
+        estimatedCount: 0,
+        estimatedCents: 0,
+        confirmedCount: 0,
+        unconfirmedCount: 0,
+        confirmedCents: 0,
+        paidCents: 0,
+        remainingCents: 0,
+        creditCents: 0,
+        overpaidCents: 0,
+      },
       billProgress: {
         billedCents: 0,
         paidCents: 0,
@@ -141,7 +153,7 @@ it('shows actual partial balances, estimates, and unknown bill amounts distinctl
       amountCents: null,
       amountIsEstimate: true,
       paidCents: 0,
-      remainingCents: 30000,
+      remainingCents: null,
     },
     {
       ...period,
@@ -155,9 +167,9 @@ it('shows actual partial balances, estimates, and unknown bill amounts distinctl
   ]
   show(data)
   expect(screen.getByText('$142.18')).toBeTruthy()
-  expect(screen.getByText('$200.00 paid')).toBeTruthy()
-  expect(screen.getByText('Estimated remaining')).toBeTruthy()
-  expect(screen.getByText('Unknown')).toBeTruthy()
+  expect(screen.getByText('$200.00')).toBeTruthy()
+  expect(screen.getAllByText('Budget estimate').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
   expect(screen.getAllByText('Actual bill not confirmed')).toHaveLength(2)
 })
 
@@ -193,4 +205,28 @@ it('shows real bill progress and leaves unconfirmed amounts incomplete', () => {
   ).toBe('58')
   expect(screen.getByText(/1 amounts unconfirmed; progress is incomplete/)).toBeTruthy()
   expect(screen.getByText(/\$142.18 remaining on known bills/)).toBeTruthy()
+})
+
+it('shows bill estimates, confirmed totals, completed payments and unknown remainders separately', () => {
+  const data = overview()
+  data.payments.billAmounts = {
+    periodCount: 2,
+    estimatedCount: 2,
+    estimatedCents: 60000,
+    confirmedCount: 1,
+    unconfirmedCount: 1,
+    confirmedCents: 34218,
+    paidCents: 25000,
+    remainingCents: 14218,
+    creditCents: 0,
+    overpaidCents: 0,
+  }
+  show(data)
+  const amounts = screen.getByRole('region', { name: 'Bill amounts for the reporting month' })
+  expect(amounts.textContent).toContain('$600.00')
+  expect(amounts.textContent).toContain('$342.18')
+  expect(amounts.textContent).toContain('$250.00')
+  expect(amounts.textContent).toContain('$142.18')
+  expect(amounts.textContent).toContain('1 bill total unconfirmed')
+  expect(amounts.textContent).not.toContain('$99.00')
 })

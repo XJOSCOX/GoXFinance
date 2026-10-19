@@ -1,5 +1,6 @@
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
+import { OverviewBillAmounts } from './OverviewBillAmounts'
 import { formatMoney } from '../../../lib/money'
 
 export function OverviewProgress({ data }: { data: HouseholdOverview }) {
@@ -12,6 +13,7 @@ export function OverviewProgress({ data }: { data: HouseholdOverview }) {
           {progress.settledCount} of {progress.totalCount} bill periods settled
         </span>
       </div>
+      <OverviewBillAmounts amounts={data.payments.billAmounts} />
       <div className="mt-3 flex items-baseline justify-between gap-3">
         {progress.percent === null ? (
           <p className="text-sm text-slate-400">Confirm bill amounts to track progress.</p>

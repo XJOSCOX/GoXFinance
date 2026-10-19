@@ -18,7 +18,10 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
       {data.upcoming.length ? (
         <div className="mt-3 max-h-56 divide-y divide-white/[.07] overflow-y-auto">
           {data.upcoming.map((period) => (
-            <div key={period.id} className="flex items-start justify-between gap-4 py-2.5 text-sm">
+            <div
+              key={period.id}
+              className="flex flex-col justify-between gap-3 py-3 text-sm sm:flex-row sm:items-start"
+            >
               <div className="min-w-0">
                 <Link
                   to={`/households/${home}/bills`}
@@ -33,23 +36,29 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
                   {period.overdue ? ' · Overdue' : ''}
                 </p>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="font-medium tabular-nums">{formatMoney(period.remainingCents)}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {period.amountIsEstimate ? 'Estimated remaining' : 'Remaining'}
-                </p>
-                {period.paidCents > 0 && (
-                  <p className="mt-1 text-xs text-slate-400">
-                    {formatMoney(period.paidCents)} paid
-                  </p>
-                )}
+              <div className="min-w-0 text-right">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
+                  {(
+                    [
+                      ['Budget estimate', period.estimatedAmountCents],
+                      ['Confirmed bill', period.amountCents],
+                      ['Actually paid', period.paidCents],
+                      ['Still owed', period.amountCents === null ? null : period.remainingCents],
+                    ] as const
+                  ).map(([label, amount]) => (
+                    <div key={label}>
+                      <dt className="text-slate-500">{label}</dt>
+                      <dd className="mt-1 font-medium tabular-nums">{formatMoney(amount)}</dd>
+                    </div>
+                  ))}
+                </dl>
                 {period.creditCents > 0 && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-slate-400">
                     {formatMoney(period.creditCents)} credit
                   </p>
                 )}
                 {period.amountCents === null && (
-                  <p className="mt-1 text-xs text-amber-200/70">Actual bill not confirmed</p>
+                  <p className="mt-2 text-xs text-amber-200/70">Actual bill not confirmed</p>
                 )}
               </div>
             </div>

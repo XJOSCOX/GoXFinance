@@ -692,6 +692,19 @@ describe('actual bill confirmation during payment recording', () => {
       paymentStatus: 'partially_paid',
     })
     expect(result.json().bill.estimatedAmountCents).toBe(30000)
+    const overview = await testRequest(
+      f.app,
+      'GET',
+      `/api/households/${f.home}/overview?month=${period.dueDate.slice(0, 7)}`,
+      f.owner.cookie,
+    )
+    expect(overview.json().payments.billAmounts).toMatchObject({
+      estimatedCents: 30000,
+      confirmedCents: 34218,
+      paidCents: 20000,
+      remainingCents: 14218,
+    })
+
     expect(result.json().bill.periods[1].amountCents).toBeNull()
     expect((await f.request('POST', suffix, input)).json().bill.payments).toHaveLength(1)
     expect(

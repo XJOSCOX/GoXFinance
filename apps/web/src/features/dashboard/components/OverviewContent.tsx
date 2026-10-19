@@ -47,14 +47,14 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
             compact
             label="Bills remaining"
             amount={formatMoney(
-              data.payments.remainingBills.amountCents === 0 &&
-                data.payments.remainingBills.unknownCount > 0
+              data.payments.billAmounts.confirmedCount === 0 &&
+                data.payments.billAmounts.unconfirmedCount > 0
                 ? null
-                : data.payments.remainingBills.amountCents,
+                : data.payments.billAmounts.remainingCents,
             )}
             detail={
-              data.payments.remainingBills.unknownCount
-                ? `${data.payments.remainingBills.unknownCount} unknown amounts excluded`
+              data.payments.billAmounts.unconfirmedCount
+                ? `${data.payments.billAmounts.unconfirmedCount} unknown amounts excluded`
                 : 'Known bills due this month'
             }
           />

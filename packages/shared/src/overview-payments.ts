@@ -60,7 +60,23 @@ export function overviewPayments(
     .filter((bill) => bill.status !== 'cancelled')
     .flatMap((bill) => bill.periods)
     .filter((period) => period.dueDate.startsWith(month) && period.paymentStatus !== 'cancelled')
+  const confirmed = periods.filter((period) => typeof period.amountCents === 'number')
+  const estimated = periods.filter((period) => typeof period.estimatedAmountCents === 'number')
   return {
+    billAmounts: {
+      periodCount: periods.length,
+      estimatedCount: estimated.length,
+      estimatedCents: sumCents(estimated.map((period) => period.estimatedAmountCents!)),
+      confirmedCount: confirmed.length,
+      unconfirmedCount: periods.length - confirmed.length,
+      confirmedCents: sumCents(confirmed.map((period) => period.amountCents!)),
+      // Period views already reflect completed payments, including linked debt corrections.
+      // Include payments on unconfirmed bills; they do not establish the amount owed.
+      paidCents: sumCents(periods.map((period) => period.paidCents ?? 0)),
+      remainingCents: sumCents(confirmed.map((period) => period.remainingCents ?? 0)),
+      creditCents: sumCents(periods.map((period) => period.creditCents ?? 0)),
+      overpaidCents: sumCents(periods.map((period) => period.overpaidCents ?? 0)),
+    },
     billProgress: billProgress(periods),
     futureCompletedCount: monthly.filter(
       (payment) => payment.status === 'completed' && payment.date > today,

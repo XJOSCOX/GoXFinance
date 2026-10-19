@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import type { BillPayment, BillView } from './bills'
 import type { DebtPayment } from './debt-payments'
+import { billPeriodView } from './bill-calculations'
 import { overviewPayments } from './overview-payments'
 
 const debtPayment = (
@@ -111,4 +112,86 @@ it('flags future completed records for review without counting them as cleared p
   )
   expect(result.completed.totalCents).toBe(0)
   expect(result.futureCompletedCount).toBe(1)
+})
+
+it('separates period estimates, confirmed bills, actual payments, credits and unknown amounts', () => {
+  const period = {
+    id: 'utility',
+    dueDate: '2026-10-10',
+    amountCents: 34218,
+    estimatedAmountCents: 30000,
+    creditCents: 500,
+  } as BillView['periods'][number]
+  const actual = billPeriodView(
+    period,
+    [
+      { ...billPayment('partial', 'completed'), periodId: period.id, amountCents: 20000 },
+      { ...billPayment('pending', 'pending'), periodId: period.id, amountCents: 5000 },
+      { ...billPayment('scheduled', 'scheduled'), periodId: period.id, amountCents: 5000 },
+    ],
+    false,
+    '2026-10-19',
+  )
+  const unknown = billPeriodView(
+    { ...period, id: 'unknown', amountCents: null, creditCents: 0 },
+    [{ ...billPayment('unknown-paid', 'completed'), periodId: 'unknown', amountCents: 1000 }],
+    false,
+    '2026-10-19',
+  )
+  const overpaid = billPeriodView(
+    { ...period, id: 'overpaid', amountCents: 1000, creditCents: 0 },
+    [{ ...billPayment('overpaid', 'completed'), periodId: 'overpaid', amountCents: 1500 }],
+    false,
+    '2026-10-19',
+  )
+  const periods = [actual, unknown, overpaid]
+  const result = overviewPayments(
+    [
+      bill([], [...periods, { ...actual, id: 'next-month', dueDate: '2026-11-01' }]),
+      { ...bill([], [actual]), status: 'cancelled' },
+    ],
+    [],
+    [],
+    '2026-10',
+    '2026-10-19',
+  )
+  expect(result.billAmounts).toEqual({
+    periodCount: 3,
+    estimatedCount: 3,
+    estimatedCents: 90000,
+    confirmedCount: 2,
+    unconfirmedCount: 1,
+    confirmedCents: 35218,
+    paidCents: 22500,
+    remainingCents: 13718,
+    creditCents: 500,
+    overpaidCents: 500,
+  })
+  expect(result.billProgress.paidCents).toBe(21000)
+})
+it('keeps linked bill payments once in both the bill view and payment activity', () => {
+  const authoritative = debtPayment('linked', 'completed', 2000)
+  const alias = { ...billPayment('alias', 'completed', 'linked'), periodId: 'period' }
+  const period = billPeriodView(
+    {
+      id: 'period',
+      dueDate: '2026-10-10',
+      amountCents: 5000,
+      estimatedAmountCents: 4000,
+      creditCents: 0,
+    } as BillView['periods'][number],
+    [alias],
+    false,
+    '2026-10-19',
+  )
+  const result = overviewPayments(
+    [bill([alias], [period])],
+    [],
+    [authoritative],
+    '2026-10',
+    '2026-10-19',
+  )
+  expect(result.billAmounts.paidCents).toBe(2000)
+  expect(result.billAmounts.remainingCents).toBe(3000)
+  expect(result.completed.totalCents).toBe(2000)
 })
