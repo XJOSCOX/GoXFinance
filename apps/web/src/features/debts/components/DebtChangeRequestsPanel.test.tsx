@@ -7,39 +7,75 @@ import { DebtChangeRequestsPanel } from './DebtChangeRequestsPanel'
 import * as client from '../api/changeClient'
 
 vi.mock('../api/changeClient', () => ({ listDebtChanges: vi.fn(), reviewDebtChange: vi.fn() }))
-const request: DebtChangeRequest = { id: 'request', householdId: 'home', debtId: 'debt', paymentId: 'payment',
-  proposedByUserId: 'admin', proposedByName: 'Test Admin', creditorName: 'Test creditor', action: 'edit_payment',
-  reason: 'Correct receipt', proposedChanges: { amountCents: 12000 }, originalValues: { amountCents: 10000 },
-  status: 'pending', reviewNote: null, reviewedByUserId: null, reviewedAt: null,
-  createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
-beforeEach(() => { vi.clearAllMocks(); vi.mocked(client.listDebtChanges).mockResolvedValue({ requests: [request] }) })
+const request: DebtChangeRequest = {
+  id: 'request',
+  householdId: 'home',
+  debtId: 'debt',
+  paymentId: 'payment',
+  proposedByUserId: 'admin',
+  proposedByName: 'Test Admin',
+  creditorName: 'Test creditor',
+  action: 'edit_payment',
+  reason: 'Correct receipt',
+  proposedChanges: { amountCents: 12000 },
+  originalValues: { amountCents: 10000 },
+  status: 'pending',
+  reviewNote: null,
+  reviewedByUserId: null,
+  reviewedAt: null,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(client.listDebtChanges).mockResolvedValue({ requests: [request] })
+})
 afterEach(cleanup)
 
 it('shows original/proposed amounts and only saves after an explicit Owner decision', async () => {
   vi.mocked(client.reviewDebtChange).mockResolvedValue({})
   const changed = vi.fn(async () => {})
-  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner onChanged={changed}/></NotificationProvider>)
+  render(
+    <NotificationProvider>
+      <DebtChangeRequestsPanel householdId="home" owner onChanged={changed} />
+    </NotificationProvider>,
+  )
   fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
   const dialog = within(screen.getByRole('dialog'))
-  expect(dialog.getByText('$100.00')).toBeTruthy(); expect(dialog.getByText('$120.00')).toBeTruthy()
+  expect(dialog.getByText('$100.00')).toBeTruthy()
+  expect(dialog.getByText('$120.00')).toBeTruthy()
   expect(client.reviewDebtChange).not.toHaveBeenCalled()
   fireEvent.click(dialog.getByRole('button', { name: 'Approve change' }))
-  await waitFor(() => expect(client.reviewDebtChange).toHaveBeenCalledWith('home', 'request', 'approve', null))
+  await waitFor(() =>
+    expect(client.reviewDebtChange).toHaveBeenCalledWith('home', 'request', 'approve', null),
+  )
   expect(changed).toHaveBeenCalledOnce()
 })
 
 it('retains the review and its note when an approval fails', async () => {
-  vi.mocked(client.reviewDebtChange).mockRejectedValue(new Error('Payment changed; request is stale'))
-  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}}/></NotificationProvider>)
+  vi.mocked(client.reviewDebtChange).mockRejectedValue(
+    new Error('Payment changed; request is stale'),
+  )
+  render(
+    <NotificationProvider>
+      <DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}} />
+    </NotificationProvider>,
+  )
   fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Checked statement' } })
   fireEvent.click(screen.getByRole('button', { name: 'Approve change' }))
-  await waitFor(() => expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toContain('stale'))
+  await waitFor(() =>
+    expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toContain('stale'),
+  )
   expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('Checked statement')
 })
 
 it('offers withdrawal without exposing Owner approve/reject actions to the requester', async () => {
-  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner={false} onChanged={async () => {}}/></NotificationProvider>)
+  render(
+    <NotificationProvider>
+      <DebtChangeRequestsPanel householdId="home" owner={false} onChanged={async () => {}} />
+    </NotificationProvider>,
+  )
   fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
   expect(screen.queryByRole('button', { name: 'Approve change' })).toBeNull()
   expect(screen.queryByRole('button', { name: 'Confirm rejection' })).toBeNull()
@@ -47,19 +83,94 @@ it('offers withdrawal without exposing Owner approve/reject actions to the reque
 })
 
 it('shows account assignment changes as names and responsibilities, and archive state explicitly', async () => {
-  vi.mocked(client.listDebtChanges).mockResolvedValue({ requests: [{ ...request, action: 'edit_account', paymentId: null,
-    proposedChanges: { memberAssignments: [{ memberId: 'member', responsibility: 'joint' }] },
-    originalValues: { memberAssignments: [{ memberId: 'member', responsibility: 'primary' }] } }] })
-  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}}
-    members={[{ id: 'member', fullName: 'Test Owner', householdId: 'home', linkedUserId: 'owner', relationship: 'self',
-      status: 'active', notes: null, accessRole: 'owner', plannedAccessRole: 'viewer', createdAt: '', updatedAt: '' }]}/></NotificationProvider>)
+  vi.mocked(client.listDebtChanges).mockResolvedValue({
+    requests: [
+      {
+        ...request,
+        action: 'edit_account',
+        paymentId: null,
+        proposedChanges: { memberAssignments: [{ memberId: 'member', responsibility: 'joint' }] },
+        originalValues: { memberAssignments: [{ memberId: 'member', responsibility: 'primary' }] },
+      },
+    ],
+  })
+  render(
+    <NotificationProvider>
+      <DebtChangeRequestsPanel
+        householdId="home"
+        owner
+        onChanged={async () => {}}
+        members={[
+          {
+            id: 'member',
+            fullName: 'Test Owner',
+            householdId: 'home',
+            linkedUserId: 'owner',
+            relationship: 'self',
+            status: 'active',
+            notes: null,
+            accessRole: 'owner',
+            plannedAccessRole: 'viewer',
+            createdAt: '',
+            updatedAt: '',
+          },
+        ]}
+      />
+    </NotificationProvider>,
+  )
   fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
   expect(screen.getByText('Test Owner (primary)')).toBeTruthy()
   expect(screen.getByText('Test Owner (joint)')).toBeTruthy()
   cleanup()
-  vi.mocked(client.listDebtChanges).mockResolvedValue({ requests: [{ ...request, action: 'archive_account', paymentId: null,
-    proposedChanges: {}, originalValues: { isArchived: false } }] })
-  render(<NotificationProvider><DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}}/></NotificationProvider>)
+  vi.mocked(client.listDebtChanges).mockResolvedValue({
+    requests: [
+      {
+        ...request,
+        action: 'archive_account',
+        paymentId: null,
+        proposedChanges: {},
+        originalValues: { isArchived: false },
+      },
+    ],
+  })
+  render(
+    <NotificationProvider>
+      <DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}} />
+    </NotificationProvider>,
+  )
   fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
   expect(screen.getByText('Change archive state from active to archived.')).toBeTruthy()
+})
+it('shows the payment amount, date, method and known allocation before approving confirmation', async () => {
+  vi.mocked(client.listDebtChanges).mockResolvedValue({
+    requests: [
+      {
+        ...request,
+        action: 'confirm_payment',
+        proposedChanges: {},
+        originalValues: {
+          paymentStatus: 'scheduled',
+          amountCents: 12345,
+          paymentDate: '2026-10-10',
+          paymentMethod: 'cash',
+          principalAmountCents: 10000,
+          interestAmountCents: 2345,
+          feesAmountCents: null,
+        },
+      },
+    ],
+  })
+  render(
+    <NotificationProvider>
+      <DebtChangeRequestsPanel householdId="home" owner onChanged={async () => {}} />
+    </NotificationProvider>,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
+  const dialog = within(screen.getByRole('dialog'))
+  expect(dialog.getByText('$123.45')).toBeTruthy()
+  expect(dialog.getByText('2026-10-10')).toBeTruthy()
+  expect(dialog.getByText('Cash')).toBeTruthy()
+  expect(dialog.getByText('$100.00')).toBeTruthy()
+  expect(dialog.getByText('Approve only after this payment has actually cleared.')).toBeTruthy()
+  expect(client.reviewDebtChange).not.toHaveBeenCalled()
 })

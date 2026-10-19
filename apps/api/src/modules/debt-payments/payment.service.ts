@@ -1,5 +1,6 @@
 import {
   calculateDebtPaymentOverview,
+  localBillDate,
   createDebtPaymentSchema,
   verifyDebtBalanceSchema,
   type DebtBalanceHistory,
@@ -53,9 +54,12 @@ export function paymentService(
   ) {
     const current = get(user, householdId, debtId, paymentId) as DebtPayment
     try {
-      return preparePaymentEdit(current, input)
+      const next = preparePaymentEdit(current, input)
+      if (next.paymentStatus === 'completed' && next.paymentDate > localBillDate())
+        throw new PaymentError('A completed payment cannot have a future payment date', 400)
+      return next
     } catch (error) {
-      if (error instanceof ZodError) throw error
+      if (error instanceof ZodError || error instanceof PaymentError) throw error
       throw new PaymentError(error instanceof Error ? error.message : 'Invalid edit', 409)
     }
   }
@@ -81,6 +85,8 @@ export function paymentService(
     create(user: PublicUser, householdId: string, debtId: string, input: unknown) {
       debts.authorizePayment(user, householdId, debtId, 'create')
       const values = createDebtPaymentSchema.parse(input)
+      if (values.paymentStatus === 'completed' && values.paymentDate > localBillDate())
+        throw new PaymentError('A completed payment cannot have a future payment date', 400)
       if (values.paymentStatus === 'completed')
         debts.authorizePayment(user, householdId, debtId, 'modify')
       const existing = repository.findByKey(householdId, debtId, values.idempotencyKey)
@@ -139,6 +145,8 @@ export function paymentService(
       authorizeLinkedPayment?.(user, householdId, debtId, paymentId)
       debts.authorizePayment(user, householdId, debtId, 'modify')
       const current = get(user, householdId, debtId, paymentId)
+      if (current.paymentDate > localBillDate())
+        throw new PaymentError('A future payment cannot be confirmed as cleared', 400)
       if (current.paymentStatus !== 'scheduled' && current.paymentStatus !== 'pending') {
         throw new PaymentError('Only scheduled or pending payments can be confirmed', 409)
       }
@@ -162,6 +170,8 @@ export function paymentService(
       return repository.transaction(() => {
         const debt = debts.authorizePayment(user, householdId, debtId, 'reconcile')
         const values = verifyDebtBalanceSchema.parse(input)
+        if (values.effectiveDate > localBillDate())
+          throw new PaymentError('A verified balance cannot have a future effective date', 400)
         if (values.idempotencyKey) {
           const existing = repository.findBalanceByKey(householdId, debtId, values.idempotencyKey)
           if (existing) {

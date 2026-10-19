@@ -97,6 +97,12 @@ export function OverviewContent({ data, home }: { data: HouseholdOverview; home:
         <Card className="p-5">
           <h2 className="font-semibold">Needs attention</h2>
           <div className="mt-4 space-y-3 text-sm text-slate-400">
+            {data.payments.futureCompletedCount > 0 && (
+              <p>
+                {data.payments.futureCompletedCount} completed payments have future dates. They are
+                excluded from actual totals; review their dates or status.
+              </p>
+            )}
             {summary.unknownBalanceCount > 0 && (
               <p>{summary.unknownBalanceCount} debt balances are unknown.</p>
             )}

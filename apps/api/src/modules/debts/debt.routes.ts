@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { AuthService } from '../auth/auth.service'
 import type { DebtService } from './debt.service'
 
@@ -8,7 +7,7 @@ const householdParams = z.object({ householdId: z.uuid() })
 const debtParams = householdParams.extend({ debtId: z.uuid() })
 
 export function registerDebtRoutes(app: FastifyInstance, auth: AuthService, service: DebtService) {
-  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[SESSION_COOKIE])
+  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[auth.sessionCookieName])
   app.get('/api/households/:householdId/debts', request =>
     service.list(user(request), householdParams.parse(request.params).householdId))
   app.post('/api/households/:householdId/debts', (request, reply) =>

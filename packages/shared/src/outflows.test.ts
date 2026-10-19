@@ -94,3 +94,37 @@ it('rejects invalid or duplicated category splits', () => {
 })
 it('rejects unsafe aggregate totals', () =>
   expect(() => sumCents([Number.MAX_SAFE_INTEGER, 1])).toThrow())
+it('does not count future transactions as actual cash or spending', () => {
+  const result = cashOutflows(
+    [
+      {
+        id: 'future-expense',
+        transactionDate: '2099-01-01',
+        amountCents: 100,
+        voided: false,
+        paymentMethod: 'cash',
+      } as Expense,
+    ],
+    [
+      {
+        id: 'future-bill',
+        paymentDate: '2099-01-01',
+        amountCents: 100,
+        status: 'completed',
+        debtPaymentId: null,
+        method: 'cash',
+      } as BillPayment,
+    ],
+    [
+      {
+        id: 'future-debt',
+        paymentDate: '2099-01-01',
+        amountCents: 100,
+        paymentStatus: 'completed',
+        paymentMethod: 'cash',
+      } as DebtPayment,
+    ],
+    '2026-10-19',
+  )
+  expect(result).toEqual([])
+})

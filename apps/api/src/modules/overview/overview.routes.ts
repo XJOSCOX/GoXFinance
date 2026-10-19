@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { localBillDate } from '@goxfinance/shared'
 import type { FastifyInstance } from 'fastify'
 import type { AuthService } from '../auth/auth.service'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { overviewService } from './overview.service'
 
 export function registerOverviewRoutes(
@@ -11,7 +10,7 @@ export function registerOverviewRoutes(
   service: ReturnType<typeof overviewService>,
 ) {
   app.get('/api/households/:householdId/overview', (request) => {
-    const user = auth.currentUser(request.cookies[SESSION_COOKIE]),
+    const user = auth.currentUser(request.cookies[auth.sessionCookieName]),
       { householdId } = z.object({ householdId: z.uuid() }).parse(request.params)
     const { month = localBillDate().slice(0, 7) } = z
       .object({

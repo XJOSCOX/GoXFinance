@@ -1,4 +1,12 @@
-import { useId, type ReactNode, type SelectHTMLAttributes } from 'react'
+import { moneyText, parseMoney } from '../../lib/payment-money'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useId,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from 'react'
 import { Input } from './index'
 
 export function FormField({ label, children }: { label: string; children: ReactNode }) {
@@ -29,19 +37,41 @@ export function MoneyField({
   required?: boolean
 }) {
   const id = useId()
+  const [text, setText] = useState(() => moneyText(value))
+  const lastNotified = useRef(value)
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (value !== lastNotified.current) {
+      lastNotified.current = value
+      setText(moneyText(value))
+      input.current?.setCustomValidity('')
+    }
+  }, [value])
   return (
     <FormField label={label}>
       <Input
         id={id}
-        type="number"
-        min={required ? '.01' : '0'}
-        step=".01"
+        ref={input}
+        inputMode="decimal"
+        pattern="[0-9]+(\.[0-9]{1,2})?"
         required={required}
         placeholder="Unknown"
-        value={value === null ? '' : value / 100}
-        onChange={(event) =>
-          onChange(event.target.value === '' ? null : Math.round(Number(event.target.value) * 100))
-        }
+        value={text}
+        onChange={(event) => {
+          const next = event.target.value
+          setText(next)
+          try {
+            const parsed = parseMoney(next)
+            if (required && parsed === 0) throw new Error('Enter an amount greater than zero')
+            event.target.setCustomValidity('')
+            lastNotified.current = parsed
+            onChange(parsed)
+          } catch (failure) {
+            event.target.setCustomValidity(
+              failure instanceof Error ? failure.message : 'Enter a valid amount',
+            )
+          }
+        }}
       />
     </FormField>
   )

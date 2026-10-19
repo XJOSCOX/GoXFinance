@@ -1,3 +1,4 @@
+import { roundCentsRatio } from './money-calculations'
 import type { IncomeSource, IncomeTransaction } from './income'
 import { sumCents } from './outflows'
 
@@ -85,8 +86,8 @@ export function incomeSummary(transactions: IncomeTransaction[], month: string, 
     ).length,
     weekly: periods(weekKey),
     monthly: periods((date) => date.slice(0, 7)),
-    averageWeeklyCents: weeks ? Math.round(net / weeks) : null,
-    averageMonthlyCents: months ? Math.round(net / months) : null,
+    averageWeeklyCents: weeks ? roundCentsRatio(net, 1, weeks) : null,
+    averageMonthlyCents: months ? roundCentsRatio(net, 1, months) : null,
     weekCount: weeks,
     monthCount: months,
     byMember: [...new Set(monthly.map((v) => v.responsibleMemberId))].map((id) => ({

@@ -48,7 +48,12 @@ import { registerOverviewRoutes } from './modules/overview/overview.routes'
 import { overviewRepository } from './modules/overview/overview.repository'
 import { overviewService } from './modules/overview/overview.service'
 
-type AppOptions = { databasePath: string; frontendOrigin: string; secureCookie: boolean }
+type AppOptions = {
+  databasePath: string
+  frontendOrigin: string
+  secureCookie: boolean
+  sessionCookieName?: string
+}
 
 export async function buildApp(options: AppOptions) {
   const app = Fastify({ logger: false })
@@ -79,7 +84,7 @@ export async function buildApp(options: AppOptions) {
   const memberStore = memberRepository(db)
   const invitationStore = invitationRepository(db)
   const invitations = invitationService(householdStore, memberStore, invitationStore)
-  const auth = authService(authRepository(db), invitations)
+  const auth = authService(authRepository(db), invitations, options.sessionCookieName)
   registerAuthRoutes(app, auth, options.secureCookie)
   registerHouseholdRoutes(
     app,

@@ -1,6 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { AuthService } from '../auth/auth.service'
 import type { InvitationService } from './invitation.service'
 
@@ -8,7 +7,7 @@ const memberParams = z.object({ householdId: z.uuid(), memberId: z.uuid() })
 const invitationParams = memberParams.extend({ invitationId: z.uuid() })
 
 export function invitationController(auth: AuthService, invitations: InvitationService) {
-  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[SESSION_COOKIE])
+  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[auth.sessionCookieName])
   return {
     generate: (request: FastifyRequest, reply: FastifyReply) => {
       const { householdId, memberId } = memberParams.parse(request.params)

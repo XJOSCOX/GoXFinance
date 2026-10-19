@@ -57,7 +57,7 @@ export function ExpensesPage() {
         (!member || item.responsibleMemberId === member),
     )
     .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
-  const active = filtered.filter((item) => !item.voided)
+  const active = filtered.filter((item) => !item.voided && item.transactionDate <= localBillDate())
   return (
     <WorkspaceLayout title="Expenses">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">

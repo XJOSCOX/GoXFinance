@@ -101,3 +101,14 @@ it('totals actual period remainders, preserving unknowns, credits, overpayments 
   )
   expect(result.remainingBills).toEqual({ amountCents: 14218, unknownCount: 1 })
 })
+it('flags future completed records for review without counting them as cleared payments', () => {
+  const result = overviewPayments(
+    [bill([{ ...billPayment('future', 'completed'), paymentDate: '2026-10-30' }])],
+    [],
+    [],
+    '2026-10',
+    '2026-10-19',
+  )
+  expect(result.completed.totalCents).toBe(0)
+  expect(result.futureCompletedCount).toBe(1)
+})

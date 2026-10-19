@@ -1,3 +1,4 @@
+import { localBillDate } from './financial-dates'
 import type { BillPayment } from './bills'
 import type { DebtPayment } from './debt-payments'
 import type { Expense } from './expenses'
@@ -15,9 +16,10 @@ export function cashOutflows(
   expenses: Expense[],
   bills: BillPayment[],
   debts: DebtPayment[],
+  today = localBillDate(),
 ): Outflow[] {
   const result: Outflow[] = []
-  for (const expense of expenses.filter((item) => !item.voided))
+  for (const expense of expenses.filter((item) => !item.voided && item.transactionDate <= today))
     result.push({
       id: expense.id,
       date: expense.transactionDate,
@@ -26,7 +28,9 @@ export function cashOutflows(
       cashOutflowCents: expense.paymentMethod === 'credit_card' ? 0 : expense.amountCents,
     })
   const seen = new Set<string>()
-  for (const debt of debts.filter((item) => item.paymentStatus === 'completed')) {
+  for (const debt of debts.filter(
+    (item) => item.paymentStatus === 'completed' && item.paymentDate <= today,
+  )) {
     if (seen.has(debt.id)) continue
     seen.add(debt.id)
     result.push({
@@ -37,7 +41,9 @@ export function cashOutflows(
       cashOutflowCents: debt.paymentMethod === 'credit_card' ? 0 : debt.amountCents,
     })
   }
-  for (const bill of bills.filter((item) => item.status === 'completed')) {
+  for (const bill of bills.filter(
+    (item) => item.status === 'completed' && item.paymentDate <= today,
+  )) {
     if (bill.debtPaymentId) continue // The authoritative debt payment above owns this outflow.
     result.push({
       id: bill.id,

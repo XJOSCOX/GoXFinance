@@ -1,6 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { AuthService } from '../auth/auth.service'
 import type { PaymentService } from './payment.service'
 
@@ -8,7 +7,7 @@ const debtParams = z.object({ householdId: z.uuid(), debtId: z.uuid() })
 const paymentParams = debtParams.extend({ paymentId: z.uuid() })
 
 export function paymentController(auth: AuthService, payments: PaymentService) {
-  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[SESSION_COOKIE])
+  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[auth.sessionCookieName])
   return {
     list: (request: FastifyRequest) => {
       const { householdId, debtId } = debtParams.parse(request.params)

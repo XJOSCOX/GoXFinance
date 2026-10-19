@@ -1,3 +1,4 @@
+import { formatMoney as money } from '../../../lib/money'
 import { CreditCard, MoreHorizontal } from 'lucide-react'
 import {
   debtTypeLabels,
@@ -6,11 +7,6 @@ import {
   type HouseholdMember,
 } from '@goxfinance/shared'
 import { Button } from '../../../components/ui'
-
-const money = (cents: number | null) =>
-  cents == null
-    ? 'Unknown'
-    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
 
 export function DebtAccountCard({
   debt,

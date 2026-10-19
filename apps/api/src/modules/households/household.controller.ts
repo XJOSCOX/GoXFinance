@@ -1,6 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { AuthService } from '../auth/auth.service'
 import type { HouseholdService } from './household.service'
 import type { MemberService } from './member.service'
@@ -9,7 +8,7 @@ const householdParams = z.object({ householdId: z.uuid() })
 const memberParams = householdParams.extend({ memberId: z.uuid() })
 
 export function householdController(auth: AuthService, households: HouseholdService, members: MemberService) {
-  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[SESSION_COOKIE])
+  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[auth.sessionCookieName])
   const householdId = (request: FastifyRequest) => householdParams.parse(request.params).householdId
   const ids = (request: FastifyRequest) => memberParams.parse(request.params)
 

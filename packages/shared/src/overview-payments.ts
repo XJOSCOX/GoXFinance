@@ -1,3 +1,4 @@
+import { localBillDate } from './financial-dates'
 import type { BillView } from './bills'
 import type { Debt } from './debts'
 import type { DebtPayment } from './debt-payments'
@@ -18,6 +19,7 @@ export function overviewPayments(
   debts: Debt[],
   payments: DebtPayment[],
   month: string,
+  today = localBillDate(),
 ) {
   const records = new Map<string, OverviewPayment>()
   for (const payment of payments) {
@@ -45,7 +47,9 @@ export function overviewPayments(
   const monthly = [...records.values()].filter((payment) => payment.date.startsWith(month))
   const group = (status: OverviewPayment['status']) => {
     const items = monthly
-      .filter((payment) => payment.status === status)
+      .filter(
+        (payment) => payment.status === status && (status !== 'completed' || payment.date <= today),
+      )
       .sort((a, b) =>
         status === 'completed' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date),
       )
@@ -56,6 +60,9 @@ export function overviewPayments(
     .flatMap((bill) => bill.periods)
     .filter((period) => period.dueDate.startsWith(month) && period.paymentStatus !== 'cancelled')
   return {
+    futureCompletedCount: monthly.filter(
+      (payment) => payment.status === 'completed' && payment.date > today,
+    ).length,
     completed: group('completed'),
     pending: group('pending'),
     scheduled: group('scheduled'),

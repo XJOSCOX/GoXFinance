@@ -60,7 +60,10 @@ export function overviewService(
           .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
           .slice(0, 8),
         expenses: expenseList.expenses.filter(
-          (item) => !item.voided && item.transactionDate.startsWith(month),
+          (item) =>
+            !item.voided &&
+            item.transactionDate <= localBillDate() &&
+            item.transactionDate.startsWith(month),
         ),
         categories: expenseList.categories,
       }

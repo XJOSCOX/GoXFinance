@@ -57,6 +57,8 @@ export function billService(
       if (!payment) throw new BillError('Payment not found', 404)
       if (payment.status === 'cancelled')
         throw new BillError('Cancelled payments cannot be changed', 409)
+      if (action.action === 'confirm_payment' && payment.paymentDate > localBillDate())
+        throw new BillError('A future payment cannot be confirmed as cleared', 400)
       if (action.action === 'confirm_payment' && !['pending', 'scheduled'].includes(payment.status))
         throw new BillError('Payment has already been confirmed', 409)
       if (action.action === 'edit_payment') {
@@ -76,6 +78,8 @@ export function billService(
           ...action.changes,
           idempotencyKey: payment.id,
         })
+        if (next.status === 'completed' && next.paymentDate > localBillDate())
+          throw new BillError('A completed payment cannot have a future payment date', 400)
         if (
           next.status === 'cancelled' ||
           (next.status === 'completed' && payment.status !== 'completed') ||
@@ -265,6 +269,8 @@ export function billService(
             throw new BillError('Submission key already used', 409)
           return view(user, bill)
         }
+        if (values.status === 'completed' && values.paymentDate > localBillDate())
+          throw new BillError('A completed payment cannot have a future payment date', 400)
         const paymentId = randomUUID(),
           now = new Date().toISOString()
         if (values.status === 'completed') permissions.manage(user, bill)

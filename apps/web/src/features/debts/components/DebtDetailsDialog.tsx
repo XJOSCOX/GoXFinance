@@ -1,3 +1,4 @@
+import { formatMoney as money } from '../../../lib/money'
 import { useEffect, useRef, useState } from 'react'
 import {
   accountStatusLabels,
@@ -29,10 +30,6 @@ import { submitDebtChange } from '../api/changeClient'
 import { DebtChangeRequestsPanel } from './DebtChangeRequestsPanel'
 import { RequestActionDialog } from './RequestActionDialog'
 
-const money = (cents: number | null) =>
-  cents == null
-    ? 'Unknown'
-    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
 type Tab = 'overview' | 'payments' | 'balances' | 'requests'
 
 export function DebtDetailsDialog({

@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { AuthService } from '../auth/auth.service'
 import type { IncomeService } from './income.service'
 const params = z.object({ householdId: z.uuid(), id: z.uuid().optional() })
@@ -9,7 +8,7 @@ export function registerIncomeRoutes(
   auth: AuthService,
   service: IncomeService,
 ) {
-  const user = (r: FastifyRequest) => auth.currentUser(r.cookies[SESSION_COOKIE]),
+  const user = (r: FastifyRequest) => auth.currentUser(r.cookies[auth.sessionCookieName]),
     base = '/api/households/:householdId/income'
   app.get(base, (r) => service.list(user(r), params.parse(r.params).householdId))
   app.post(base + '/sources', (r, reply) =>

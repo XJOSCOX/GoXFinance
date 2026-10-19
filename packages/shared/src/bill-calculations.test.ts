@@ -27,7 +27,13 @@ const period: BillPeriod = {
   updatedAt: '',
 }
 const payment = (amountCents: number, status: BillPayment['status'] = 'completed') =>
-  ({ id: randomUUID(), periodId: period.id, amountCents, status }) as BillPayment
+  ({
+    id: randomUUID(),
+    periodId: period.id,
+    paymentDate: '2026-09-10',
+    amountCents,
+    status,
+  }) as BillPayment
 describe('billing schedules and actual amounts', () => {
   it.each([
     ['weekly', 5200],
@@ -155,4 +161,25 @@ describe('billing schedules and actual amounts', () => {
       householdMonthlyObligationsCents: 20000,
     })
   })
+})
+it('does not reduce bills with future completed payments', () => {
+  const result = billPeriodView(
+    { ...period, amountCents: 10000 },
+    [{ ...payment(10000), paymentDate: '2099-01-01' }],
+    false,
+    '2026-10-19',
+  )
+  expect(result.paidCents).toBe(0)
+  expect(result.remainingCents).toBe(10000)
+})
+it('calculates completed-period averages without losing cents at large valid values', () => {
+  const periods = [Number.MAX_SAFE_INTEGER, 0, 0].map((amount) =>
+    billPeriodView(
+      { ...period, amountCents: amount },
+      amount ? [payment(amount)] : [],
+      false,
+      '2026-10-01',
+    ),
+  )
+  expect(billAverage(periods, 3).averageCents).toBe(3002399751580330)
 })

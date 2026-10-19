@@ -1,5 +1,6 @@
 import {
   createExpenseSchema,
+  localBillDate,
   editExpenseSchema,
   type Expense,
   type ExpenseInput,
@@ -44,6 +45,11 @@ export function expenseService(
   ) {
     const ctx = permissions.context(user, home),
       person = ctx.people.find((item) => item.id === values.responsibleMemberId)
+    if (values.transactionDate > localBillDate())
+      throw new FinancialError(
+        'An actual expense cannot have a future transaction date. Use a bill for a planned obligation.',
+        400,
+      )
     if (ctx.role === 'viewer') throw new FinancialError('Permission denied', 403)
     if (!person || (person.status !== 'active' && person.id !== existingMemberId))
       throw new FinancialError('Select an active household member', 400)

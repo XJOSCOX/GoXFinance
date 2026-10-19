@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { SESSION_COOKIE } from '../auth/auth.controller'
 import type { AuthService } from '../auth/auth.service'
 import type { BillService } from './bill.service'
 import type { billRequestsService } from './bill-requests.service'
@@ -17,7 +16,7 @@ export function registerBillRoutes(
   service: BillService,
   requests: ReturnType<typeof billRequestsService>,
 ) {
-  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[SESSION_COOKIE])
+  const user = (request: FastifyRequest) => auth.currentUser(request.cookies[auth.sessionCookieName])
   const base = '/api/households/:householdId/bills'
   app.get(base, (request) => ({
     bills: service.list(user(request), params.parse(request.params).householdId),

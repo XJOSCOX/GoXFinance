@@ -65,3 +65,7 @@ npm run build
 See [architecture](docs/architecture.md) for module boundaries, migrations, and the PostgreSQL path. The preserved visual reference is [design-preview.png](docs/design-preview.png).
 
 Debt and bill payment amount presets, status handling, and payoff safeguards are described in [payment options](docs/payment-options.md).
+
+## Application audit
+
+See the [2026-10-19 audit report](docs/application-audit-2026-10-19.md) for verified scenarios, data-preservation checks, fixes, and limitations. Future completed-payment dates are rejected; planned payments remain separate. QA uses an independent session cookie to avoid interfering with the normal localhost app.

@@ -2,24 +2,22 @@ import { debtObligationGroups } from './debt-calculations'
 import type { Debt } from './debts'
 import type { Bill, BillPayment, BillPeriod, BillPeriodView, BillView } from './bills'
 
-export const localBillDate = () => {
-  const now = new Date()
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
-}
+export { localBillDate } from './financial-dates'
+import { roundCentsRatio } from './money-calculations'
 const safe = (value: number) => {
   if (!Number.isSafeInteger(value)) throw new Error('Amount exceeds the supported range')
   return value
 }
 export function billMonthlyCents(amount: number | null, frequency: Bill['frequency']) {
   if (amount === null || frequency === null) return null
-  return safe(
-    Math.round(
-      amount *
-        { weekly: 52 / 12, biweekly: 26 / 12, monthly: 1, quarterly: 1 / 3, annually: 1 / 12 }[
-          frequency
-        ],
-    ),
-  )
+  const [numerator, denominator] = {
+    weekly: [52, 12],
+    biweekly: [26, 12],
+    monthly: [1, 1],
+    quarterly: [1, 3],
+    annually: [1, 12],
+  }[frequency]
+  return roundCentsRatio(amount, numerator, denominator)
 }
 
 // Always calculate from the original anchor: Jan 31 -> Feb 28 -> Mar 31.
@@ -63,7 +61,12 @@ export function billPeriodView(
   today: string,
 ): BillPeriodView {
   const paidCents = payments
-    .filter((payment) => payment.periodId === period.id && payment.status === 'completed')
+    .filter(
+      (payment) =>
+        payment.periodId === period.id &&
+        payment.status === 'completed' &&
+        payment.paymentDate <= today,
+    )
     .reduce((sum, payment) => safe(sum + payment.amountCents), 0)
   const amount = period.amountCents // Estimates are never actual amounts owed.
   const settled = safe(paidCents + period.creditCents)
@@ -104,10 +107,10 @@ export function billAverage(periods: BillPeriodView[], count: 3 | 6 | 12) {
   return {
     sampleCount: sample.length,
     averageCents: sample.length
-      ? safe(
-          Math.round(
-            sample.reduce((sum, period) => safe(sum + period.amountCents!), 0) / sample.length,
-          ),
+      ? roundCentsRatio(
+          sample.reduce((sum, period) => safe(sum + period.amountCents!), 0),
+          1,
+          sample.length,
         )
       : null,
   }
