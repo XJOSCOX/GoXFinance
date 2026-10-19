@@ -18,6 +18,7 @@ function PaymentList({
   empty: string
   detail: string
 }) {
+  if (group.items.length === 0) return <p className="py-2 text-sm text-slate-500">{empty}</p>
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -25,12 +26,12 @@ function PaymentList({
         <span className="text-sm font-semibold tabular-nums">{formatMoney(group.totalCents)}</span>
       </div>
       <p className="mt-2 text-xs text-slate-400">{detail}</p>
-      <div className="mt-3 max-h-80 divide-y divide-white/10 overflow-y-auto">
+      <div className="mt-3 max-h-44 divide-y divide-white/10 overflow-y-auto">
         {group.items.length ? (
           group.items.map((payment) => (
             <div
               key={`${payment.source}:${payment.id}`}
-              className="flex items-center justify-between gap-3 py-3 text-sm"
+              className="flex items-center justify-between gap-3 py-2 text-sm"
             >
               <div className="min-w-0">
                 <Link
@@ -47,7 +48,7 @@ function PaymentList({
             </div>
           ))
         ) : (
-          <p className="py-6 text-sm text-slate-400">{empty}</p>
+          <p className="py-2 text-sm text-slate-400">{empty}</p>
         )}
       </div>
     </div>
@@ -69,8 +70,8 @@ export function OverviewPayments({
     scheduled: 'Planned payments; excluded from cash paid.',
   }
   return (
-    <Card className="min-w-0 p-5 sm:p-6">
-      <section aria-label="Payments in reporting month" className="space-y-4">
+    <Card className="min-w-0 p-4">
+      <section aria-label="Payments in reporting month" className="space-y-3">
         <div>
           <h2 className="font-semibold">Payment activity</h2>
           <p className="mt-1 text-xs text-slate-500">

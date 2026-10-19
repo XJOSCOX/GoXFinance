@@ -31,6 +31,16 @@ function overview(): HouseholdOverview {
     },
     actual: { spendingCents: 0, cashOutflowCents: 5000, transactionCount: 1 },
     payments: {
+      billProgress: {
+        billedCents: 0,
+        paidCents: 0,
+        creditCents: 0,
+        remainingCents: 0,
+        totalCount: 0,
+        settledCount: 0,
+        unknownCount: 0,
+        percent: null,
+      },
       futureCompletedCount: 0,
       completed: { items: [payment], totalCents: 5000 },
       pending: {
@@ -79,7 +89,7 @@ it('keeps confirmed cash flow separate from pending and scheduled activity', () 
   expect(cash.textContent).toContain('$100.00')
   expect(cash.textContent).toContain('$50.00')
   expect(cash.textContent).not.toContain('$99.00')
-  expect(cash.textContent).toContain('not your bank balance or available cash')
+  expect(screen.getByText(/not your bank balance or available cash/)).toBeTruthy()
   expect(screen.getByText('Cleared example')).toBeTruthy()
   expect(screen.queryByText('Pending example')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: /^Pending/ }))
@@ -156,4 +166,24 @@ it('has useful empty states and household-scoped actions without invented record
   expect(within(actions).getByRole('link', { name: 'Record income' }).getAttribute('href')).toBe(
     '/households/example-home/income',
   )
+})
+
+it('shows real bill progress and leaves unconfirmed amounts incomplete', () => {
+  const data = overview()
+  data.payments.billProgress = {
+    billedCents: 34218,
+    paidCents: 20000,
+    creditCents: 0,
+    remainingCents: 14218,
+    percent: 58,
+    totalCount: 2,
+    settledCount: 0,
+    unknownCount: 1,
+  }
+  show(data)
+  expect(
+    screen.getByRole('progressbar', { name: 'Actual bills covered' }).getAttribute('aria-valuenow'),
+  ).toBe('58')
+  expect(screen.getByText(/1 amounts unconfirmed; progress is incomplete/)).toBeTruthy()
+  expect(screen.getByText(/\$142.18 remaining on known bills/)).toBeTruthy()
 })

@@ -9,22 +9,22 @@ export function OverviewDebtSnapshot({ data, home }: { data: HouseholdOverview; 
     summary.confirmedBalanceCents + summary.estimatedBalanceCents + summary.unverifiedBalanceCents
   const groups = groupDebts(data.debts.debts.filter((debt) => !debt.isArchived))
   return (
-    <Card className="min-w-0 p-5 sm:p-6">
+    <Card className="min-w-0 p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold">Debt snapshot</h2>
         <Link to={`/households/${home}/debts`} className="text-xs text-[#b1beb0] hover:underline">
           View debts
         </Link>
       </div>
-      <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+      <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">
         {formatMoney(total)}
       </p>
       <p className="mt-1 text-xs text-slate-500">
         Recorded balances · {summary.countedObligationCount} obligations
       </p>
-      <div className="mt-5 divide-y divide-white/[.07]">
+      <div className="mt-3 divide-y divide-white/[.07]">
         {groups.map((group) => (
-          <div key={group.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+          <div key={group.id} className="flex items-center justify-between gap-3 py-2 text-sm">
             <span className="text-slate-300">
               {group.label}
               <span className="ml-2 text-xs text-slate-500">{group.debts.length}</span>

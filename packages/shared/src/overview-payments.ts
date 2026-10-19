@@ -3,6 +3,7 @@ import type { BillView } from './bills'
 import type { Debt } from './debts'
 import type { DebtPayment } from './debt-payments'
 import { sumCents } from './outflows'
+import { billProgress } from './bill-progress'
 
 export type OverviewPayment = {
   id: string
@@ -60,6 +61,7 @@ export function overviewPayments(
     .flatMap((bill) => bill.periods)
     .filter((period) => period.dueDate.startsWith(month) && period.paymentStatus !== 'cancelled')
   return {
+    billProgress: billProgress(periods),
     futureCompletedCount: monthly.filter(
       (payment) => payment.status === 'completed' && payment.date > today,
     ).length,

@@ -39,7 +39,7 @@ export function OverviewAttention({ data, home }: { data: HouseholdOverview; hom
       : []),
   ]
   return (
-    <Card className="min-w-0 p-5 sm:p-6">
+    <Card className="min-w-0 p-4">
       <h2 className="flex items-center gap-2 font-semibold">
         <CircleAlert size={16} className="text-slate-400" />
         Needs attention
@@ -48,12 +48,12 @@ export function OverviewAttention({ data, home }: { data: HouseholdOverview; hom
         )}
       </h2>
       {alerts.length ? (
-        <ul className="mt-4 divide-y divide-white/[.07]">
+        <ul className="mt-3 divide-y divide-white/[.07]">
           {alerts.map((alert) => (
             <li key={alert.text}>
               <Link
                 to={`/households/${home}/${alert.path}`}
-                className="flex items-start justify-between gap-3 py-3 text-sm text-slate-300 hover:text-white"
+                className="flex items-start justify-between gap-3 py-2 text-sm text-slate-300 hover:text-white"
               >
                 <span>{alert.text}</span>
                 <span className="shrink-0 text-xs text-[#b1beb0]">Review</span>
@@ -62,13 +62,13 @@ export function OverviewAttention({ data, home }: { data: HouseholdOverview; hom
           ))}
         </ul>
       ) : (
-        <p className="mt-5 flex items-center gap-2 text-sm text-slate-400">
+        <p className="mt-3 flex items-center gap-2 text-sm text-slate-400">
           <CircleCheck size={16} className="text-[#a9b8a9]" />
           No data warnings to review.
         </p>
       )}
       {data.bills.estimatedRecurringCount > 0 && (
-        <p className="mt-4 border-t border-white/[.07] pt-4 text-xs leading-5 text-slate-500">
+        <p className="mt-3 border-t border-white/[.07] pt-4 text-xs leading-5 text-slate-500">
           {data.bills.estimatedRecurringCount} variable bills use budget estimates. Confirm each
           actual bill before recording a payment.
         </p>

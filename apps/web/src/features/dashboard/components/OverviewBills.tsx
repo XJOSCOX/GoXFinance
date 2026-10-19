@@ -5,7 +5,7 @@ import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function OverviewBills({ data, home }: { data: HouseholdOverview; home: string }) {
   return (
-    <Card className="min-w-0 p-5 sm:p-6">
+    <Card className="min-w-0 p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold">Bills to take care of</h2>
         <Link to={`/households/${home}/bills`} className="text-xs text-[#b1beb0] hover:underline">
@@ -16,9 +16,9 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
         Next outstanding bills, including overdue periods. Across all months.
       </p>
       {data.upcoming.length ? (
-        <div className="mt-3 max-h-96 divide-y divide-white/[.07] overflow-y-auto">
+        <div className="mt-3 max-h-56 divide-y divide-white/[.07] overflow-y-auto">
           {data.upcoming.map((period) => (
-            <div key={period.id} className="flex items-start justify-between gap-4 py-4 text-sm">
+            <div key={period.id} className="flex items-start justify-between gap-4 py-2.5 text-sm">
               <div className="min-w-0">
                 <Link
                   to={`/households/${home}/bills`}
@@ -56,7 +56,7 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center py-12 text-center">
+        <div className="flex flex-col items-center py-2.5 text-center">
           <CalendarDays size={24} className="text-[#a9b8a9]" />
           <p className="mt-3 text-sm font-medium">No outstanding bills</p>
           <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">

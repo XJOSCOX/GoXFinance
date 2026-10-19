@@ -36,10 +36,10 @@ export function DashboardPage() {
   }, [selected, month, reload])
   return (
     <WorkspaceLayout title="Overview">
-      <div className="section-heading mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Overview</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
+          <p className="mt-1 text-sm text-slate-400">
             {selected?.name} · Welcome, {user?.fullName}.
           </p>
         </div>
