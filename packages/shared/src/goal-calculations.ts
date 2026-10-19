@@ -190,6 +190,7 @@ export function goalProgress(
   }
   return {
     ...window,
+    notStarted: window.startDate > today,
     actualCents: actual,
     incomplete,
     source,

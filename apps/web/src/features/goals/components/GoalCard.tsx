@@ -24,8 +24,9 @@ export function GoalCard({
       p.actualCents === null || goal.targetCents === 0
         ? 0
         : Math.min(100, Math.max(0, (p.actualCents / goal.targetCents) * 100))
-  const tone: SemanticTone =
-    p.incomplete || p.actualCents === null
+  const tone: SemanticTone = p.notStarted
+    ? 'info'
+    : p.incomplete || p.actualCents === null
       ? 'warning'
       : p.met
         ? 'positive'
@@ -65,7 +66,7 @@ export function GoalCard({
       </p>
       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xl font-semibold tabular-nums">
-          {formatMoney(p.actualCents)}{' '}
+          {p.notStarted ? 'Not started' : formatMoney(p.actualCents)}{' '}
           <span className="text-xs font-normal text-slate-500">
             / {formatMoney(goal.targetCents)}
           </span>
@@ -74,15 +75,17 @@ export function GoalCard({
           status="goal progress"
           tone={tone}
           label={
-            p.incomplete || p.actualCents === null
-              ? 'Incomplete source data'
-              : p.met
-                ? atMost
-                  ? 'Within limit so far'
-                  : 'Target met'
-                : atMost
-                  ? 'Limit exceeded'
-                  : 'Target not met'
+            p.notStarted
+              ? 'Starts ' + p.startDate
+              : p.incomplete || p.actualCents === null
+                ? 'Incomplete source data'
+                : p.met
+                  ? atMost
+                    ? 'Within limit so far'
+                    : 'Target met'
+                  : atMost
+                    ? 'Limit exceeded'
+                    : 'Target not met'
           }
         />
       </div>
@@ -92,7 +95,11 @@ export function GoalCard({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={p.actualCents === null ? undefined : percent}
-        aria-valuetext={formatMoney(p.actualCents) + ' of ' + formatMoney(goal.targetCents)}
+        aria-valuetext={
+          p.notStarted
+            ? 'Not started; starts ' + p.startDate
+            : formatMoney(p.actualCents) + ' of ' + formatMoney(goal.targetCents)
+        }
         className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[.07]"
       >
         <div className={`h-full ${toneStyles[tone].bar}`} style={{ width: percent + '%' }} />
@@ -100,9 +107,11 @@ export function GoalCard({
       <p
         className={`mt-2 text-xs ${atMost && p.overageCents != null && p.overageCents > 0 ? toneStyles.negative.text : toneStyles.neutral.text}`}
       >
-        {atMost
-          ? 'Overage: ' + formatMoney(p.overageCents)
-          : 'Shortfall: ' + formatMoney(p.shortfallCents)}
+        {p.notStarted
+          ? 'Progress will begin on ' + p.startDate + '.'
+          : atMost
+            ? 'Overage: ' + formatMoney(p.overageCents)
+            : 'Shortfall: ' + formatMoney(p.shortfallCents)}
       </p>
       <p className="mt-2 text-xs leading-5 text-slate-500">{p.source}</p>
       {goal.canManage && ['savings', 'manual'].includes(goal.goalType) && (
@@ -121,8 +130,14 @@ export function GoalCard({
                 {h.startDate} - {h.endDate}
               </span>
               <span>
-                {formatMoney(h.actualCents)} /{' '}
-                {h.incomplete ? 'Incomplete' : h.met ? 'Met / within limit' : 'Not met'}
+                {h.notStarted ? (
+                  'Not started'
+                ) : (
+                  <>
+                    {formatMoney(h.actualCents)} /{' '}
+                    {h.incomplete ? 'Incomplete' : h.met ? 'Met / within limit' : 'Not met'}
+                  </>
+                )}
               </span>
             </p>
           ))}

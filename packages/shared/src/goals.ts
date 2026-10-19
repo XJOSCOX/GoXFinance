@@ -58,6 +58,7 @@ export type GoalContribution = z.infer<typeof goalContributionSchema> & {
   canManage: boolean
 }
 export type GoalProgress = {
+  notStarted: boolean
   startDate: string
   endDate: string
   actualCents: number | null

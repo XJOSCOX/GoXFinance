@@ -35,6 +35,26 @@ const empty = (): GoalSources => ({
   balances: [],
   contributions: [],
 })
+it('distinguishes a future goal from missing data and starts tracking on its first day', () => {
+  const goal = {
+    ...base,
+    period: 'weekly' as const,
+    startDate: '2026-10-25',
+    endDate: '2026-10-31',
+  }
+  expect(goalProgress(goal, goal, empty(), '2026-10-19')).toMatchObject({
+    notStarted: true,
+    actualCents: null,
+    met: null,
+    shortfallCents: null,
+  })
+  expect(goalProgress(goal, goal, empty(), '2026-10-25')).toMatchObject({
+    notStarted: false,
+    actualCents: 0,
+    met: false,
+    shortfallCents: 15000,
+  })
+})
 it('calculates anchored daily, weekly, monthly, quarterly and yearly periods without month-end drift', () => {
   expect(goalEndDate('2026-10-01', 'daily')).toBe('2026-10-01')
   expect(goalEndDate('2026-10-01', 'weekly')).toBe('2026-10-07')
