@@ -18,6 +18,7 @@ import { errorMessage } from '../../../lib/api'
 import { useHousehold } from '../../households/hooks/useHousehold'
 import { applyBillAction, createBill, requestBillAction } from '../api/billClient'
 import { BillForm } from '../components/BillForm'
+import { BillList } from '../components/BillList'
 import { BillDetails } from '../components/BillDetails'
 import { useBills } from '../hooks/useBills'
 import { BillApprovals } from '../components/BillApprovals'
@@ -199,112 +200,31 @@ export function BillsPage() {
       {loading ? (
         <p role="status">Loading bills…</p>
       ) : (
-        <Card className="divide-y divide-white/10">
-          {!visible.length && (
-            <div className="p-10 text-center text-sm text-slate-400">
-              No bills to show. Add a bill to start planning.
-            </div>
-          )}
-          {visible.map((bill) => {
-            const next = bill.periods.find(
-              (period) =>
-                !['paid', 'credited', 'overpaid', 'cancelled'].includes(period.paymentStatus),
+        <BillList
+          bills={visible}
+          categories={categories}
+          onView={(bill) => {
+            setStartPayment(false)
+            setDetailId(bill.id)
+          }}
+          onPay={(bill) => {
+            setStartPayment(true)
+            setDetailId(bill.id)
+          }}
+          onEdit={setForm}
+          onArchive={(bill) => {
+            if (
+              confirm(
+                bill.kind === 'recurring'
+                  ? 'Deactivate this recurring bill?'
+                  : 'Cancel this one-time bill?',
+              )
             )
-            return (
-              <article
-                key={bill.id}
-                className="flex flex-wrap items-center justify-between gap-4 p-5"
-              >
-                <div className="min-w-0">
-                  <h2 className="font-semibold">{bill.name}</h2>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {categories.find((category) => category.id === bill.categoryId)?.name ??
-                      bill.category}{' '}
-                    · {bill.amountType} · {bill.frequency ?? 'One-time'} · {bill.status}
-                    {bill.linkedDebtId ? ' · Linked debt' : ''}
-                  </p>
-                  <p className="mt-2 text-sm">
-                    {next
-                      ? `Due ${next.dueDate} · ${next.paymentStatus.replaceAll('_', ' ')}${next.overdue ? ' · Overdue' : ''}`
-                      : 'No outstanding periods'}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {next && (
-                    <dl className="grid grid-cols-2 gap-x-5 gap-y-1 text-right text-xs">
-                      <div>
-                        <dt className="text-slate-400">Budget estimate</dt>
-                        <dd className="mt-1 font-semibold tabular-nums">
-                          {formatMoney(next.budgetEstimateCents ?? next.estimatedAmountCents)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Confirmed bill</dt>
-                        <dd className="mt-1 font-semibold tabular-nums">
-                          {formatMoney(next.amountCents)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Completed payments</dt>
-                        <dd className="mt-1 tabular-nums">{formatMoney(next.paidCents)}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Remaining owed</dt>
-                        <dd className="mt-1 tabular-nums">{formatMoney(next.remainingCents)}</dd>
-                      </div>
-                    </dl>
-                  )}
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setStartPayment(false)
-                      setDetailId(bill.id)
-                    }}
-                  >
-                    View
-                  </Button>
-                  {bill.canManage && bill.status !== 'cancelled' && (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setStartPayment(true)
-                        setDetailId(bill.id)
-                      }}
-                    >
-                      Record payment
-                    </Button>
-                  )}
-                  {bill.canManage && (
-                    <>
-                      <Button size="small" onClick={() => setForm(bill)}>
-                        Edit
-                      </Button>
-                      {bill.status === 'active' && (
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            if (
-                              confirm(
-                                bill.kind === 'recurring'
-                                  ? 'Deactivate this recurring bill?'
-                                  : 'Cancel this one-time bill?',
-                              )
-                            )
-                              void act(bill, { action: 'archive_bill' }).catch((failure) =>
-                                notify('error', errorMessage(failure)),
-                              )
-                          }}
-                        >
-                          {bill.kind === 'recurring' ? 'Deactivate' : 'Cancel'}
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </article>
-            )
-          })}
-        </Card>
+              void act(bill, { action: 'archive_bill' }).catch((failure) =>
+                notify('error', errorMessage(failure)),
+              )
+          }}
+        />
       )}
       {form !== undefined && (
         <BillForm
