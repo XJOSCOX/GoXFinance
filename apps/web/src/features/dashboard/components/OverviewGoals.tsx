@@ -1,3 +1,5 @@
+import { useId, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../../components/ui'
 import { toneStyles } from '../../../components/ui/semantic-tones'
@@ -7,6 +9,8 @@ import { useGoals } from '../../goals/hooks/useGoals'
 
 export function OverviewGoals({ home }: { home: string }) {
   const { data, error } = useGoals(home)
+  const [expanded, setExpanded] = useState(false)
+  const detailsId = useId()
   const goals = data?.goals.filter((goal) => goal.status === 'active') ?? []
   return (
     <Card className="min-w-0 p-4">
@@ -34,15 +38,35 @@ export function OverviewGoals({ home }: { home: string }) {
         ) : (
           <div className="mt-3">
             <WeeklyGoalSummary goals={goals} />
-            <p className="mb-3 text-[11px] text-slate-500">
-              Daily average = weekly net P&amp;L � 5 planned trading days, including losses and
-              fees. Unrecorded days do not reduce the divisor.
-            </p>
-            <ul className="max-h-80 divide-y divide-white/[.07] overflow-y-auto pr-1">
-              {goals.map((goal) => (
-                <OverviewGoalRow key={goal.id} goal={goal} />
-              ))}
-            </ul>
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={detailsId}
+              onClick={() => setExpanded((value) => !value)}
+              className="flex w-full items-center justify-between gap-2 rounded-md py-2 text-left text-xs text-slate-400 hover:text-white focus-visible:outline focus-visible:outline-2"
+            >
+              <span>Individual goals ({goals.length})</span>
+              <ChevronDown
+                size={15}
+                aria-hidden="true"
+                className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+              />
+            </button>
+            <div id={detailsId} hidden={!expanded}>
+              {expanded && (
+                <>
+                  <p className="mb-3 text-[11px] text-slate-500">
+                    Daily average = weekly net P&amp;L � 5 planned trading days, including losses
+                    and fees. Unrecorded days do not reduce the divisor.
+                  </p>
+                  <ul className="max-h-80 divide-y divide-white/[.07] overflow-y-auto pr-1">
+                    {goals.map((goal) => (
+                      <OverviewGoalRow key={goal.id} goal={goal} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           </div>
         )}
       </section>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Goal } from '@goxfinance/shared'
 import { useGoals } from '../../goals/hooks/useGoals'
@@ -27,7 +27,7 @@ const goal = {
     met: null,
   },
 } as Goal
-function show(goals: Goal[] = [goal]) {
+function show(goals: Goal[] = [goal], expand = true) {
   vi.mocked(useGoals).mockReturnValue({
     data: { goals, contributions: [], canCreate: true },
     error: '',
@@ -38,6 +38,8 @@ function show(goals: Goal[] = [goal]) {
       <OverviewGoals home="test-household" />
     </MemoryRouter>,
   )
+  if (expand && goals.some((g) => g.status === 'active'))
+    fireEvent.click(screen.getByRole('button', { name: /Individual goals/ }))
 }
 it('shows saved future targets without treating them as missing progress or income', () => {
   show()
@@ -151,4 +153,37 @@ it('shows planned combined targets before the start without inventing averages',
   expect(combined.getByRole('progressbar').getAttribute('aria-valuenow')).toBeNull()
   expect(combined.getAllByText('Not started')).toHaveLength(3)
   expect(combined.queryByText('$0.00')).toBeNull()
+})
+
+it('keeps combined progress visible and toggles individual averages and remaining amounts', () => {
+  show(
+    [0, 1, 2].map((index) => ({
+      ...goal,
+      id: `goal-${index}`,
+      name: `Account ${index + 1}`,
+      tradingAccountId: `account-${index}`,
+      goalType: 'trading_profit' as const,
+      progress: {
+        ...goal.progress,
+        notStarted: false,
+        incomplete: false,
+        actualCents: 50000,
+        met: false,
+      },
+      targetCents: 125000,
+    })),
+    false,
+  )
+  const toggle = screen.getByRole('button', { name: 'Individual goals (3)' })
+  expect(toggle.getAttribute('aria-expanded')).toBe('false')
+  expect(screen.getByRole('region', { name: 'Combined weekly trading goals' })).toBeTruthy()
+  expect(screen.queryByText('Account 1')).toBeNull()
+  fireEvent.click(toggle)
+  expect(toggle.getAttribute('aria-expanded')).toBe('true')
+  expect(screen.getByText('Account 1')).toBeTruthy()
+  expect(screen.getAllByText('$100.00')).toHaveLength(3)
+  expect(screen.getAllByText('$750.00')).toHaveLength(3)
+  fireEvent.click(toggle)
+  expect(screen.queryByText('Account 1')).toBeNull()
+  expect(screen.getByRole('region', { name: 'Combined weekly trading goals' })).toBeTruthy()
 })
