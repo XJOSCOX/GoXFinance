@@ -8,6 +8,7 @@ import rateLimit from '@fastify/rate-limit'
 import Fastify from 'fastify'
 import { ZodError } from 'zod'
 import { openDatabase } from './db/connection'
+import type { DatabaseSecurity } from './db/encryption/sqlite-engine'
 import { registerCsrfGuard } from './middleware/csrf'
 import { authRepository } from './modules/auth/auth.repository'
 import { registerAuthRoutes } from './modules/auth/auth.routes'
@@ -53,11 +54,12 @@ type AppOptions = {
   frontendOrigin: string
   secureCookie: boolean
   sessionCookieName?: string
+  databaseSecurity?: DatabaseSecurity
 }
 
 export async function buildApp(options: AppOptions) {
   const app = Fastify({ logger: false })
-  const { db, sqlite } = openDatabase(options.databasePath)
+  const { db, sqlite } = openDatabase(options.databasePath, options.databaseSecurity)
   app.addHook('onClose', async () => {
     sqlite.close()
   })

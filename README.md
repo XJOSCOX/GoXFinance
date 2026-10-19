@@ -68,6 +68,8 @@ Debt and bill payment amount presets, status handling, and payoff safeguards are
 
 ## Application audit
 
+Opt-in database encryption, isolated Windows compatibility results, manual unlock, and the separately authorized migration/cutover procedure are documented in [database encryption](docs/database-encryption.md). Existing databases and backups remain unchanged until conversion is explicitly authorized.
+
 The [final twenty-item manual checklist](docs/manual-qa-2026-10-19.md) records 19 verified items and one live linked-bill setup check, with fictional arithmetic examples and explicit browser/automated evidence.
 
 See the [2026-10-19 audit report](docs/application-audit-2026-10-19.md) for verified scenarios, data-preservation checks, fixes, and limitations. Future completed-payment dates are rejected; planned payments remain separate. QA uses an independent session cookie to avoid interfering with the normal localhost app.

@@ -22,4 +22,11 @@ coverage/
 *.sqlite-wal
 *.db.bak
 *.sqlite.bak
+*.sqlite-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+*.db-journal
+*.key
+*.key.json
 tsconfig.*.tsbuildinfo
