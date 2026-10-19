@@ -8,7 +8,7 @@ export class DebtError extends Error {
 }
 
 export function debtService(households: HouseholdRepository, members: MemberRepository, repository: DebtRepository) {
-  function context(user: PublicUser, householdId: string) {
+  function context(user: Pick<PublicUser, 'id'>, householdId: string) {
     const role = households.findRole(householdId, user.id)?.role
     if (!role) throw new DebtError('Household not found', 404)
     const household = households.findHousehold(householdId)!
@@ -38,13 +38,13 @@ export function debtService(households: HouseholdRepository, members: MemberRepo
       if (ctx.role !== 'owner') canEdit(user, original, false)
     }
   }
-  function get(user: PublicUser, householdId: string, debtId: string) {
+  function get(user: Pick<PublicUser, 'id'>, householdId: string, debtId: string) {
     context(user, householdId)
     const debt = repository.find(householdId, debtId)
     if (!debt) throw new DebtError('Debt not found', 404)
     return debt
   }
-  function canEdit(user: PublicUser, debt: Debt, archive: boolean) {
+  function canEdit(user: Pick<PublicUser, 'id'>, debt: Debt, archive: boolean) {
     const ctx = context(user, debt.householdId)
     if (ctx.role === 'owner') return
     if (ctx.role === 'viewer') throw new DebtError('Permission denied', 403)
@@ -64,6 +64,22 @@ export function debtService(households: HouseholdRepository, members: MemberRepo
       return { debts: items, summary: calculateDebtSummary(items) }
     },
     get,
+    requireOwner(user: Pick<PublicUser, 'id'>, householdId: string, debtId: string) {
+      const debt = get(user, householdId, debtId)
+      if (context(user, householdId).role !== 'owner') throw new DebtError('Only the Owner can review changes', 403)
+      return debt
+    },
+    authorizeChangeRequest(user: Pick<PublicUser, 'id'>, householdId: string, debtId: string) {
+      const debt = get(user, householdId, debtId)
+      const ctx = context(user, householdId)
+      if (ctx.role !== 'admin' && ctx.role !== 'editor') throw new DebtError('Only Admins and Editors can request these changes', 403)
+      if (debt.isArchived) throw new DebtError('Restore this debt before requesting changes', 409)
+      canEdit(user, debt, false)
+      if (!debt.memberAssignments.some(item => ctx.allMembers.find(member => member.id === item.memberId)?.linkedUserId === ctx.household.createdByUserId)) {
+        throw new DebtError('This debt does not require Owner approval', 409)
+      }
+      return debt
+    },
     authorizePayment(user: PublicUser, householdId: string, debtId: string, action: 'view' | 'create' | 'modify' | 'reconcile') {
       const debt = get(user, householdId, debtId)
       if (action === 'view') return debt

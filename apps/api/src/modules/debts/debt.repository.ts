@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import type { Debt, DebtValues } from '@goxfinance/shared'
 import type { DatabaseConnection } from '../../db/connection'
-import { debtMembers, debts } from '../../../../../packages/db/src/schema'
+import { debtBalanceHistory, debtMembers, debts } from '../../../../../packages/db/src/schema'
 
 export function debtRepository(db: DatabaseConnection) {
   function hydrate(row: typeof debts.$inferSelect): Debt {
@@ -25,6 +25,9 @@ export function debtRepository(db: DatabaseConnection) {
       const { memberAssignments, ...fields } = values
       db.transaction(tx => {
         tx.insert(debts).values({ id, householdId, createdByUserId, ...fields, createdAt: now, updatedAt: now }).run()
+        if (fields.currentBalanceCents !== null) tx.insert(debtBalanceHistory).values({ id: randomUUID(), householdId, debtId: id,
+          balanceCents: fields.currentBalanceCents, effectiveDate: fields.balanceVerifiedAt?.slice(0, 10) ?? now.slice(0, 10),
+          source: 'initial', recordedByUserId: createdByUserId, notes: fields.balanceVerifiedAt ? 'Initial verified account balance' : 'Initial entry; creditor verification date not supplied', createdAt: now }).run()
         for (const member of memberAssignments) tx.insert(debtMembers).values({ debtId: id, householdId,
           householdMemberId: member.memberId, responsibility: member.responsibility, createdAt: now }).run()
       })

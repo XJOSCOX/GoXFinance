@@ -9,6 +9,7 @@ export type DebtPaymentOverview = {
   paymentsSinceVerificationCents: number
   principalSinceVerificationCents: number
   unknownPrincipalCount: number
+  ambiguousSameDayCount: number
   estimatedOutstandingCents: number | null
 }
 
@@ -22,6 +23,7 @@ export function calculateDebtPaymentOverview(debt: Debt, payments: DebtPayment[]
   const completed = payments.filter(item => item.paymentStatus === 'completed')
   const afterVerification = verifiedBalanceDate ? completed.filter(item => item.paymentDate > verifiedBalanceDate) : []
   const unknownPrincipalCount = afterVerification.filter(item => item.principalAmountCents === null).length
+  const ambiguousSameDayCount = verifiedBalanceDate ? completed.filter(item => item.paymentDate === verifiedBalanceDate).length : 0
   const principalSinceVerificationCents = afterVerification.reduce((total, item) => total + (item.principalAmountCents ?? 0), 0)
   return {
     lastVerifiedBalanceCents,
@@ -31,7 +33,8 @@ export function calculateDebtPaymentOverview(debt: Debt, payments: DebtPayment[]
     paymentsSinceVerificationCents: afterVerification.reduce((total, item) => total + item.amountCents, 0),
     principalSinceVerificationCents,
     unknownPrincipalCount,
-    estimatedOutstandingCents: lastVerifiedBalanceCents === null || !verifiedBalanceDate || unknownPrincipalCount > 0
+    ambiguousSameDayCount,
+    estimatedOutstandingCents: lastVerifiedBalanceCents === null || !verifiedBalanceDate || unknownPrincipalCount > 0 || ambiguousSameDayCount > 0 || principalSinceVerificationCents > lastVerifiedBalanceCents
       ? null : Math.max(0, lastVerifiedBalanceCents - principalSinceVerificationCents),
   }
 }

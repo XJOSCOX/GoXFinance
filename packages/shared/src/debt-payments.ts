@@ -28,6 +28,7 @@ export const updateDebtPaymentSchema = paymentFields.partial().refine(value => O
 export const completeDebtPaymentSchema = paymentFields.refine(allocationValid,
   { message: 'Principal, interest, and fees cannot exceed the payment', path: ['principalAmountCents'] })
 export const verifyDebtBalanceSchema = z.object({
+  idempotencyKey: z.uuid().optional(),
   balanceCents: cents,
   effectiveDate: z.iso.date(),
   source: z.enum(['creditor_statement', 'reconciliation']),

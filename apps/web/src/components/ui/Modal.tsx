@@ -19,7 +19,7 @@ export function Modal({ title, onClose, children, className }: { title: string; 
       if (event.key !== 'Tab' || !dialog.current) return
       const focusable = Array.from(dialog.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
       if (!focusable.length) return
-      if (event.shiftKey && document.activeElement === focusable[0]) { event.preventDefault(); focusable.at(-1)?.focus() }
+      if (event.shiftKey && (document.activeElement === focusable[0] || document.activeElement === dialog.current)) { event.preventDefault(); focusable.at(-1)?.focus() }
       if (!event.shiftKey && document.activeElement === focusable.at(-1)) { event.preventDefault(); focusable[0]?.focus() }
     }
     document.addEventListener('keydown', onKeyDown)

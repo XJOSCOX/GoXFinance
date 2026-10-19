@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from 'vitest'
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -7,6 +7,7 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { openDatabase } from '../../db/connection'
+import { verifySnapshot } from '../../db/sqlite-backups'
 
 const folders: string[] = []
 afterEach(() => { for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true }) })
@@ -44,9 +45,12 @@ it('adds payment tables without replacing existing household debt records', () =
     .toBe('Existing creditor')
   expect((upgraded.sqlite.prepare('SELECT household_member_id FROM debt_members WHERE debt_id=?').get(debtId) as { household_member_id: string }).household_member_id)
     .toBe(memberId)
-  for (const table of ['debt_payments', 'debt_balance_history', 'debt_payment_audit']) {
+  for (const table of ['debt_payments', 'debt_balance_history', 'debt_payment_audit', 'debt_change_requests', 'debt_change_audit']) {
     expect((upgraded.sqlite.prepare('SELECT COUNT(*) AS count FROM sqlite_master WHERE type=? AND name=?').get('table', table) as { count: number }).count).toBe(1)
   }
   expect(upgraded.sqlite.pragma('foreign_key_check')).toEqual([])
+  const backups = readdirSync(join(folder, 'backups')).filter(name => name.endsWith('.sqlite'))
+  expect(backups.length).toBeGreaterThan(0)
+  expect(() => verifySnapshot(join(folder, 'backups', backups[0]))).not.toThrow()
   upgraded.sqlite.close()
 })

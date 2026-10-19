@@ -26,6 +26,11 @@ import { registerDebtRoutes } from './modules/debts/debt.routes'
 import { paymentRepository } from './modules/debt-payments/payment.repository'
 import { PaymentError, paymentService } from './modules/debt-payments/payment.service'
 import { registerPaymentRoutes } from './modules/debt-payments/payment.routes'
+import { changeRepository } from './modules/debt-changes/change.repository'
+import { changeService } from './modules/debt-changes/change.service'
+import { registerChangeRoutes } from './modules/debt-changes/change.routes'
+import { registerBackupRoutes } from './modules/recovery/backup.routes'
+import { hasQueuedRestore } from './db/sqlite-backups'
 
 type AppOptions = { databasePath: string; frontendOrigin: string; secureCookie: boolean }
 
@@ -38,6 +43,11 @@ export async function buildApp(options: AppOptions) {
   await app.register(rateLimit, { global: false })
   app.addHook('onSend', async (_request, reply, payload) => { reply.header('Cache-Control', 'no-store'); return payload })
   registerCsrfGuard(app, options.frontendOrigin)
+  app.addHook('onRequest', async (request, reply) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && hasQueuedRestore(options.databasePath)) {
+      return reply.code(503).send({ code: 'RESTORE_PENDING', error: 'Database restore is queued. Restart the API before making changes.' })
+    }
+  })
   const householdStore = householdRepository(db)
   const memberStore = memberRepository(db)
   const invitationStore = invitationRepository(db)
@@ -49,7 +59,11 @@ export async function buildApp(options: AppOptions) {
     memberRequestService(householdStore, memberRequestRepository(db), memberStore))
   const debts = debtService(householdStore, memberStore, debtRepository(db))
   registerDebtRoutes(app, auth, debts)
-  registerPaymentRoutes(app, auth, paymentService(debts, paymentRepository(db)))
+  const paymentStore = paymentRepository(db)
+  const payments = paymentService(debts, paymentStore)
+  registerPaymentRoutes(app, auth, payments)
+  registerChangeRoutes(app, auth, changeService(householdStore, debts, payments, paymentStore, changeRepository(db)))
+  registerBackupRoutes(app, auth, sqlite, options.databasePath)
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) return reply.code(400).send({ code: 'VALIDATION_ERROR', error: error.issues[0]?.message ?? 'Invalid input' })
     if (error instanceof InvitationError) return reply.code(error.statusCode).send({ code: error.code, error: error.message })

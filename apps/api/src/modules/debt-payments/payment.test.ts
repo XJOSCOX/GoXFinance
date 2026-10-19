@@ -73,10 +73,12 @@ describe('debt payment API', () => {
     const created = await request(app, 'POST', `${base}/payments`, owner.cookie, body)
     expect(created.statusCode).toBe(201)
     const paymentId = created.json().payment.id as string
+    expect((await request(app, 'PATCH', `${base}/payments/${paymentId}`, owner.cookie, {})).statusCode).toBe(409)
     expect((await request(app, 'POST', `${base}/payments`, owner.cookie, body)).statusCode).toBe(200)
     expect((await request(app, 'POST', `${base}/payments`, owner.cookie, { ...body, amountCents: 9000 })).statusCode).toBe(409)
     expect((await request(app, 'GET', `${base}/payments`, owner.cookie)).json().overview.completedPaymentTotalCents).toBe(0)
     expect((await request(app, 'POST', `${base}/payments/${paymentId}/confirm`, owner.cookie, {})).statusCode).toBe(200)
+    expect((await request(app, 'PATCH', `${base}/payments/${paymentId}`, owner.cookie, { paymentStatus: 'pending' })).statusCode).toBe(409)
     expect((await request(app, 'POST', `${base}/payments/${paymentId}/confirm`, owner.cookie, {})).statusCode).toBe(409)
     expect((await request(app, 'PATCH', `${base}/payments/${paymentId}`, owner.cookie, { notes: 'Corrected note' })).statusCode).toBe(200)
     expect((await request(app, 'GET', `${base}/payments/${paymentId}`, owner.cookie)).json().audit.map((item: { action: string }) => item.action))
@@ -112,17 +114,19 @@ describe('debt payment API', () => {
       principalAmountCents: null, interestAmountCents: null }))).statusCode).toBe(201)
     expect((await request(app, 'GET', `${base}/balances`, owner.cookie)).json().overview.estimatedOutstandingCents).toBeNull()
     const next = await request(app, 'POST', `${base}/balances`, owner.cookie,
-      { balanceCents: 37000, effectiveDate: '2026-09-25', source: 'reconciliation', notes: 'New statement' })
+      { balanceCents: 37000, effectiveDate: '2026-09-25', source: 'reconciliation', notes: 'New statement', idempotencyKey: debtId })
+    expect((await request(app, 'POST', `${base}/balances`, owner.cookie,
+      { balanceCents: 37000, effectiveDate: '2026-09-25', source: 'reconciliation', notes: 'New statement', idempotencyKey: debtId })).statusCode).toBe(201)
     expect(next.statusCode).toBe(201)
     expect(next.json().overview.estimatedOutstandingCents).toBe(37000)
-    expect((await request(app, 'GET', `${base}/balances`, owner.cookie)).json().history).toHaveLength(2)
+    expect((await request(app, 'GET', `${base}/balances`, owner.cookie)).json().history).toHaveLength(3)
     expect((await request(app, 'GET', base, owner.cookie)).json().debt.currentBalanceCents).toBe(37000)
     const older = await request(app, 'POST', `${base}/balances`, owner.cookie,
       { balanceCents: 39000, effectiveDate: '2026-09-15', source: 'creditor_statement' })
     expect(older.statusCode).toBe(201)
     expect(older.json().overview.lastVerifiedBalanceCents).toBe(37000)
     expect((await request(app, 'GET', base, owner.cookie)).json().debt.currentBalanceCents).toBe(37000)
-    expect((await request(app, 'GET', `${base}/balances`, owner.cookie)).json().history).toHaveLength(3)
+    expect((await request(app, 'GET', `${base}/balances`, owner.cookie)).json().history).toHaveLength(4)
   })
   it('rejects invalid allocation and protects Owner, joint, viewer and cross-household records', async () => {
     const { app, databasePath } = await setup()

@@ -45,7 +45,8 @@ describe('payment-aware balance estimates', () => {
     const latest = { ...verified, id: 'latest', effectiveDate: '2026-09-10', balanceCents: 37000 }
     const result = calculateDebtPaymentOverview(debt, [payment()], [verified, latest])
     expect(result.lastVerifiedBalanceCents).toBe(37000)
-    expect(result.estimatedOutstandingCents).toBe(37000)
+    expect(result.estimatedOutstandingCents).toBeNull()
+    expect(result.ambiguousSameDayCount).toBe(1)
   })
   it('keeps the estimate unknown when no verified baseline exists', () => {
     expect(calculateDebtPaymentOverview(debt, [payment()], []).estimatedOutstandingCents).toBeNull()

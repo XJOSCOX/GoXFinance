@@ -18,6 +18,6 @@ export const confirmPayment = (householdId: string, debtId: string, paymentId: s
 export const listBalanceHistory = (householdId: string, debtId: string) =>
   apiRequest<{ history: DebtBalanceHistory[]; overview: DebtPaymentOverview }>(`${path(householdId, debtId)}/balances`)
 export const verifyDebtBalance = (householdId: string, debtId: string, input: {
-  balanceCents: number; effectiveDate: string; source: 'creditor_statement' | 'reconciliation'; notes: string | null
+  balanceCents: number; effectiveDate: string; source: 'creditor_statement' | 'reconciliation'; notes: string | null; idempotencyKey?: string
 }) => apiRequest<{ entry: DebtBalanceHistory; overview: DebtPaymentOverview }>(`${path(householdId, debtId)}/balances`,
   { method: 'POST', body: JSON.stringify(input) })

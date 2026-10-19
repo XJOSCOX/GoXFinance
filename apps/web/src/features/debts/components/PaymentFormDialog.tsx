@@ -7,8 +7,8 @@ import { moneyText, parseMoney } from '../lib/money'
 
 const today = () => { const date = new Date(); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
 
-export function PaymentFormDialog({ payment, onClose, onSave }: {
-  payment?: DebtPayment | null; onClose: () => void; onSave: (input: DebtPaymentInput) => Promise<void>
+export function PaymentFormDialog({ payment, onClose, onSave, requestMode = false }: {
+  payment?: DebtPayment | null; onClose: () => void; onSave: (input: DebtPaymentInput, reason?: string) => Promise<void>; requestMode?: boolean
 }) {
   const [amount, setAmount] = useState(moneyText(payment?.amountCents))
   const [principal, setPrincipal] = useState(moneyText(payment?.principalAmountCents))
@@ -19,7 +19,8 @@ export function PaymentFormDialog({ payment, onClose, onSave }: {
   const [method, setMethod] = useState<DebtPaymentInput['paymentMethod']>(payment?.paymentMethod ?? 'bank_transfer')
   const [reference, setReference] = useState(payment?.referenceNumber ?? '')
   const [notes, setNotes] = useState(payment?.notes ?? '')
-  const [key] = useState(() => payment?.idempotencyKey ?? crypto.randomUUID())
+  const [reason, setReason] = useState('')
+  const [key] = useState(() => crypto.randomUUID())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   async function submit(event: FormEvent) {
@@ -37,7 +38,7 @@ export function PaymentFormDialog({ payment, onClose, onSave }: {
       setError(''); setBusy(true)
       await onSave({ idempotencyKey: key, amountCents, paymentDate: date, paymentStatus: status,
         paymentMethod: method, principalAmountCents, interestAmountCents, feesAmountCents,
-        referenceNumber: reference.trim() || null, notes: notes.trim() || null })
+        referenceNumber: reference.trim() || null, notes: notes.trim() || null }, reason.trim())
       onClose()
     } catch (failure) { setError(errorMessage(failure)) }
     finally { setBusy(false) }
@@ -54,7 +55,8 @@ export function PaymentFormDialog({ payment, onClose, onSave }: {
       <div className="mt-3 grid gap-3 sm:grid-cols-3"><label><span className={label}>Principal</span><Input inputMode="decimal" value={principal} onChange={event => setPrincipal(event.target.value)} placeholder="Unknown" /></label><label><span className={label}>Interest</span><Input inputMode="decimal" value={interest} onChange={event => setInterest(event.target.value)} placeholder="Unknown" /></label><label><span className={label}>Fees</span><Input inputMode="decimal" value={fees} onChange={event => setFees(event.target.value)} placeholder="Unknown" /></label></div></div>
     <label className="block"><span className={label}>Reference number</span><Input maxLength={120} value={reference} onChange={event => setReference(event.target.value)} /></label>
     <label className="block"><span className={label}>Notes</span><textarea className={select + ' h-24 py-2'} maxLength={4000} value={notes} onChange={event => setNotes(event.target.value)} /></label>
+    {requestMode && <label className="block"><span className={label}>Reason for Owner approval *</span><textarea required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} className={select + ' h-24 py-2'} /></label>}
     {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
-    <div className="flex justify-end gap-2"><Button type="button" onClick={onClose}>Cancel</Button><Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : 'Save payment'}</Button></div>
+    <div className="flex justify-end gap-2"><Button type="button" onClick={onClose}>Cancel</Button><Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : requestMode ? 'Request approval' : 'Save payment'}</Button></div>
   </form></Modal>
 }

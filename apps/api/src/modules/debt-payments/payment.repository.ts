@@ -7,7 +7,7 @@ import { debtBalanceHistory, debtPaymentAudit, debtPayments, debts } from '../..
 type PaymentRow = typeof debtPayments.$inferSelect
 type PaymentChanges = Partial<Pick<PaymentRow, 'amountCents' | 'paymentDate' | 'paymentStatus' | 'paymentMethod' |
   'principalAmountCents' | 'interestAmountCents' | 'feesAmountCents' | 'referenceNumber' | 'notes'>>
-type BalanceValues = { balanceCents: number; effectiveDate: string; source: 'creditor_statement' | 'reconciliation'; notes: string | null }
+type BalanceValues = { balanceCents: number; effectiveDate: string; source: 'creditor_statement' | 'reconciliation'; notes: string | null; idempotencyKey?: string }
 
 export function paymentRepository(db: DatabaseConnection) {
   const debtKey = (householdId: string, debtId: string) => and(eq(debtPayments.householdId, householdId), eq(debtPayments.debtId, debtId))
@@ -19,6 +19,11 @@ export function paymentRepository(db: DatabaseConnection) {
       afterJson: JSON.stringify(payment), createdAt: new Date().toISOString() }).run()
   }
   return {
+    transaction<T>(operation: () => T) { return db.transaction(operation, { behavior: 'immediate' }) },
+    findBalanceByKey(householdId: string, debtId: string, requestKey: string) {
+      return db.select().from(debtBalanceHistory).where(and(eq(debtBalanceHistory.householdId, householdId),
+        eq(debtBalanceHistory.debtId, debtId), eq(debtBalanceHistory.requestKey, requestKey))).get()
+    },
     list(householdId: string, debtId: string) {
       return db.select().from(debtPayments).where(debtKey(householdId, debtId))
         .orderBy(desc(debtPayments.paymentDate), desc(debtPayments.createdAt)).all()
@@ -58,7 +63,8 @@ export function paymentRepository(db: DatabaseConnection) {
     },
     recordBalance(householdId: string, debtId: string, actorUserId: string, values: BalanceValues, updateCurrent: boolean) {
       const now = new Date().toISOString()
-      const entry = { id: randomUUID(), householdId, debtId, recordedByUserId: actorUserId, ...values, createdAt: now }
+      const entry = { id: randomUUID(), householdId, debtId, recordedByUserId: actorUserId, balanceCents: values.balanceCents,
+        effectiveDate: values.effectiveDate, source: values.source, notes: values.notes, requestKey: values.idempotencyKey ?? null, createdAt: now }
       return db.transaction(tx => {
         tx.insert(debtBalanceHistory).values(entry).run()
         if (updateCurrent) tx.update(debts).set({ currentBalanceCents: values.balanceCents,

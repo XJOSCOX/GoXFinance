@@ -16,6 +16,7 @@ import { DebtSummary } from '../components/DebtSummary'
 import { DebtEmptyState } from '../components/DebtEmptyState'
 import { DebtAccountCard } from '../components/DebtAccountCard'
 import { DebtDetailsDialog } from '../components/DebtDetailsDialog'
+import { DebtChangeRequestsPanel } from '../components/DebtChangeRequestsPanel'
 
 export function DebtsPage() {
   const { householdId = '' } = useParams()
@@ -37,6 +38,7 @@ export function DebtsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [sort, setSort] = useState('updated')
   const [showArchived, setShowArchived] = useState(false)
+  const [requestRefresh, setRequestRefresh] = useState(0)
   useEffect(() => { if (household && selected?.id !== householdId) select(householdId) }, [household, householdId, selected?.id, select])
   useEffect(() => {
     let active = true
@@ -71,6 +73,7 @@ export function DebtsPage() {
       members.find(member => member.id === item.memberId)?.accessRole === 'owner'))
   }
   async function refreshDetail() {
+    setRequestRefresh(value => value + 1)
     const updated = (await listDebts(householdId)).debts
     setDebts(updated)
     setDetail(current => current ? updated.find(item => item.id === current.id) ?? current : null)
@@ -102,6 +105,7 @@ export function DebtsPage() {
         {!loading && !error && summary.accountCount > 0 && canWrite && <Button variant="primary" className="gap-2" onClick={() => setFormDebt(null)}><Plus size={16}/> Add debt</Button>}
       </div>
     </div>
+    {household.role === 'owner' && <DebtChangeRequestsPanel householdId={householdId} owner refreshToken={requestRefresh} onChanged={refreshDetail} hideEmpty />}
     {loading ? <Card className="p-8 text-sm text-slate-400" role="status">Loading debts…</Card> : error ? <Card className="p-6"><p role="alert" className="text-rose-300">{error}</p><Button className="mt-3" onClick={() => window.location.reload()}>Try again</Button></Card> : summary.accountCount === 0 && !showArchived ?
       <DebtEmptyState canAdd={canWrite} archivedCount={archivedCount} onAdd={() => setFormDebt(null)} onShowArchived={() => setShowArchived(true)} /> : <>
       {summary.accountCount > 0 && <DebtSummary summary={summary} members={members} />}
@@ -116,7 +120,7 @@ export function DebtsPage() {
       : <Card className="flex flex-col items-center px-6 py-12 text-center"><span className="rounded-xl border border-white/10 bg-white/[.03] p-3 text-slate-400"><Search size={22}/></span><h3 className="mt-4 font-medium">No matching accounts</h3><p className="mt-1 text-sm text-slate-400">Try a different search or filter.</p><Button variant="ghost" className="mt-4 gap-1" onClick={() => { setQuery(''); setMemberFilter(''); setTypeFilter(''); setStatusFilter('') }}>Clear filters <ArrowRight size={14}/></Button></Card>}
     </>}
     {formDebt !== undefined && <DebtFormDialog key={formDebt?.id ?? 'new'} debt={formDebt} members={members} debts={debts} role={household.role} currentMemberId={currentMember?.id} onClose={() => setFormDebt(undefined)} onSave={save} />}
-    {detail && <DebtDetailsDialog householdId={householdId} debt={detail} canCreate={!detail.isArchived && canManage(detail)}
+    {detail && <DebtDetailsDialog householdId={householdId} debt={detail} owner={household.role === 'owner'} canCreate={!detail.isArchived && canManage(detail)}
       canModify={!detail.isArchived && canModifyPayment(detail)} onClose={() => setDetail(null)} onDebtChanged={refreshDetail} />}
     {archiveTarget && <Modal title={archiveTarget.isArchived ? 'Restore debt?' : 'Archive debt?'} onClose={() => setArchiveTarget(null)}><p className="text-sm text-slate-400">{archiveTarget.creditorName} will {archiveTarget.isArchived ? 'return to active totals' : 'be hidden from active totals'}. The record remains in SQLite.</p><div className="mt-5 flex justify-end gap-2"><Button onClick={() => setArchiveTarget(null)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={() => void changeArchive(archiveTarget)}>{busy ? 'Saving…' : 'Confirm'}</Button></div></Modal>}
   </div></WorkspaceLayout>

@@ -18,6 +18,7 @@ import { PendingApprovals } from '../components/PendingApprovals'
 import { useNotify } from '../../../components/ui/useNotify'
 import { useHousehold } from '../hooks/useHousehold'
 import { useMembers } from '../hooks/useMembers'
+import { DatabaseRecovery } from '../components/DatabaseRecovery'
 
 export function HouseholdMembersPage() {
   const { householdId = '' } = useParams()
@@ -89,6 +90,7 @@ export function HouseholdMembersPage() {
           manageAccess={canInvite ? setAccessTarget : undefined} />}
     </HouseholdOverview>
     {household.role === 'owner' && <PendingApprovals householdId={householdId} onMembersChanged={refresh} />}
+    {household.role === 'owner' && <DatabaseRecovery />}
     {showDetails && <HouseholdDetailsDialog household={household} memberCount={loading || error ? null : members.length}
       onClose={() => setShowDetails(false)} onEdit={canSettings ? () => { setShowDetails(false); setShowEdit(true) } : undefined} />}
     {showEdit && <HouseholdEditDialog key={household.id} household={household} onClose={() => setShowEdit(false)} />}
