@@ -1,3 +1,14 @@
+import { payoutBatchService } from './modules/trading/payout-batch.service'
+import { tradingRepository } from './modules/trading/trading.repository'
+import { tradingPermissions } from './modules/trading/trading.permissions'
+import { tradingService } from './modules/trading/trading.service'
+import { payoutService } from './modules/trading/payout.service'
+import { copyRepository } from './modules/trading/copy.repository'
+import { copyService } from './modules/trading/copy.service'
+import { registerTradingRoutes } from './modules/trading/trading.routes'
+import { goalRepository } from './modules/goals/goal.repository'
+import { goalService } from './modules/goals/goal.service'
+import { registerGoalRoutes } from './modules/goals/goal.routes'
 import { categoryRepository } from './modules/categories/category.repository'
 import { categoryService } from './modules/categories/category.service'
 import { registerCategoryRoutes } from './modules/categories/category.routes'
@@ -47,7 +58,7 @@ import { registerBillRoutes } from './modules/bills/bill.routes'
 import { expenseRepository } from './modules/expenses/expense.repository'
 import { expenseService } from './modules/expenses/expense.service'
 import { registerExpenseRoutes } from './modules/expenses/expense.routes'
-import { financialAccess } from './modules/households/financial-access'
+import { FinancialError, financialAccess } from './modules/households/financial-access'
 import { registerOverviewRoutes } from './modules/overview/overview.routes'
 import { overviewRepository } from './modules/overview/overview.repository'
 import { overviewService } from './modules/overview/overview.service'
@@ -118,9 +129,47 @@ export async function buildApp(options: AppOptions) {
     debts,
   )
   registerBillRoutes(app, auth, bills, billRequestsService(billStore, bills, billAccess))
+  const tradeStore = tradingRepository(db)
+  const tradeAccess = tradingPermissions(financialAccess(householdStore, memberStore))
+  const trading = tradingService(tradeStore, tradeAccess)
   const income = incomeService(
     incomeRepository(db),
     incomePermissions(financialAccess(householdStore, memberStore)),
+    (home, id) => {
+      if (
+        tradeStore
+          .payouts(home)
+          .some((p) => p.incomeTransactionId === id || p.existingIncomeTransactionId === id)
+      )
+        throw new FinancialError(
+          'Correct this deposit through its Trading payout to keep records synchronized',
+          409,
+        )
+    },
+  )
+  const payouts = payoutService(tradeStore, trading, tradeAccess, income)
+  const copier = copyService(copyRepository(db), tradeStore, trading, tradeAccess)
+  registerTradingRoutes(
+    app,
+    auth,
+    trading,
+    payouts,
+    copier,
+    payoutBatchService(copyRepository(db), tradeStore, trading, payouts, tradeAccess),
+  )
+  registerGoalRoutes(
+    app,
+    auth,
+    goalService(goalRepository(db), tradeAccess, (user, home) => ({
+      accounts: trading.accounts(user, home),
+      results: trading.results(user, home),
+      ...copier.list(user, home),
+      income: income.list(user, home).transactions,
+      bills: bills.list(user, home),
+      expenses: expenses.list(user, home).expenses,
+      debts: debts.list(user, home).debts,
+      balances: overviewRepository(db).balances(home),
+    })),
   )
   registerIncomeRoutes(app, auth, income)
   registerExpenseRoutes(app, auth, expenses)

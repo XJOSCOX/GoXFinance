@@ -1,6 +1,6 @@
 # GoXFinance
 
-GoXFinance is a local website with authentication, household management, debts and payment history, recurring/one-time bills, everyday expenses, income tracking, and a household Overview. All records live in SQLite. There is no cloud integration.
+GoXFinance is a local website with authentication, household management, debts and payment history, recurring/one-time bills, everyday expenses, income tracking, manual Topstep/copy-trading and payouts, reusable financial goals, and a household Overview. All records live in SQLite. There is no cloud integration.
 
 ## Run locally
 
@@ -13,7 +13,7 @@ npm run dev
 
 Open **http://localhost:1420**. Vite serves the website and forwards `/api` requests to Fastify at `http://127.0.0.1:3001`. The API creates and migrates `data/goxfinance_web.sqlite` on startup. Migrations are additive; existing accounts, sessions, households, and members stay in place. The `data/` directory and SQLite WAL/SHM files are ignored by Git. The prior Tauri database, if present in the OS app data directory, is not opened, migrated, or deleted.
 
-Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, `/households/:householdId/members`, `/households/:householdId/debts`, `/households/:householdId/bills`, `/households/:householdId/expenses`, and `/households/:householdId/income`.
+Copy `.env.example` to `.env` to change the API port, frontend origin, or local data directory. If you change the API port, update the Vite proxy in `apps/web/vite.config.ts` as well. Run `npm run build` for production bundles; the website is emitted to `apps/web/dist` and the API to `apps/api/dist`. Run `npm run start:api` to start the built API. A production web server must serve `apps/web/dist`, forward `/api` to Fastify, and fall back to `index.html` for app routes, including `/household/setup`, `/household/join`, `/households/:householdId/members`, `/households/:householdId/debts`, `/households/:householdId/bills`, `/households/:householdId/expenses`, `/households/:householdId/income`, `/households/:householdId/trading`, and `/households/:householdId/goals`.
 
 ## Households
 
@@ -73,3 +73,9 @@ Opt-in database encryption, isolated Windows compatibility results, manual unloc
 The [final twenty-item manual checklist](docs/manual-qa-2026-10-19.md) records 19 verified items and one live linked-bill setup check, with fictional arithmetic examples and explicit browser/automated evidence.
 
 See the [2026-10-19 audit report](docs/application-audit-2026-10-19.md) for verified scenarios, data-preservation checks, fixes, and limitations. Future completed-payment dates are rejected; planned payments remain separate. QA uses an independent session cookie to avoid interfering with the normal localhost app.
+
+## Manual Trading and Goals
+
+**Trading** tracks independent Topstep accounts, one daily summary per account/session, explicit copied-account event results, historical group membership, and independent payout records within batches. No trades or payout requests are transmitted. Nominal tiers and realized P&L are not household cash. Only confirmed payout deposits create or link Income; corrections and cancellations synchronize that same authoritative deposit.
+
+**Goals** tracks account/group/combined profit targets, loss budgets, confirmed income, verified debt reduction, purchase spending limits, bill payments, and manual savings/custom contributions. Session timezones and boundaries are explicit. Goal history uses the current definition for up to 12 anchored periods. See [Trading and Goals documentation and manual QA checklist](docs/trading-goals.md) before entering live records. All new persistence uses additive migrations and the existing SQLite encryption configuration.

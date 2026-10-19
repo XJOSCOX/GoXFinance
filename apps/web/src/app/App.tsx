@@ -1,3 +1,5 @@
+import { TradingPage } from '../features/trading/pages/TradingPage'
+import { GoalsPage } from '../features/goals/pages/GoalsPage'
 import { IncomePage } from '../features/income/pages/IncomePage'
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
@@ -126,6 +128,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <IncomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/households/:householdId/trading"
+                element={
+                  <ProtectedRoute>
+                    <TradingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/households/:householdId/goals"
+                element={
+                  <ProtectedRoute>
+                    <GoalsPage />
                   </ProtectedRoute>
                 }
               />

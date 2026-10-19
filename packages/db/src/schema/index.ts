@@ -15,3 +15,6 @@ export * from './expenses'
 export * from './income'
 
 export * from './categories'
+
+export * from './trading'
+export * from './goals'

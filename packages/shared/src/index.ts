@@ -19,3 +19,9 @@ export * from './overview-payments'
 
 export * from './income'
 export * from './income-calculations'
+
+export * from './trading'
+export * from './trading-calculations'
+export * from './goals'
+export * from './copy-trading'
+export * from './goal-calculations'

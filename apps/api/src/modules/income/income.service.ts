@@ -15,7 +15,11 @@ import type { IncomePermissions } from './income.permissions'
 import { transactionValues } from './income-transactions'
 import { randomUUID } from 'node:crypto'
 
-export function incomeService(store: IncomeRepository, permissions: IncomePermissions) {
+export function incomeService(
+  store: IncomeRepository,
+  permissions: IncomePermissions,
+  linkedGuard: (home: string, id: string) => void = () => {},
+) {
   const sourceView = (user: PublicUser, home: string, row: SourceRow): IncomeSource => ({
     ...row,
     incomeType: row.incomeType as IncomeSource['incomeType'],
@@ -185,10 +189,17 @@ export function incomeService(store: IncomeRepository, permissions: IncomePermis
         return transactionView(user, home, row)
       })
     },
-    editTransaction(user: PublicUser, home: string, id: string, body: unknown) {
+    editTransaction(
+      user: PublicUser,
+      home: string,
+      id: string,
+      body: unknown,
+      fromTrading = false,
+    ) {
       const { values, revision, reason } = editIncomeTransactionSchema.parse(body)
       return store.atomic(() => {
         const old = transaction(user, home, id)
+        if (!fromTrading) linkedGuard(home, id)
         permissions.manage(user, home, old.responsibleMemberId, true)
         stale(old.revision, revision)
         const parent = source(user, home, old.sourceId),

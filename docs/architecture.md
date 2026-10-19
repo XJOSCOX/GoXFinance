@@ -34,3 +34,7 @@ Payment forms share amount selectors, optional breakdown fields, clearance revie
 ## Financial categories
 
 `features/categories` provides a shared selector, catalog manager, metadata editor and separate-measure totals. The API category module owns Owner-only catalog management and household-scoped assignments; financial modules retain their own permission and approval rules. New households provision defaults atomically with household creation. Category reads do not provision or recreate renamed defaults. The existing `expense_categories` table remains the sole catalog so historical allocation UUIDs survive. Additive migration 0015 associates bills, billing periods and debts without changing recorded amounts or historical labels. See [Categories](categories.md) for backup, migration, reporting and PostgreSQL details.
+
+## Trading and goals
+
+Manual Trading, copy events and payout batches live in separate services/repositories under `modules/trading`; Goals uses its own module and shared pure progress calculators. Only confirmed payout receipts call Income, atomically. Linked Income edits are guarded and routed through the payout service. Feature-based frontend folders reuse common financial editor, monetary fields and audit dialogs. See [trading-goals.md](trading-goals.md) for session boundaries, source-of-truth rules, permissions, migration portability and the manual QA handoff.

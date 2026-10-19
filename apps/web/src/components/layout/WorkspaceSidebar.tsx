@@ -1,5 +1,7 @@
 import {
   Wallet,
+  TrendingUp,
+  Target,
   CreditCard,
   Home,
   LayoutDashboard,
@@ -32,6 +34,8 @@ export function WorkspaceSidebar({
     { href: `/households/${household.id}/bills`, label: 'Bills', icon: Receipt },
     { href: `/households/${household.id}/income`, label: 'Income', icon: Wallet },
     { href: `/households/${household.id}/expenses`, label: 'Expenses', icon: ShoppingBag },
+    { href: `/households/${household.id}/trading`, label: 'Trading', icon: TrendingUp },
+    { href: `/households/${household.id}/goals`, label: 'Goals', icon: Target },
   ]
   return (
     <>
