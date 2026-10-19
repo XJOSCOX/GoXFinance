@@ -183,3 +183,19 @@ it('calculates completed-period averages without losing cents at large valid val
   )
   expect(billAverage(periods, 3).averageCents).toBe(3002399751580330)
 })
+
+it('reports unconfirmed bill totals separately from the known remaining total', () => {
+  const bill = {
+    status: 'active',
+    kind: 'one_time',
+    periods: [
+      billPeriodView({ ...period, amountCents: null }, [], false, '2026-10-19'),
+      billPeriodView({ ...period, amountCents: 34218 }, [payment(20000)], false, '2026-10-19'),
+    ],
+  } as BillView
+  expect(calculateBillSummary([bill], [], '2026-10-19')).toMatchObject({
+    outstandingCents: 14218,
+    unknownPeriodCount: 1,
+    confirmedPeriodCount: 1,
+  })
+})

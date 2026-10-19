@@ -49,7 +49,8 @@ it('never fills a payment from an estimate and retains input after failed persis
   render(<BillPaymentForm period={period} save={save} close={close} />)
   const amount = screen.getByLabelText('Actual payment amount ($)') as HTMLInputElement
   expect(amount.value).toBe('')
-  expect(screen.getByText('Budget estimate: $300.00')).toBeTruthy()
+  expect(screen.getByText('Budget estimate')).toBeTruthy()
+  expect(screen.getByText('$300.00')).toBeTruthy()
   fireEvent.change(amount, { target: { value: '200' } })
   fireEvent.click(screen.getByRole('button', { name: 'Save pending payment' }))
   await waitFor(() => expect(save).toHaveBeenCalledOnce())
@@ -60,4 +61,34 @@ it('never fills a payment from an estimate and retains input after failed persis
   fireEvent.click(screen.getByRole('button', { name: 'Save pending payment' }))
   await waitFor(() => expect(save).toHaveBeenCalledTimes(2))
   expect(save.mock.calls[0][0].idempotencyKey).toBe(save.mock.calls[1][0].idempotencyKey)
+})
+
+it('explicitly confirms the billed total separately from a partial payment', async () => {
+  const period = {
+    dueDate: '2026-10-01',
+    amountCents: null,
+    estimatedAmountCents: 30000,
+    paidCents: 0,
+    creditCents: 0,
+    remainingCents: null,
+  } as BillPeriodView
+  const save = vi.fn()
+  render(<BillPaymentForm period={period} billRevision={3} save={save} close={() => {}} />)
+  expect((screen.getByLabelText('Actual payment amount ($)') as HTMLInputElement).value).toBe('')
+  fireEvent.click(screen.getByRole('checkbox', { name: /Confirm the actual bill total/ }))
+  const billed = screen.getByLabelText('Confirmed bill total ($)') as HTMLInputElement
+  expect(billed.value).toBe('')
+  fireEvent.change(billed, { target: { value: '342.18' } })
+  fireEvent.click(screen.getByRole('radio', { name: /Full billed amount/ }))
+  expect((screen.getByLabelText('Actual payment amount ($)') as HTMLInputElement).value).toBe(
+    '342.18',
+  )
+  fireEvent.change(screen.getByLabelText('Actual payment amount ($)'), { target: { value: '200' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save pending payment' }))
+  await waitFor(() => expect(save).toHaveBeenCalledOnce())
+  expect(save.mock.calls[0][0]).toMatchObject({
+    amountCents: 20000,
+    status: 'pending',
+    billAmountConfirmation: { amountCents: 34218, expectedRevision: 3 },
+  })
 })

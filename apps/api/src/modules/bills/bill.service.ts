@@ -256,21 +256,48 @@ export function billService(
         if (bill.status === 'cancelled') throw new BillError('Bill is cancelled', 409)
         const period = store.periods(householdId, id).find((item) => item.id === periodId)
         if (!period) throw new BillError('Billing period not found', 404)
-        const values = billPaymentInputSchema.parse(input),
+        const { billAmountConfirmation, ...values } = billPaymentInputSchema.parse(input),
           existing = store.findPaymentKey(householdId, values.idempotencyKey)
         if (existing) {
+          const recorded = store
+            .auditList(householdId, id)
+            .find(
+              (entry) =>
+                entry.targetId === existing.id && entry.action.startsWith('payment_recorded_'),
+            )
+          const previousConfirmation =
+            JSON.parse(recorded?.afterJson ?? '{}').billAmountConfirmation ?? null
           if (
             existing.billId !== id ||
             existing.periodId !== periodId ||
             Object.entries(values).some(
               ([key, value]) => existing[key as keyof typeof existing] !== value,
-            )
+            ) ||
+            JSON.stringify(billAmountConfirmation ?? null) !== JSON.stringify(previousConfirmation)
           )
             throw new BillError('Submission key already used', 409)
           return view(user, bill)
         }
         if (values.status === 'completed' && values.paymentDate > localBillDate())
           throw new BillError('A completed payment cannot have a future payment date', 400)
+        if (billAmountConfirmation) {
+          permissions.manage(user, bill)
+          if (bill.revision !== billAmountConfirmation.expectedRevision)
+            throw new BillError(
+              'The bill changed. Refresh it before confirming the actual amount.',
+              409,
+            )
+          const changes = {
+            amountCents: billAmountConfirmation.amountCents,
+            creditCents: period.creditCents,
+            notes: period.notes,
+          }
+          store.updatePeriod(householdId, periodId, changes)
+          store.audit(householdId, id, user.id, 'edit_period', periodId, period, {
+            ...period,
+            ...changes,
+          })
+        }
         const paymentId = randomUUID(),
           now = new Date().toISOString()
         if (values.status === 'completed') permissions.manage(user, bill)
@@ -311,7 +338,7 @@ export function billService(
           `payment_recorded_${values.status}`,
           paymentId,
           null,
-          values,
+          { ...values, ...(billAmountConfirmation ? { billAmountConfirmation } : {}) },
         )
         return view(user, find(user, householdId, id))
       })

@@ -83,14 +83,24 @@ const billPaymentFieldsSchema = z
     referenceNumber: z.string().trim().max(120).nullable().default(null),
   })
   .strict()
-export const billPaymentInputSchema = billPaymentFieldsSchema.refine(
-  (value) =>
-    (value.principalAmountCents ?? 0) +
-      (value.interestAmountCents ?? 0) +
-      (value.feesAmountCents ?? 0) <=
-    value.amountCents,
-  'Principal, interest, and fees cannot exceed the payment',
-)
+export const billPaymentInputSchema = billPaymentFieldsSchema
+  .refine(
+    (value) =>
+      (value.principalAmountCents ?? 0) +
+        (value.interestAmountCents ?? 0) +
+        (value.feesAmountCents ?? 0) <=
+      value.amountCents,
+    'Principal, interest, and fees cannot exceed the payment',
+  )
+  .safeExtend({
+    billAmountConfirmation: z
+      .object({
+        amountCents: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+        expectedRevision: z.number().int().nonnegative(),
+      })
+      .strict()
+      .optional(),
+  })
 export const billPaymentEditSchema = billPaymentFieldsSchema.omit({ idempotencyKey: true }).extend({
   status: debtPaymentStatusSchema.optional(),
   principalAmountCents: cents.optional(),
@@ -99,7 +109,10 @@ export const billPaymentEditSchema = billPaymentFieldsSchema.omit({ idempotencyK
   referenceNumber: z.string().trim().max(120).nullable().optional(),
 })
 export type BillPaymentInput = z.input<typeof billPaymentInputSchema>
-export type BillPaymentValues = z.output<typeof billPaymentInputSchema>
+export type BillPaymentValues = Omit<
+  z.output<typeof billPaymentInputSchema>,
+  'billAmountConfirmation'
+>
 export type BillPayment = Omit<BillPaymentValues, 'idempotencyKey'> & {
   id: string
   householdId: string

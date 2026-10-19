@@ -11,7 +11,6 @@ import {
 } from '@goxfinance/shared'
 import { Button, Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
-import { formatMoney } from '../../../lib/money'
 import { moneyText, parseMoney } from '../../../lib/payment-money'
 import { Modal } from '../../../components/ui/Modal'
 import { errorMessage } from '../../../lib/api'
@@ -20,6 +19,7 @@ import {
   PaymentBreakdown,
   type PaymentBreakdownText,
 } from '../../../components/payments/PaymentBreakdown'
+import { BillAmountSummary } from './BillAmountSummary'
 import { PaymentConfirmation } from '../../../components/payments/PaymentConfirmation'
 
 export function BillPaymentForm({
@@ -28,13 +28,34 @@ export function BillPaymentForm({
   save,
   close,
   allowCompleted = true,
+  billRevision,
 }: {
   period: BillPeriodView
   payment?: BillPayment
   save: (input: BillPaymentInput) => Promise<void>
   close: () => void
   allowCompleted?: boolean
+  billRevision?: number
 }) {
+  const [confirmBill, setConfirmBill] = useState(false)
+  const [billedAmount, setBilledAmount] = useState(moneyText(period.amountCents))
+  let actualAmount = period.amountCents
+  if (confirmBill) {
+    try {
+      actualAmount = parseMoney(billedAmount)
+    } catch {
+      actualAmount = null
+    }
+  }
+  const reviewedPeriod = {
+    ...period,
+    amountCents: actualAmount,
+    remainingCents: !confirmBill
+      ? period.remainingCents
+      : actualAmount === null
+        ? null
+        : Math.max(0, actualAmount - (period.paidCents ?? 0) - (period.creditCents ?? 0)),
+  }
   const key = useRef(crypto.randomUUID())
   const [amount, setAmount] = useState(moneyText(payment?.amountCents)),
     [date, setDate] = useState(payment?.paymentDate ?? localBillDate())
@@ -78,6 +99,14 @@ export function BillPaymentForm({
               throw new Error('Confirm that the payment has actually cleared')
             await save(
               billPaymentInputSchema.parse({
+                ...(confirmBill && !payment && billRevision !== undefined
+                  ? {
+                      billAmountConfirmation: {
+                        amountCents: parseMoney(billedAmount, true),
+                        expectedRevision: billRevision,
+                      },
+                    }
+                  : {}),
                 idempotencyKey: key.current,
                 amountCents: parseMoney(amount, true),
                 paymentDate: date,
@@ -99,14 +128,48 @@ export function BillPaymentForm({
         }}
       >
         <div className="min-h-0 space-y-5 overflow-y-auto p-5 sm:p-7">
-          <div className="rounded-lg border border-white/10 p-3 text-sm text-slate-400">
-            <p>Period due {period.dueDate}</p>
-            <p>Budget estimate: {formatMoney(period.estimatedAmountCents)}</p>
-            <p>Actual bill: {formatMoney(period.amountCents)}</p>
-            <p>Remaining: {formatMoney(period.remainingCents)}</p>
-          </div>
+          <BillAmountSummary period={period} />
+          {!payment && allowCompleted && billRevision !== undefined && (
+            <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-[#aab9a9]"
+                  checked={confirmBill}
+                  onChange={(event) => setConfirmBill(event.target.checked)}
+                />
+                <span>
+                  Confirm the actual bill total for this period
+                  <span className="mt-1 block text-xs text-slate-400">
+                    Use the amount on your bill, even when you are only paying part of it. Your
+                    budget estimate stays unchanged.
+                  </span>
+                </span>
+              </label>
+              {confirmBill && (
+                <FormField label="Confirmed bill total ($)">
+                  <Input
+                    required
+                    inputMode="decimal"
+                    value={billedAmount}
+                    placeholder="Amount on your bill"
+                    onChange={(event) => {
+                      setBilledAmount(event.target.value)
+                      setCleared(false)
+                    }}
+                  />
+                </FormField>
+              )}
+            </section>
+          )}
+          {period.amountCents === null && !confirmBill && (
+            <p className="text-xs text-amber-200">
+              You can record what you paid. The amount still owed will remain unknown until the
+              actual bill total is confirmed.
+            </p>
+          )}
           <PaymentAmountSelector
-            options={billPaymentOptions(period)}
+            options={billPaymentOptions(reviewedPeriod)}
             selected={selected}
             onSelect={(option) => {
               setSelected(option.id)
@@ -181,11 +244,12 @@ export function BillPaymentForm({
             confirmed={cleared}
             onChange={setCleared}
           />
-          {period.remainingCents !== null && Number(amount) * 100 > period.remainingCents && (
-            <p className="text-sm text-amber-200">
-              This exceeds the remaining bill. The excess will appear as an overpayment.
-            </p>
-          )}
+          {reviewedPeriod.remainingCents !== null &&
+            Number(amount) * 100 > reviewedPeriod.remainingCents && (
+              <p className="text-sm text-amber-200">
+                This exceeds the remaining bill. The excess will appear as an overpayment.
+              </p>
+            )}
           {error && (
             <p role="alert" className="text-sm text-rose-300">
               {error}

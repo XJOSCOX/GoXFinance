@@ -32,6 +32,8 @@ function overview(): HouseholdOverview {
       unknownRecurringCount: 0,
       estimatedRecurringCount: 0,
       overdueCount: 0,
+      unknownPeriodCount: 0,
+      confirmedPeriodCount: 0,
       outstandingCents: 0,
     },
     actual: { spendingCents: 0, cashOutflowCents: 5000, transactionCount: 1 },

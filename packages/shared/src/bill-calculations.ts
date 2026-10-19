@@ -154,6 +154,8 @@ export function calculateBillSummary(bills: BillView[], debts: Debt[], today: st
     unknownRecurringCount: recurring.filter((bill) => monthly(bill) === null).length,
     estimatedRecurringCount: recurring.filter((bill) => bill.amountType === 'variable').length,
     overdueCount: periods.filter((period) => period.overdue).length,
+    unknownPeriodCount: periods.filter((period) => period.amountCents === null).length,
+    confirmedPeriodCount: periods.filter((period) => period.amountCents !== null).length,
     outstandingCents: periods
       .filter((period) => period.paymentStatus !== 'cancelled')
       .reduce((sum, period) => safe(sum + (period.remainingCents ?? 0)), 0),

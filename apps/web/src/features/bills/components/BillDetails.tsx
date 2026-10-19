@@ -5,6 +5,7 @@ import { FormField, MoneyField, Select } from '../../../components/ui/FormField'
 import { formatMoney } from '../../../lib/money'
 import { Modal } from '../../../components/ui/Modal'
 import { errorMessage } from '../../../lib/api'
+import { BillAmountSummary } from './BillAmountSummary'
 import { BillPaymentForm } from './BillPaymentForm'
 import { recordBillPayment } from '../api/billClient'
 import { BillAuditHistory } from './BillAuditHistory'
@@ -87,26 +88,7 @@ export function BillDetails({
         </FormField>
         {period ? (
           <>
-            <div className="grid grid-cols-2 gap-4 rounded-xl border border-white/10 p-4 text-sm">
-              <p>
-                Actual billed
-                <strong className="mt-1 block">{formatMoney(period.amountCents)}</strong>
-              </p>
-              <p>
-                Budget estimate
-                <strong className="mt-1 block">{formatMoney(period.estimatedAmountCents)}</strong>
-              </p>
-              <p>
-                Confirmed paid
-                <strong className="mt-1 block">{formatMoney(period.paidCents)}</strong>
-              </p>
-              <p>
-                Remaining
-                <strong className="mt-1 block">{formatMoney(period.remainingCents)}</strong>
-              </p>
-              <p>Credits: {formatMoney(period.creditCents)}</p>
-              <p>Overpayment: {formatMoney(period.overpaidCents)}</p>
-            </div>
+            <BillAmountSummary period={period} />
             {bill.canManage && (
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -124,7 +106,7 @@ export function BillDetails({
                   disabled={bill.status === 'cancelled'}
                   onClick={() => setPayment(null)}
                 >
-                  Mark paid / record partial
+                  Record payment
                 </Button>
               </div>
             )}
@@ -214,6 +196,7 @@ export function BillDetails({
             {payment !== undefined && (
               <BillPaymentForm
                 period={period}
+                billRevision={bill.revision}
                 allowCompleted={!bill.requiresApproval}
                 payment={payment ?? undefined}
                 close={() => setPayment(undefined)}

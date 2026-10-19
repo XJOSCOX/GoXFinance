@@ -106,8 +106,16 @@ export function BillsPage() {
         />
         <SummaryStat
           label="Actual remaining"
-          amount={formatMoney(summary.outstandingCents)}
-          detail="Generated periods with actual amounts"
+          amount={formatMoney(
+            summary.unknownPeriodCount && !summary.confirmedPeriodCount
+              ? null
+              : summary.outstandingCents,
+          )}
+          detail={
+            summary.unknownPeriodCount
+              ? `${summary.unknownPeriodCount} bill totals unconfirmed; excluded`
+              : 'Generated periods with confirmed amounts'
+          }
         />
         <SummaryStat
           label="Overdue periods"
@@ -222,9 +230,30 @@ export function BillsPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <p className="font-semibold tabular-nums">
-                    {formatMoney(next?.amountCents ?? null)}
-                  </p>
+                  {next && (
+                    <dl className="grid grid-cols-2 gap-x-5 gap-y-1 text-right text-xs">
+                      <div>
+                        <dt className="text-slate-400">Budget estimate</dt>
+                        <dd className="mt-1 font-semibold tabular-nums">
+                          {formatMoney(next.estimatedAmountCents)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-400">Confirmed bill</dt>
+                        <dd className="mt-1 font-semibold tabular-nums">
+                          {formatMoney(next.amountCents)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-400">Completed payments</dt>
+                        <dd className="mt-1 tabular-nums">{formatMoney(next.paidCents)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-400">Remaining owed</dt>
+                        <dd className="mt-1 tabular-nums">{formatMoney(next.remainingCents)}</dd>
+                      </div>
+                    </dl>
+                  )}
                   <Button
                     size="small"
                     onClick={() => {

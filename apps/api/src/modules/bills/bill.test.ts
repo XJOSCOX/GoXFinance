@@ -666,3 +666,147 @@ describe('bills persistence, payments and permissions', () => {
     }
   })
 })
+
+describe('actual bill confirmation during payment recording', () => {
+  it('saves actual owed and partial payment atomically, preserves estimates and history across restart', async () => {
+    const f = await setup(),
+      bill = await f.create(),
+      period = bill.periods[0]
+    const suffix = `/${bill.id}/periods/${period.id}/payments`
+    const input = {
+      idempotencyKey: randomUUID(),
+      amountCents: 20000,
+      paymentDate: '2026-10-01',
+      method: 'cash',
+      notes: null,
+      status: 'completed',
+      billAmountConfirmation: { amountCents: 34218, expectedRevision: bill.revision },
+    }
+    const result = await f.request('POST', suffix, input)
+    expect(result.statusCode, result.body).toBe(200)
+    expect(result.json().bill.periods[0]).toMatchObject({
+      amountCents: 34218,
+      estimatedAmountCents: 30000,
+      paidCents: 20000,
+      remainingCents: 14218,
+      paymentStatus: 'partially_paid',
+    })
+    expect(result.json().bill.estimatedAmountCents).toBe(30000)
+    expect(result.json().bill.periods[1].amountCents).toBeNull()
+    expect((await f.request('POST', suffix, input)).json().bill.payments).toHaveLength(1)
+    expect(
+      (
+        await f.request('POST', suffix, {
+          ...input,
+          billAmountConfirmation: { ...input.billAmountConfirmation, amountCents: 40000 },
+        })
+      ).statusCode,
+    ).toBe(409)
+    const audit = (await f.request('GET', `/${bill.id}`)).json().audit
+    expect(audit.some((entry: { action: string }) => entry.action === 'edit_period')).toBe(true)
+    await f.app.close()
+    apps.splice(apps.indexOf(f.app), 1)
+    const reopened = await buildApp({
+      databasePath: f.path,
+      frontendOrigin: testOrigin,
+      secureCookie: false,
+    })
+    apps.push(reopened)
+    const persisted = await testRequest(reopened, 'GET', f.base + `/${bill.id}`, f.owner.cookie)
+    expect(persisted.json().bill.periods[0]).toMatchObject({
+      amountCents: 34218,
+      paidCents: 20000,
+      remainingCents: 14218,
+    })
+  })
+  it('rejects stale and invalid confirmations without saving payments or changing the period', async () => {
+    const f = await setup(),
+      bill = await f.create(),
+      period = bill.periods[0]
+    const suffix = `/${bill.id}/periods/${period.id}/payments`
+    const input = {
+      idempotencyKey: randomUUID(),
+      amountCents: 20000,
+      paymentDate: '2026-10-01',
+      method: 'cash',
+      notes: null,
+      status: 'completed',
+      billAmountConfirmation: { amountCents: 34218, expectedRevision: bill.revision },
+    }
+    await f.act(bill, {
+      action: 'edit_period',
+      periodId: period.id,
+      changes: { amountCents: 35000, creditCents: 0, notes: null },
+    })
+    expect((await f.request('POST', suffix, input)).statusCode).toBe(409)
+    expect(
+      (
+        await f.request('POST', suffix, {
+          ...input,
+          billAmountConfirmation: {
+            amountCents: 1.25,
+            expectedRevision: bill.revision + 1,
+          },
+        })
+      ).statusCode,
+    ).toBe(400)
+    const current = (await f.request('GET', `/${bill.id}`)).json().bill
+    expect(current.payments).toHaveLength(0)
+    expect(current.periods[0].amountCents).toBe(35000)
+  })
+  it('requires Owner approval for joint actual amounts even when the proposed payment is pending', async () => {
+    const f = await setup()
+    for (const role of ['admin', 'editor', 'viewer'] as const) {
+      const actor = await testUser(f.app, role),
+        member = testRole(f.path, f.home, actor.id, role)
+      const bill = await f.create({ name: role + ' joint utility', memberIds: [f.member, member] })
+      const result = await f.request(
+        'POST',
+        `/${bill.id}/periods/${bill.periods[0].id}/payments`,
+        {
+          idempotencyKey: randomUUID(),
+          amountCents: 20000,
+          paymentDate: '2026-10-01',
+          method: 'cash',
+          notes: null,
+          status: 'pending',
+          billAmountConfirmation: { amountCents: 34218, expectedRevision: bill.revision },
+        },
+        actor.cookie,
+      )
+      expect(result.statusCode).toBe(403)
+      const current = (await f.request('GET', `/${bill.id}`)).json().bill
+      expect(current.payments).toHaveLength(0)
+      expect(current.periods[0].amountCents).toBeNull()
+    }
+  })
+})
+
+it('rolls back bill confirmation and its audit if payment persistence fails', async () => {
+  const f = await setup(),
+    bill = await f.create(),
+    period = bill.periods[0]
+  const sqlite = new Database(f.path)
+  try {
+    sqlite.exec(
+      "CREATE TRIGGER qa_fail_payment BEFORE INSERT ON bill_payments BEGIN SELECT RAISE(ABORT, 'QA persistence failure'); END",
+    )
+  } finally {
+    sqlite.close()
+  }
+  const result = await f.request('POST', `/${bill.id}/periods/${period.id}/payments`, {
+    idempotencyKey: randomUUID(),
+    amountCents: 20000,
+    paymentDate: '2026-10-01',
+    method: 'cash',
+    notes: null,
+    status: 'completed',
+    billAmountConfirmation: { amountCents: 34218, expectedRevision: bill.revision },
+  })
+  expect(result.statusCode).toBe(500)
+  const current = (await f.request('GET', `/${bill.id}`)).json()
+  expect(current.bill.periods[0].amountCents).toBeNull()
+  expect(current.bill.payments).toHaveLength(0)
+  expect(current.bill.revision).toBe(bill.revision)
+  expect(current.audit).toHaveLength(1)
+})

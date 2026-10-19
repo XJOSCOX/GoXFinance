@@ -14,14 +14,14 @@
 
 The shared `cashOutflows` model distinguishes purchase spending from cash paid:
 
-| Record | Purchase spending | Cash paid |
-| --- | --- | --- |
-| Cash/debit everyday purchase | Amount | Amount |
-| Credit-card purchase | Amount | Zero |
-| Confirmed standalone bill payment without credit | Amount | Amount |
-| Confirmed standalone bill payment on credit | Amount | Zero |
-| Confirmed debt repayment without credit | Zero | Amount |
-| Scheduled, pending, failed, cancelled, or voided record | Zero | Zero |
+| Record                                                  | Purchase spending | Cash paid |
+| ------------------------------------------------------- | ----------------- | --------- |
+| Cash/debit everyday purchase                            | Amount            | Amount    |
+| Credit-card purchase                                    | Amount            | Zero      |
+| Confirmed standalone bill payment without credit        | Amount            | Amount    |
+| Confirmed standalone bill payment on credit             | Amount            | Zero      |
+| Confirmed debt repayment without credit                 | Zero              | Amount    |
+| Scheduled, pending, failed, cancelled, or voided record | Zero              | Zero      |
 
 A debt-linked bill confirmation creates one authoritative debt payment in the same database transaction. The bill stores its ID. Reporting excludes that bill-payment alias and counts the authoritative debt payment once. Corrections/cancellations update that same debt payment; no second repayment is created. Reading bill history reflects corrections made through the debt manager. Unknown principal remains unknown: a bill payment does not invent a new debt balance.
 
@@ -62,3 +62,9 @@ Existing databases receive the application's verified pre-migration snapshot. Da
 The site is still the local React/Fastify application: `npm install`, then `npm run dev`, then open `http://localhost:1420`. Data remains in the configured SQLite file (default `data/goxfinance_web.sqlite`). No Income, Trading, bank account tracking, Supabase, or advanced charts are included.
 
 Enhanced amount presets, allocation fields, migration `0013`, and all five payment statuses are documented in [payment-options.md](payment-options.md).
+
+### Confirming usage-based bills while recording a payment
+
+Bill amounts display separately: budget estimate, confirmed bill total, completed payments, and remaining owed. In **Record payment**, optionally select **Confirm the actual bill total for this period** and enter the amount shown on the bill. Enter the actual payment independently; partial payments do not imply that the bill was paid in full. An estimate never prefills a payment or becomes a confirmed bill automatically. Until the bill total is entered, the remaining amount stays unknown.
+
+The optional `billAmountConfirmation` payment input includes the actual amount in integer cents and the expected bill revision. The API validates permissions and revision, then saves the period amount, payment, linked debt transaction (when applicable), and audit entries in one SQLite transaction. Retries use the same submission key; conflicting payloads and stale revisions are rejected. Estimates and other periods remain unchanged. Owner-linked joint bills still require the existing Owner approval workflow for amount changes; non-owners cannot use payment recording to bypass it. No schema migration is needed.
