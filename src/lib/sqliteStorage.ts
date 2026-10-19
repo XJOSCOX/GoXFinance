@@ -112,8 +112,10 @@ export async function saveRecord(key: Collection, record: Backup[Collection][num
   if (key === 'debts' || key === 'bankAccounts') {
     const old = (existing[key] as unknown as Record<string, unknown>[]).find(row => row.id === parsed.id)
     const field = key === 'debts' ? 'verifiedBalance' : 'confirmedBalance'
-    if (old && old[field] !== parsed[field]) {
-      const correction = schemas.balanceCorrections.parse({ ...newBase(`${parsed.name} balance confirmation`), entityType: key === 'debts' ? 'debt' : 'bank', entityId: parsed.id, previousAmount: old[field], nextAmount: parsed[field], date: new Date().toISOString().slice(0, 10), reason: String(parsed.notes || 'Manual balance confirmation') })
+    const dateField = key === 'debts' ? 'verifiedAt' : 'confirmedAt'
+    if (old && (old[field] !== parsed[field] || old[dateField] !== parsed[dateField])) {
+      const dateChange = old[dateField] !== parsed[dateField] ? `; statement date ${String(old[dateField] ?? 'unknown')} → ${String(parsed[dateField] ?? 'unknown')}` : ''
+      const correction = schemas.balanceCorrections.parse({ ...newBase(`${parsed.name} balance confirmation`), entityType: key === 'debts' ? 'debt' : 'bank', entityId: parsed.id, previousAmount: old[field], nextAmount: parsed[field], date: new Date().toISOString().slice(0, 10), reason: `${String(parsed.notes || 'Manual balance confirmation')}${dateChange}` })
       statements.push(insertStatement('balanceCorrections', correction))
     }
   }

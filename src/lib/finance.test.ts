@@ -65,4 +65,11 @@ describe('financial calculations', () => {
     expect(bankLedger(savings, data).projected).toBe(200)
     expect(budgetProgress(data, budget)).toMatchObject({ planned: 200, actual: 50, variance: 150, source: 'transactions' })
   })
+  it('does not add transactions again to a legacy current bank balance', () => {
+    const data = emptyBackup()
+    const account = bankAccountSchema.parse({ ...newBase('Legacy checking'), accountType: 'checking', balance: 1200 })
+    data.bankAccounts.push(account)
+    data.incomeTransactions.push(incomeTransactionSchema.parse({ ...newBase('Old deposit'), bankAccountId: account.id, amount: 300, date: '2026-09-01' }))
+    expect(bankLedger(account, data)).toMatchObject({ projected: 1200, unreconciledLegacy: true })
+  })
 })

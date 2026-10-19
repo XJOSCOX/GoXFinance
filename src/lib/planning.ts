@@ -75,6 +75,7 @@ export function simulateCashFlow(data: Backup, options: SimulationOptions) {
   const settlementItems = accepted.flatMap(s => settlementPlan(s, data).schedule.filter(item => item.remaining > 0).map(item => ({ settlementId: s.id, name: s.name, date: item.date, amount: item.remaining })))
   const monthStart = `${options.startMonth}-01`
   let cash = cents(options.startingCash)
+  let confirmedCash = cents(options.startingCash)
   return Array.from({ length: 12 }, (_, index) => {
     const date = addMonths(monthStart, index), month = monthKey(date)
     const startingCash = cash
@@ -99,7 +100,8 @@ export function simulateCashFlow(data: Backup, options: SimulationOptions) {
     const expenses = cents(monthlyBills + actualExpenses + monthlyMinimums + actualPayments + oneTime + settlements + savings + extra)
     const freeCashFlow = cents(income - expenses)
     cash = cents(cash + freeCashFlow)
-    const availableSettlementBudget = Math.max(0, cents(startingCash + confirmedIncome + actualPayouts - expenses))
+    confirmedCash = cents(confirmedCash + confirmedIncome + actualPayouts - expenses)
+    const availableSettlementBudget = Math.max(0, cents(confirmedCash - data.settings.monthlyEssentialsBuffer))
     return { month, startingCash, endingCash: cash, income, confirmedIncome, estimatedIncome, recurringBills: monthlyBills, actualExpenses, minimums: monthlyMinimums, actualPayments, oneTime, settlements, emergencySavings: savings, extraDebtPayments: extra, expenses, freeCashFlow, actualPayouts, hypothetical, shortfall: cash < 0 ? Math.abs(cash) : 0, availableSettlementBudget, obligations: settlementDue }
   })
 }

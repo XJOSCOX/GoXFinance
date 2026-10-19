@@ -27,7 +27,8 @@ export function debtBalanceView(debt: Debt, data: Backup) {
 /** Bank ledger is a projection from a confirmed or opening balance, never a replacement for that balance. */
 export function bankLedger(account: BankAccount, data: Backup) {
   const baseline = account.confirmedBalance ?? account.initialBalance ?? account.balance
-  const after = (date: string) => !account.confirmedAt || date > account.confirmedAt
+  const unreconciledLegacy = account.confirmedBalance === null && account.initialBalance === null && account.balance !== null
+  const after = (date: string) => !unreconciledLegacy && (!account.confirmedAt || date > account.confirmedAt)
   const income = data.incomeTransactions.filter(t => t.bankAccountId === account.id && after(t.date) && !data.tradingPayouts.some(p => p.bankAccountId === account.id && p.date === t.date && p.amount === t.amount)).reduce((n, t) => n + t.amount, 0)
   const payouts = data.tradingPayouts.filter(t => t.bankAccountId === account.id && after(t.date)).reduce((n, t) => n + t.amount, 0)
   const expenses = data.expenseTransactions.filter(t => t.bankAccountId === account.id && t.cashOutflow && after(t.date)).reduce((n, t) => n + t.amount, 0)
@@ -35,7 +36,7 @@ export function bankLedger(account: BankAccount, data: Backup) {
   const transfersIn = data.bankTransfers.filter(t => t.toAccountId === account.id && after(t.date)).reduce((n, t) => n + t.amount, 0)
   const transfersOut = data.bankTransfers.filter(t => t.fromAccountId === account.id && after(t.date)).reduce((n, t) => n + t.amount, 0)
   const change = Math.round((income + payouts + transfersIn - expenses - payments - transfersOut) * 100) / 100
-  return { baseline, change, projected: baseline === null ? null : Math.round((baseline + change) * 100) / 100, income, payouts, expenses, payments, transfersIn, transfersOut }
+  return { baseline, change, projected: baseline === null ? null : Math.round((baseline + change) * 100) / 100, income, payouts, expenses, payments, transfersIn, transfersOut, unreconciledLegacy }
 }
 export function budgetProgress(data: Backup, budget: Backup['monthlyBudgets'][number]) {
   const category = data.categories.find(row => row.id === budget.categoryId)

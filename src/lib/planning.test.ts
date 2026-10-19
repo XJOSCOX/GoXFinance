@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { exampleData } from './example'
-import { debtSchema, newBase, paymentSchema, settlementSchema, tradingPayoutSchema, oneTimeExpenseSchema } from './schema'
+import { debtSchema, emptyBackup, newBase, paymentSchema, settlementSchema, tradingPayoutSchema, oneTimeExpenseSchema } from './schema'
 import { debtPriority, debtQueue, settlementPlan, simulateCashFlow } from './planning'
 
 describe('priority and cash flow planning', () => {
@@ -37,5 +37,15 @@ describe('priority and cash flow planning', () => {
     expect(baseline[0].estimatedIncome).toBe(0)
     expect(baseline[0].freeCashFlow).toBeLessThan(0)
     expect(scenario[0].endingCash - baseline[0].endingCash).toBe(900)
+  })
+  it('never turns hypothetical trading into a later settlement budget', () => {
+    const data = emptyBackup()
+    data.settings.monthlyEssentialsBuffer = 100
+    const options = { startMonth: '2026-10', startingCash: 500, monthlyEmergencySavings: 0, monthlyExtraDebtPayment: 0 }
+    const baseline = simulateCashFlow(data, options)
+    const scenario = simulateCashFlow(data, { ...options, hypotheticalTradingMonthly: 900, includeProjectedIncome: true })
+    expect(scenario[1].endingCash).toBeGreaterThan(baseline[1].endingCash)
+    expect(baseline.map(row => row.availableSettlementBudget)).toEqual(Array(12).fill(400))
+    expect(scenario.map(row => row.availableSettlementBudget)).toEqual(Array(12).fill(400))
   })
 })
