@@ -1,0 +1,73 @@
+import {
+  Home,
+  Zap,
+  Wifi,
+  ShoppingBasket,
+  Utensils,
+  Car,
+  Shield,
+  CreditCard,
+  HeartPulse,
+  Users,
+  ShoppingBag,
+  Package,
+  Repeat,
+  GraduationCap,
+  Clapperboard,
+  Plane,
+  Landmark,
+  Gift,
+  Sparkles,
+  CircleEllipsis,
+} from 'lucide-react'
+
+const styles = [
+  { match: /housing|rent|home/, icon: Home, color: '#a5b4fc' },
+  { match: /utilit|electric|gas|water/, icon: Zap, color: '#fcd34d' },
+  { match: /internet|phone|wifi/, icon: Wifi, color: '#67e8f9' },
+  { match: /grocer/, icon: ShoppingBasket, color: '#6ee7b7' },
+  { match: /dining|food|takeout/, icon: Utensils, color: '#fdba74' },
+  { match: /transport|car/, icon: Car, color: '#93c5fd' },
+  { match: /insurance/, icon: Shield, color: '#c4b5fd' },
+  { match: /debt|credit/, icon: CreditCard, color: '#fda4af' },
+  { match: /health/, icon: HeartPulse, color: '#f9a8d4' },
+  { match: /child|family/, icon: Users, color: '#a5f3fc' },
+  { match: /shopping/, icon: ShoppingBag, color: '#d8b4fe' },
+  { match: /supplies/, icon: Package, color: '#a7f3d0' },
+  { match: /subscription/, icon: Repeat, color: '#c4b5fd' },
+  { match: /education/, icon: GraduationCap, color: '#93c5fd' },
+  { match: /entertainment/, icon: Clapperboard, color: '#f0abfc' },
+  { match: /travel/, icon: Plane, color: '#7dd3fc' },
+  { match: /tax|government/, icon: Landmark, color: '#cbd5e1' },
+  { match: /gift|donation/, icon: Gift, color: '#f9a8d4' },
+  { match: /personal/, icon: Sparkles, color: '#fef08a' },
+]
+const icons = {
+  home: Home,
+  zap: Zap,
+  wifi: Wifi,
+  'shopping-basket': ShoppingBasket,
+  utensils: Utensils,
+  car: Car,
+  shield: Shield,
+  'credit-card': CreditCard,
+  'heart-pulse': HeartPulse,
+  users: Users,
+  'shopping-bag': ShoppingBag,
+  package: Package,
+  repeat: Repeat,
+  'graduation-cap': GraduationCap,
+  clapperboard: Clapperboard,
+  plane: Plane,
+  landmark: Landmark,
+  gift: Gift,
+  sparkles: Sparkles,
+}
+/** Stable category colors, independent of spending performance colors. */
+export function categoryAppearance(name: string, savedIcon?: string | null) {
+  const style = styles.find((s) => s.match.test(name.toLowerCase()))
+  return {
+    color: style?.color ?? '#cbd5e1',
+    Icon: icons[savedIcon as keyof typeof icons] ?? style?.icon ?? CircleEllipsis,
+  }
+}
