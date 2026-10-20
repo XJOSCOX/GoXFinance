@@ -53,6 +53,7 @@ export type BudgetCategoryRow = {
   status: BudgetStatus | null
 }
 export type BudgetReport = {
+  billDraft?: import('./budget-planning').BudgetBillDraft
   month: string
   responsibleMemberId: string | null
   budget: Budget | null

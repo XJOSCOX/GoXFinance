@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import {
   budgetSchema,
+  budgetFromBills,
   budgetCopySchema,
   createTradingSchema,
   editTradingSchema,
@@ -100,12 +101,10 @@ export function budgetService(
       if (member && !ctx.people.some((p) => p.id === member))
         throw new FinancialError('Member not found', 404)
       const data = sources(user, home),
-        records = store
-          .all(home)
-          .map((r) => ({
-            ...r,
-            canManage: permissions.canManage(user, home, r.responsibleMemberId),
-          })) as Budget[],
+        records = store.all(home).map((r) => ({
+          ...r,
+          canManage: permissions.canManage(user, home, r.responsibleMemberId),
+        })) as Budget[],
         budget = records.find((r) => r.month === month && r.responsibleMemberId === member) ?? null,
         active = budget?.status === 'active' ? budget : null
       const actual = budgetSpending(data.expenses, data.bills, month, member),
@@ -134,6 +133,7 @@ export function budgetService(
           plannedCents: previous?.totalCents ?? null,
         },
         bills: budgetBillObligations(data.bills, month, member),
+        billDraft: budgetFromBills(data.bills, data.categories, month, member),
       }
     },
     save(user: PublicUser, home: string, body: unknown, id?: string) {

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { budgetSchema, type Budget, type BudgetReport } from '@goxfinance/shared'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
-import { AmountField } from '../../../components/financial/EntryFields'
+import { BudgetAllocation } from './BudgetAllocation'
+import { BudgetBillPrefill } from './BudgetBillPrefill'
 import { Input, Button } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { readMoney, optionalText, text } from '../../../lib/financial-entry'
@@ -20,6 +21,7 @@ export function BudgetForm({
   const [limits, setLimits] = useState(
     record?.limits.map((l) => ({ ...l, value: moneyText(l.amountCents) })) ?? [],
   )
+  const [total, setTotal] = useState(moneyText(record?.totalCents))
   return (
     <FinancialEditor
       title={record ? 'Edit monthly budget' : 'Create monthly budget'}
@@ -49,12 +51,16 @@ export function BudgetForm({
         · Purchase spending limits, not available cash.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <AmountField
-          label="Total monthly budget ($)"
-          name="totalCents"
-          value={record?.totalCents}
-          required
-        />
+        <FormField label="Total monthly budget ($)">
+          <Input
+            name="totalCents"
+            inputMode="decimal"
+            required
+            value={total}
+            onChange={(e) => setTotal(e.target.value)}
+            placeholder="0.00"
+          />
+        </FormField>
         <FormField label="Budget status">
           <Select name="status" defaultValue={record?.status ?? 'active'}>
             <option value="active">Active</option>
@@ -62,6 +68,14 @@ export function BudgetForm({
           </Select>
         </FormField>
       </div>
+      <BudgetBillPrefill
+        draft={data.billDraft}
+        apply={(draft) => {
+          setLimits(draft.limits.map((l) => ({ ...l, value: moneyText(l.amountCents) })))
+          if (!total.trim()) setTotal(moneyText(draft.totalCents))
+        }}
+      />
+      <BudgetAllocation total={total} amounts={limits.map((l) => l.value)} />
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">Category limits</h3>
         <FormField label="Add budget category">

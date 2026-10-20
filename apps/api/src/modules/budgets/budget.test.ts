@@ -102,6 +102,11 @@ it('recalculates split purchases and paid standalone bills, preserving actual li
     })
   ).bill
   const period = bill.periods.find((p: { dueDate: string }) => p.dueDate === '2026-10-01')
+  const draftReport = await f.ok('GET', '/budgets?month=2026-10')
+  expect(draftReport.billDraft.totalCents).toBe(30000)
+  expect(draftReport.billDraft.limits).toEqual([{ categoryId: category.id, amountCents: 30000 }])
+  expect(draftReport.actualCents).toBe(10000)
+  expect((await f.ok('GET', '/budgets?month=2026-11')).billDraft.totalCents).toBe(30000)
   await f.ok('POST', '/bills/' + bill.id + '/actions', {
     action: 'edit_period',
     periodId: period.id,

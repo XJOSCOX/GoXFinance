@@ -1,8 +1,10 @@
-import type { BudgetReport } from '@goxfinance/shared'
+import { sumCents, type BudgetReport } from '@goxfinance/shared'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { formatMoney } from '../../../lib/money'
 export function BudgetTotals({ data }: { data: BudgetReport }) {
   const planned = data.budget?.status === 'active' ? data.budget.totalCents : null
+  const allocated =
+    planned === null ? null : sumCents(data.budget!.limits.map((l) => l.amountCents))
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -37,6 +39,12 @@ export function BudgetTotals({ data }: { data: BudgetReport }) {
           detail={`${data.previous.month} · ${formatMoney(data.actualCents - data.previous.actualCents)} change`}
         />
       </div>
+      {planned !== null && allocated !== null && (
+        <p className="mt-3 text-sm text-slate-300">
+          Monthly allocation {formatMoney(planned)} · Assigned to categories{' '}
+          {formatMoney(allocated)} · Unallocated {formatMoney(planned - allocated)}
+        </p>
+      )}
       <p className="mt-2 text-xs text-slate-500">
         Previous planned budget:{' '}
         {data.previous.plannedCents === null ? 'Not set' : formatMoney(data.previous.plannedCents)}.

@@ -6,6 +6,49 @@ import { BudgetForm } from './BudgetForm'
 import { BudgetCategoryList } from './BudgetCategoryList'
 import { BudgetCopyForm } from './BudgetCopyForm'
 afterEach(cleanup)
+it('reviews bill prefill, keeps the monthly allocation and permits adjustment before saving', async () => {
+  const save = vi.fn().mockResolvedValue(undefined)
+  render(
+    <BudgetForm
+      data={{
+        ...data,
+        billDraft: {
+          totalCents: 30000,
+          limits: [{ categoryId: category, amountCents: 30000 }],
+          rows: [
+            {
+              billId: id,
+              name: 'Fictional electricity',
+              dueDate: '2026-10-03',
+              amountCents: 30000,
+              basis: 'Saved estimate',
+              included: true,
+            },
+          ],
+        },
+      }}
+      save={save}
+      close={() => {}}
+    />,
+  )
+  fireEvent.change(screen.getByLabelText('Total monthly budget ($)'), { target: { value: '1000' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Preview saved bills' }))
+  expect(screen.getByText('Fictional electricity')).toBeTruthy()
+  expect(save).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Use bill amounts in draft' }))
+  expect((screen.getByLabelText('Total monthly budget ($)') as HTMLInputElement).value).toBe('1000')
+  expect(screen.getByText('$700.00')).toBeTruthy()
+  fireEvent.change(screen.getByLabelText('Custom groceries limit ($)'), {
+    target: { value: '350' },
+  })
+  expect(screen.getByText('$650.00')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Save budget' }))
+  await waitFor(() => expect(save).toHaveBeenCalledOnce())
+  expect(save.mock.calls[0][0].values).toMatchObject({
+    totalCents: 100000,
+    limits: [{ categoryId: category, amountCents: 35000 }],
+  })
+})
 const category = '10000000-0000-4000-8000-000000000001',
   id = '20000000-0000-4000-8000-000000000001'
 const data = {
