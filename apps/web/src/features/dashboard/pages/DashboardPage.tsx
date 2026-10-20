@@ -7,6 +7,7 @@ import { Button, Card, Input } from '../../../components/ui'
 import { FormField } from '../../../components/ui/FormField'
 import { getOverview } from '../api/overviewClient'
 import { OverviewContent } from '../components/OverviewContent'
+import { OverviewTrading } from '../components/OverviewTrading'
 import { OverviewGoals } from '../components/OverviewGoals'
 import { refreshBills } from '../../bills/api/billClient'
 import { errorMessage } from '../../../lib/api'
@@ -68,6 +69,7 @@ export function DashboardPage() {
         <OverviewContent
           data={data}
           home={selected.id}
+          tradingSummary={<OverviewTrading key={selected.id} home={selected.id} month={month} />}
           goalSummary={<OverviewGoals key={selected.id} home={selected.id} />}
         />
       ) : (

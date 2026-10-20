@@ -12,10 +12,12 @@ export function OverviewContent({
   data,
   home,
   goalSummary,
+  tradingSummary,
 }: {
   data: HouseholdOverview
   home: string
   goalSummary?: ReactNode
+  tradingSummary?: ReactNode
 }) {
   return (
     <div className="space-y-3">
@@ -94,7 +96,10 @@ export function OverviewContent({
           <div className="order-1">
             <OverviewAttention data={data} home={home} />
           </div>
-          <div className="order-3">{goalSummary}</div>
+          <div className="order-3 space-y-3">
+            {tradingSummary}
+            {goalSummary}
+          </div>
           <div className="order-4">
             <OverviewDebtProgress data={data} />
           </div>

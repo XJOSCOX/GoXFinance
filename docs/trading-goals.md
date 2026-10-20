@@ -90,3 +90,9 @@ Daily summaries accept nonnegative profit, loss and fees in integer cents. Gross
 Migration 0020 only adds nullable profit/loss columns. Historical gross-only summaries and copied events retain an unknown breakdown; no historical split is inferred. Corrections can retain gross-only mode or supply a complete breakdown. Copied events continue using their existing signed gross fields and event correction workflow.
 
 Daily-summary deletion requires current revision, confirmation and a reason. Permission checks, audit snapshots, submission retirement and deletion run in one transaction. Deleted summaries leave performance/goal totals; delayed retries cannot recreate them. Audit history remains in SQLite. Deleting a result does not cancel a payout or its Income deposit.
+
+## Overview trading totals
+
+The overview has a compact trading performance card scoped to the reporting month using recorded account session dates. It totals entered profit and loss separately, fees, and authoritative net results across household accounts. Manual summaries and copied account results count once by result ID. Historical gross-only entries are included in fees and net, while their unavailable profit/loss breakdown is clearly identified; partial profit/loss totals are labelled known. An empty month shows zero without creating transactions.
+
+Payout records are not inputs to this calculation. Confirmed payout deposits remain in Income received through the existing income integration. This is a frontend presentation and shared calculation change; no database migration or API restart is required. Tests cover three-account aggregation, negative days, fees, duplicate records, month filtering, unavailable breakdowns, empty states and payout separation.
