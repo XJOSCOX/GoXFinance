@@ -9,7 +9,14 @@ import { formatMoney } from '../../../lib/money'
 export function TradingJournalCalendar({ data }: { data: TradingData }) {
   const today = localBillDate()
   const [month, setMonth] = useState(today.slice(0, 7)),
-    [account, setAccount] = useState('all')
+    [account, setAccount] = useState(
+      () =>
+        data.groups.find(
+          (g) => g.status === 'active' && data.accounts.some((a) => a.id === g.leadAccountId),
+        )?.leadAccountId ??
+        data.accounts[0]?.id ??
+        'all',
+    )
   const accounts = account === 'all' ? data.accounts : data.accounts.filter((a) => a.id === account)
   const calendar = tradingCalendar(
     data.results,

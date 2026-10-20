@@ -164,3 +164,45 @@ it('requires verified debt balance observations and shows missing coverage inste
     goalProgress({ ...base, goalType: 'debt_reduction' }, base, sources, '2026-10-19'),
   ).toMatchObject({ actualCents: -10000, shortfallCents: 25000, incomplete: false })
 })
+
+it('counts reported trading days through the deadline, including the start-day report and losses, without treating Combine progress as cash', () => {
+  const goal = {
+    ...base,
+    period: 'custom' as const,
+    startDate: '2026-10-09',
+    endDate: '2026-10-23',
+    tradingAccountId: 'a',
+    targetCents: 300000,
+  }
+  const sources = empty()
+  sources.accounts = [{ id: 'a', stage: 'combine' }] as TradingAccount[]
+  sources.results = [
+    {
+      id: 'first',
+      accountId: 'a',
+      sessionDate: '2026-10-08',
+      reportedDate: '2026-10-09',
+      netCents: -12345,
+    },
+    {
+      id: 'current',
+      accountId: 'a',
+      sessionDate: '2026-10-19',
+      reportedDate: '2026-10-20',
+      netCents: 20000,
+    },
+    {
+      id: 'after',
+      accountId: 'a',
+      sessionDate: '2026-10-23',
+      reportedDate: '2026-10-24',
+      netCents: 999999,
+    },
+  ] as TradingResult[]
+  expect(goalProgress(goal, goal, sources, '2026-10-20')).toMatchObject({
+    actualCents: 7655,
+    shortfallCents: 292345,
+    met: false,
+    source: 'Recorded simulated Combine P&L; not cash or confirmation of passing',
+  })
+})

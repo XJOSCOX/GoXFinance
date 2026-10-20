@@ -8,6 +8,7 @@ import type { Debt } from './debts'
 import type { DebtBalanceHistory } from './debt-payments'
 import { cashOutflows, sumCents } from './outflows'
 import { debtObligationGroups, representativeDebtBalance } from './debt-calculations'
+import { tradingResultDate } from './trading-calculations'
 const date = (s: string) => new Date(s + 'T00:00:00Z')
 function anchor(start: string, period: GoalInput['period'], index: number) {
   const original = date(start)
@@ -86,7 +87,7 @@ export function goalProgress(
     )
     const records = sources.results.filter(
       (r) =>
-        within(r.sessionDate) &&
+        within(tradingResultDate(r)) &&
         (!goal.tradingAccountId || r.accountId === goal.tradingAccountId) &&
         (!goal.copyGroupId || eventIds.has(r.copyEventId ?? '')) &&
         (!member ||
@@ -98,6 +99,13 @@ export function goalProgress(
       goal.goalType === 'trading_loss'
         ? 'Recorded net loss magnitude; profits offset losses'
         : 'Recorded net realized P&L'
+    if (
+      goal.goalType === 'trading_profit' &&
+      records.some((r) =>
+        sources.accounts.some((a) => a.id === r.accountId && a.stage === 'combine'),
+      )
+    )
+      source = 'Recorded simulated Combine P&L; not cash or confirmation of passing'
   } else if (goal.goalType === 'confirmed_income') {
     actual = sumCents(
       sources.income

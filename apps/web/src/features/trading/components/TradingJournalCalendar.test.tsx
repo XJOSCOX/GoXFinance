@@ -15,12 +15,14 @@ it('switches all accounts and individual accounts, changes months, and labels si
       { id: '2', accountId: 'b', sessionDate: '2026-10-09', netCents: 10000, tradeCount: 2 },
     ],
     events: [],
-    groups: [],
+    groups: [{ id: 'group', status: 'active', leadAccountId: 'b' }],
     payouts: [],
     batches: [],
   } as unknown as TradingData
   render(<TradingJournalCalendar data={data} />)
   fireEvent.change(screen.getByLabelText('Journal month'), { target: { value: '2026-10' } })
+  expect((screen.getByLabelText('Journal account') as HTMLSelectElement).value).toBe('b')
+  fireEvent.change(screen.getByLabelText('Journal account'), { target: { value: 'all' } })
   expect(screen.getAllByText('$200.00').length).toBeGreaterThan(0)
   expect(screen.getByText(/not household cash or received income/)).toBeTruthy()
   fireEvent.change(screen.getByLabelText('Journal account'), { target: { value: 'a' } })

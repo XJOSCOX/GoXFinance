@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import {
   goalSchema,
   tradingSessionDate,
+  reportedTradingDate,
   goalContributionSchema,
   goalEndDate,
   goalWindows,
@@ -61,11 +62,28 @@ export function goalService(
       return {
         goals: store.goals(home).map((row) => {
           const goal = row as typeof row & GoalInput
+          const reported = data.results.some(
+            (r) =>
+              r.reportedDate &&
+              (!goal.tradingAccountId || r.accountId === goal.tradingAccountId) &&
+              (!goal.copyGroupId ||
+                data.events.some(
+                  (e) => e.id === r.copyEventId && e.groupId === goal.copyGroupId,
+                )) &&
+              (!goal.responsibleMemberId ||
+                data.accounts.some(
+                  (a) => a.id === r.accountId && a.responsibleMemberId === goal.responsibleMemberId,
+                )),
+          )
           const asOf =
             ['trading_profit', 'trading_loss'].includes(goal.goalType) &&
             goal.timezone &&
             goal.sessionStart
-              ? tradingSessionDate(new Date().toISOString(), goal.timezone, goal.sessionStart)
+              ? (reported ? reportedTradingDate : tradingSessionDate)(
+                  new Date().toISOString(),
+                  goal.timezone,
+                  goal.sessionStart,
+                )
               : today
           const history = goalWindows(goal, asOf).map((w) =>
             goalProgress(goal, w, { ...data, contributions }, asOf),
