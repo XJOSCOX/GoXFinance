@@ -1,3 +1,4 @@
+import { ForecastPage } from '../features/forecasts/pages/ForecastPage'
 import { DebtPlanningPage } from '../features/debt-planning/pages/DebtPlanningPage'
 import { BudgetsPage } from '../features/budgets/pages/BudgetsPage'
 import { TradingPage } from '../features/trading/pages/TradingPage'
@@ -162,6 +163,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <DebtPlanningPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/households/:householdId/forecasts"
+                element={
+                  <ProtectedRoute>
+                    <ForecastPage />
                   </ProtectedRoute>
                 }
               />

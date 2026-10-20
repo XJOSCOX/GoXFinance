@@ -21,3 +21,4 @@ export * from './goals'
 
 export * from './budgets'
 export * from './debt-planning'
+export * from './forecasts'

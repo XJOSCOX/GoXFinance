@@ -33,6 +33,11 @@ export function WorkspaceSidebar({
     { href: `/households/${household.id}/members`, label: 'Household', icon: Users },
     { href: `/households/${household.id}/debts`, label: 'Debts', icon: CreditCard },
     { href: `/households/${household.id}/debt-planning`, label: 'Debt planning', icon: Target },
+    {
+      href: `/households/${household.id}/forecasts`,
+      label: 'Cash flow forecast',
+      icon: TrendingUp,
+    },
     { href: `/households/${household.id}/bills`, label: 'Bills', icon: Receipt },
     { href: `/households/${household.id}/income`, label: 'Income', icon: Wallet },
     { href: `/households/${household.id}/expenses`, label: 'Expenses', icon: ShoppingBag },

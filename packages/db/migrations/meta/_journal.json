@@ -190,6 +190,13 @@
       "when": 1792521908812,
       "tag": "0026_chubby_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1792522335287,
+      "tag": "0027_flowery_gorilla_man",
+      "breakpoints": true
     }
   ]
 }
