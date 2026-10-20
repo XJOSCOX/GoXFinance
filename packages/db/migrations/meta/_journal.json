@@ -218,6 +218,13 @@
       "when": 1792530505752,
       "tag": "0030_swift_the_hood",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1792537652201,
+      "tag": "0031_cuddly_scalphunter",
+      "breakpoints": true
     }
   ]
 }
