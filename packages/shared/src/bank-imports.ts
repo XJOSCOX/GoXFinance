@@ -63,7 +63,7 @@ export function bankSuggestion(
   description: string,
   amountCents: number,
   creditAccount: boolean,
-) {
+): { classification: string | null; category: string | null; categoryId?: string; reason: string } {
   const name = normalizeBankMerchant((merchant ?? '') + ' ' + description)
   if (/\b(refund|reversal|returned purchase)\b/.test(name) && amountCents > 0)
     return {

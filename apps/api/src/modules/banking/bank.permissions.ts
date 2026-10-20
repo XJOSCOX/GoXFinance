@@ -2,7 +2,7 @@ import type { PublicUser } from '@goxfinance/shared'
 import { FinancialError, type FinancialAccess } from '../households/financial-access'
 import type { BankRepository } from './bank.repository'
 export function bankPermissions(access: FinancialAccess, store: BankRepository) {
-  function context(user: PublicUser, home: string) {
+  function context(user: Pick<PublicUser, 'id'>, home: string) {
     const ctx = access.context(user, home)
     if (ctx.role !== 'owner' && !ctx.self)
       throw new FinancialError('An active linked member is required', 403)
@@ -10,7 +10,7 @@ export function bankPermissions(access: FinancialAccess, store: BankRepository) 
   }
   return {
     context,
-    owner(user: PublicUser, home: string) {
+    owner(user: Pick<PublicUser, 'id'>, home: string) {
       const ctx = context(user, home)
       if (ctx.role !== 'owner')
         throw new FinancialError(
@@ -19,7 +19,7 @@ export function bankPermissions(access: FinancialAccess, store: BankRepository) 
         )
       return ctx
     },
-    account(user: PublicUser, home: string, id: string, write = false) {
+    account(user: Pick<PublicUser, 'id'>, home: string, id: string, write = false) {
       const ctx = context(user, home),
         row = store.accounts(home).find((a) => a.id === id)
       if (!row || (ctx.role !== 'owner' && !row.memberIds.includes(ctx.self!.id)))

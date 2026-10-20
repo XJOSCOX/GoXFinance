@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { HouseholdOverview } from '@goxfinance/shared'
+import { sumCents } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { toneStyles, statusTone } from '../../../components/ui/semantic-tones'
 import { formatMoney } from '../../../lib/money'
@@ -59,9 +60,11 @@ function PaymentList({
 export function OverviewPayments({
   payments,
   home,
+  refunds = [],
 }: {
   payments: HouseholdOverview['payments']
   home: string
+  refunds?: HouseholdOverview['refunds']
 }) {
   const [selected, setSelected] = useState<'completed' | 'pending' | 'scheduled'>('completed')
   const labels = { completed: 'Completed', pending: 'Pending', scheduled: 'Scheduled' }
@@ -79,6 +82,26 @@ export function OverviewPayments({
             Selected month, by payment date. Linked bills and debts count once.
           </p>
         </div>
+        {refunds.length > 0 && (
+          <details className="rounded-lg border border-emerald-300/15 p-3 text-xs">
+            <summary className="cursor-pointer text-emerald-200">
+              Refund credits · {formatMoney(sumCents(refunds.map((r) => r.amountCents)))}
+            </summary>
+            <p className="mt-2 text-slate-400">
+              Original payments remain in their history. Net cash paid and spending include the
+              applicable reversing credits, without counting them as income.
+            </p>
+            {refunds.map((r) => (
+              <p key={r.id} className="mt-2 flex justify-between gap-3">
+                <span>
+                  {r.date} ·{' '}
+                  {r.method === 'credit_card' ? 'Credit-card purchase credit' : 'Returned cash'}
+                </span>
+                <strong>{formatMoney(r.amountCents)}</strong>
+              </p>
+            ))}
+          </details>
+        )}
         <div
           className="grid grid-cols-3 gap-1 rounded-lg border border-white/[.07] bg-black/10 p-1"
           aria-label="Payment status"

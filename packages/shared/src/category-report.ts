@@ -2,6 +2,7 @@ import type { BillView } from './bills'
 import type { Debt } from './debts'
 import type { DebtPayment } from './debt-payments'
 import type { Expense } from './expenses'
+import type { FinancialRefund } from './bank-review'
 import { billMonthlyCents } from './bill-calculations'
 import { debtObligationGroups, representativeDebtBalance } from './debt-calculations'
 import { cashOutflows, sumCents } from './outflows'
@@ -14,6 +15,7 @@ export function categoryReport(
   payments: DebtPayment[],
   month: string,
   today = localBillDate(),
+  refunds: FinancialRefund[] = [],
 ) {
   type Row = {
     categoryId: string | null
@@ -110,6 +112,19 @@ export function categoryReport(
       add(id, 'spendingCents', transaction.spendingCents)
       add(id, 'cashOutflowCents', transaction.cashOutflowCents)
     }
+  }
+  for (const r of refunds.filter(
+    (r) => r.status === 'completed' && r.date <= today && r.date.startsWith(month),
+  )) {
+    if (r.debtPaymentId) {
+      const payment = payments.find((p) => p.id === r.debtPaymentId),
+        debt = debts.find((d) => d.id === payment?.debtId)
+      if (r.method !== 'credit_card') add(debt?.categoryId, 'cashOutflowCents', -r.amountCents)
+    } else
+      for (const a of r.allocations) {
+        add(a.categoryId, 'spendingCents', -a.amountCents)
+        if (r.method !== 'credit_card') add(a.categoryId, 'cashOutflowCents', -a.amountCents)
+      }
   }
   return [...rows.values()]
 }

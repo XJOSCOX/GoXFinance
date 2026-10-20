@@ -67,7 +67,17 @@ export function billPeriodView(
         payment.status === 'completed' &&
         payment.paymentDate <= today,
     )
-    .reduce((sum, payment) => safe(sum + payment.amountCents), 0)
+    .reduce(
+      (sum, payment) =>
+        safe(
+          sum +
+            payment.amountCents -
+            (payment.refunds ?? [])
+              .filter((r) => r.status === 'completed' && r.date <= today)
+              .reduce((n, r) => safe(n + r.amountCents), 0),
+        ),
+      0,
+    )
   const amount = period.amountCents // Estimates are never actual amounts owed.
   const settled = safe(paidCents + period.creditCents)
   const remainingCents = amount === null ? null : Math.max(0, amount - settled)

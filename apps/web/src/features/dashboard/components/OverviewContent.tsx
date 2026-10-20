@@ -39,7 +39,11 @@ export function OverviewContent({
               label="Cash paid"
               tone="warning"
               amount={formatMoney(data.actual.cashOutflowCents)}
-              detail="Completed cash outflows only"
+              detail={
+                data.refunds?.length
+                  ? 'Completed outflows, net of refunds'
+                  : 'Completed cash outflows only'
+              }
             />
             <SummaryStat
               compact
@@ -99,7 +103,7 @@ export function OverviewContent({
           <OverviewDetails label="Bill progress & payment activity">
             <div className="space-y-3">
               <OverviewProgress data={data} />
-              <OverviewPayments payments={data.payments} home={home} />
+              <OverviewPayments payments={data.payments} home={home} refunds={data.refunds} />
             </div>
           </OverviewDetails>
         </div>

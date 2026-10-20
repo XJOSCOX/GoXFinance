@@ -18,7 +18,9 @@ export function ForecastBudgetReference({
       </p>
     )
   const spent = sumCents(
-      budgetSpending(sources.expenses, sources.bills, month, null).map((r) => r.actualCents),
+      budgetSpending(sources.expenses, sources.bills, month, null, undefined, sources.refunds).map(
+        (r) => r.actualCents,
+      ),
     ),
     usage = budgetUsage(budget.totalCents, spent)
   return (

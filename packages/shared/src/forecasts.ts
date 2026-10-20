@@ -75,6 +75,7 @@ export const forecastInputSchema = z
   })
 export type ForecastInput = z.infer<typeof forecastInputSchema>
 export type ForecastSources = {
+  refunds?: import('./bank-review').FinancialRefund[]
   bills: BillView[]
   debts: Debt[]
   payments: DebtPayment[]
@@ -91,6 +92,7 @@ export type ForecastEvent = {
   amountCents: number | null
   direction: 'in' | 'out'
   kind:
+    | 'refund'
     | 'confirmed_income'
     | 'expected_income'
     | 'purchase'

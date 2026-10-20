@@ -1,5 +1,6 @@
 import { z } from 'zod'
 export const reportKinds = [
+  'banking',
   'all',
   'income_spending',
   'budgets',
@@ -12,6 +13,7 @@ export const reportKinds = [
   'goals',
 ] as const
 export const reportKindLabels: Record<(typeof reportKinds)[number], string> = {
+  banking: 'Bank observations & reconciliation',
   all: 'All financial reports',
   income_spending: 'Income & spending',
   budgets: 'Budget performance',

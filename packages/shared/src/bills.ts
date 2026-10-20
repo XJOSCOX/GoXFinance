@@ -114,6 +114,7 @@ export type BillPaymentValues = Omit<
   'billAmountConfirmation'
 >
 export type BillPayment = Omit<BillPaymentValues, 'idempotencyKey'> & {
+  refunds?: { id: string; amountCents: number; date: string; status: string }[]
   id: string
   householdId: string
   billId: string

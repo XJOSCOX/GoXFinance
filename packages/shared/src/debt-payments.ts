@@ -38,6 +38,7 @@ export const verifyDebtBalanceSchema = z.object({
 export type DebtPaymentInput = z.input<typeof createDebtPaymentSchema>
 export type DebtPaymentValues = z.output<typeof createDebtPaymentSchema>
 export type DebtPayment = Omit<DebtPaymentValues, 'idempotencyKey'> & {
+  refunds?: { id: string; amountCents: number; date: string; status: string }[]
   id: string; householdId: string; debtId: string; createdByUserId: string; idempotencyKey: string;
   createdAt: string; updatedAt: string
 }

@@ -1,4 +1,4 @@
-import { sumCents } from './outflows'
+import { sumCents, paymentNetCents } from './outflows'
 import { localBillDate } from './financial-dates'
 import type { Debt } from './debts'
 import type { DebtBalanceHistory, DebtPayment } from './debt-payments'
@@ -44,9 +44,17 @@ export function calculateDebtPaymentOverview(
   const afterVerification = verifiedBalanceDate
     ? completed.filter((item) => item.paymentDate > verifiedBalanceDate)
     : []
-  const unknownPrincipalCount = afterVerification.filter(
-    (item) => item.principalAmountCents === null,
-  ).length
+  const returnedAfterVerification = completed.some((p) =>
+    (p.refunds ?? []).some(
+      (r) =>
+        r.status === 'completed' &&
+        r.date <= today &&
+        (!verifiedBalanceDate || r.date > verifiedBalanceDate),
+    ),
+  )
+  const unknownPrincipalCount =
+    afterVerification.filter((item) => item.principalAmountCents === null).length +
+    (returnedAfterVerification ? 1 : 0)
   const ambiguousSameDayCount = verifiedBalanceDate
     ? completed.filter((item) => item.paymentDate === verifiedBalanceDate).length
     : 0
@@ -56,7 +64,7 @@ export function calculateDebtPaymentOverview(
   return {
     lastVerifiedBalanceCents,
     verifiedBalanceDate,
-    completedPaymentTotalCents: sumCents(completed.map((item) => item.amountCents)),
+    completedPaymentTotalCents: sumCents(completed.map((item) => paymentNetCents(item, today))),
     principalReductionTotalCents: sumCents(completed.map((item) => item.principalAmountCents ?? 0)),
     paymentsSinceVerificationCents: sumCents(afterVerification.map((item) => item.amountCents)),
     principalSinceVerificationCents,

@@ -39,6 +39,31 @@ export function activityTables(s: ReportSources, f: ReportFilters, today: string
     bills.flatMap((b) => b.payments),
     payments,
     today,
+    s.refunds
+      .filter(
+        (r) =>
+          !f.categoryId ||
+          r.allocations.some((a) => a.categoryId === f.categoryId) ||
+          (r.debtPaymentId &&
+            s.payments.some(
+              (p) =>
+                p.id === r.debtPaymentId &&
+                s.debts.some((d) => d.id === p.debtId && d.categoryId === f.categoryId),
+            )),
+      )
+      .map((r) =>
+        f.categoryId && !r.debtPaymentId
+          ? {
+              ...r,
+              amountCents: sumCents(
+                r.allocations
+                  .filter((a) => a.categoryId === f.categoryId)
+                  .map((a) => a.amountCents),
+              ),
+              allocations: r.allocations.filter((a) => a.categoryId === f.categoryId),
+            }
+          : r,
+      ),
   ).filter((r) => inRange(r.date, f.from, f.to))
   const income = s.income.transactions.filter((t) =>
     inRange(t.status === 'confirmed' ? t.depositDate : t.payDate, f.from, f.to),
@@ -90,6 +115,7 @@ export function activityTables(s: ReportSources, f: ReportFilters, today: string
           b.month,
           b.responsibleMemberId,
           today,
+          s.refunds.filter((r) => inRange(r.date, f.from, f.to)),
         ),
       )
         .filter((r) => !f.categoryId || r.categoryId === f.categoryId)
@@ -168,6 +194,7 @@ export function activityTables(s: ReportSources, f: ReportFilters, today: string
             month,
             null,
             today,
+            s.refunds.filter((r) => inRange(r.date, f.from, f.to)),
           ).map((row) => ({
             month,
             category: s.categories.find((c) => c.id === row.categoryId)?.name ?? 'Uncategorized',
@@ -177,6 +204,22 @@ export function activityTables(s: ReportSources, f: ReportFilters, today: string
       ),
     ],
     cash_flow: [
+      table(
+        'Refund adjustments',
+        'Explicit reversals of earlier purchases or payments. Refunds reduce net cash paid/spending; they are not income.',
+        s.refunds
+          .filter((r) => inRange(r.date, f.from, f.to))
+          .map((r) => ({
+            id: r.id,
+            date: r.date,
+            status: r.status,
+            amountCents: r.amountCents,
+            expenseId: r.expenseId,
+            billPaymentId: r.billPaymentId,
+            debtPaymentId: r.debtPaymentId,
+            paymentMethod: r.method,
+          })),
+      ),
       table(
         'Cash flow history',
         'Confirmed deposits minus completed cash outflows; not a bank balance. Expected and pending amounts do not enter the net.',

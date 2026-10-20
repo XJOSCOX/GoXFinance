@@ -1,4 +1,4 @@
-import type { PublicUser, Budget } from '@goxfinance/shared'
+import type { PublicUser, Budget, BankingData, BankInbox } from '@goxfinance/shared'
 import type { DebtService } from '../debts/debt.service'
 import type { BillService } from '../bills/bill.service'
 import type { expenseService } from '../expenses/expense.service'
@@ -30,11 +30,17 @@ export function reportSources(
     budgets: BudgetRepository
     overview: ReturnType<typeof overviewRepository>
   },
+  banking?: (
+    user: PublicUser,
+    home: string,
+  ) => { summary: BankingData; transactions: BankInbox['transactions'] },
 ) {
   return (user: PublicUser, home: string) => ({
+    banking: banking?.(user, home) ?? null,
     debts: services.debts.list(user, home).debts,
     bills: services.bills.list(user, home),
     ...services.expenses.list(user, home),
+    refunds: stores.overview.refunds(home),
     income: services.income.list(user, home),
     accounts: services.trading.accounts(user, home),
     results: services.trading.results(user, home),

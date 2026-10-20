@@ -1,4 +1,6 @@
 import { categoryRepository } from '../categories/category.repository'
+import { guardBankReference } from '../../db/financial-reference-guard'
+import { financialRefunds } from '../banking/reconciliation/refund-source'
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq } from 'drizzle-orm'
 import { type ExpenseInput } from '@goxfinance/shared'
@@ -41,6 +43,7 @@ export function expenseRepository(db: DatabaseConnection) {
         .run()
   }
   return {
+    refunds: (home: string) => financialRefunds(db, home).filter((r) => !!r.expenseId),
     transaction<T>(work: () => T) {
       return db.transaction(work, { behavior: 'immediate' })
     },
@@ -95,6 +98,7 @@ export function expenseRepository(db: DatabaseConnection) {
       return this.find(home, id)!
     },
     update(home: string, id: string, revision: number, input: ExpenseInput) {
+      guardBankReference(db, home, 'expenseId', id)
       const { allocations, ...fields } = input
       db.update(expenses)
         .set({ ...fields, revision: revision + 1, updatedAt: new Date().toISOString() })
@@ -104,6 +108,7 @@ export function expenseRepository(db: DatabaseConnection) {
       return this.find(home, id)!
     },
     void(home: string, id: string, revision: number) {
+      guardBankReference(db, home, 'expenseId', id)
       db.update(expenses)
         .set({ voided: true, revision: revision + 1, updatedAt: new Date().toISOString() })
         .where(key(home, id))

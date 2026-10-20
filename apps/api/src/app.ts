@@ -1,4 +1,10 @@
 import { importRepository } from './modules/banking/imports/import.repository'
+import { reviewRepository } from './modules/banking/reconciliation/review.repository'
+import { reviewContext } from './modules/banking/reconciliation/review-context'
+import { reviewExecutor } from './modules/banking/reconciliation/review-execute'
+import { bankRefundService } from './modules/banking/reconciliation/refund.service'
+import { bankReviewService } from './modules/banking/reconciliation/review.service'
+import { registerBankReviewRoutes } from './modules/banking/reconciliation/review.routes'
 import { plaidRepository } from './modules/banking/plaid/plaid.repository'
 import { plaidLinkService } from './modules/banking/plaid/link.service'
 import { plaidSyncService } from './modules/banking/plaid/sync.service'
@@ -194,12 +200,14 @@ export async function buildApp(options: AppOptions) {
     expenses: expenses.list(user, home).expenses,
     debts: debts.list(user, home).debts,
     balances: overviewRepository(db).balances(home),
+    refunds: overviewRepository(db).refunds(home),
   }))
   registerGoalRoutes(app, auth, goals)
   registerBudgetRoutes(
     app,
     auth,
     budgetService(budgetRepository(db), tradeAccess, (user, home) => ({
+      refunds: overviewRepository(db).refunds(home),
       bills: bills.list(user, home),
       expenses: expenses.list(user, home).expenses,
       categories: categoryService(
@@ -217,6 +225,7 @@ export async function buildApp(options: AppOptions) {
     app,
     auth,
     forecastService(forecastRepository(db), tradeAccess, (user, home) => ({
+      refunds: overviewRepository(db).refunds(home),
       bills: bills.list(user, home),
       debts: debts.list(user, home).debts,
       payments: overviewRepository(db).payments(home),
@@ -255,6 +264,10 @@ export async function buildApp(options: AppOptions) {
           budgets: budgetRepository(db),
           overview: overviewRepository(db),
         },
+        (user, home) => ({
+          summary: banks.list(user, home),
+          transactions: imports.inbox(user, home).transactions,
+        }),
       ),
     ),
   )
@@ -264,6 +277,16 @@ export async function buildApp(options: AppOptions) {
   registerBankRoutes(app, auth, banks)
   const imports = importService(bankStore, importRepository(db), bankAccess, banks)
   registerImportRoutes(app, auth, imports)
+  const reviewStore = reviewRepository(db),
+    reviewServices = { debts, payments, bills, expenses, income },
+    bankReviews = bankReviewService(
+      bankStore,
+      reviewStore,
+      bankAccess,
+      reviewContext(bankAccess, imports, reviewStore, reviewServices),
+      reviewExecutor(reviewServices, reviewStore, bankRefundService(bankStore, reviewStore)),
+    )
+  registerBankReviewRoutes(app, auth, bankReviews)
   const providerStore = plaidRepository(db),
     configuredRuntime = options.plaid ?? {
       disabledReason:

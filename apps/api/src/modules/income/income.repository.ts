@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { guardBankReference } from '../../db/financial-reference-guard'
 import { and, eq, asc } from 'drizzle-orm'
 import {
   incomeSources,
@@ -93,6 +94,7 @@ export function incomeRepository(db: DatabaseConnection) {
       revision: number,
       values: Partial<typeof incomeTransactions.$inferInsert>,
     ) {
+      guardBankReference(db, home, 'incomeId', id)
       db.update(incomeTransactions)
         .set({ ...values, revision: revision + 1, updatedAt: new Date().toISOString() })
         .where(and(transactionKey(home, id), eq(incomeTransactions.revision, revision)))

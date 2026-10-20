@@ -148,6 +148,7 @@ function BankAccounts({ home }: { home: string }) {
           </p>
           {editor !== undefined && (
             <BankAccountForm
+              home={home}
               data={data}
               record={editor ?? undefined}
               close={() => setEditor(undefined)}

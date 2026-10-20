@@ -10,6 +10,7 @@ import { reportScope } from './report.scope'
 import { activityTables } from './report.activity'
 import { positionTables } from './report.positions'
 import { tradingTables } from './report.trading'
+import { bankingTables } from './report.banking'
 export function reportService(access: FinancialAccess, sources: ReturnType<typeof reportSources>) {
   function load(user: PublicUser, home: string) {
     access.context(user, home)
@@ -26,6 +27,7 @@ export function reportService(access: FinancialAccess, sources: ReturnType<typeo
       const { source, member } = scoped,
         positions = positionTables(source, filters, today, member, scoped.protectedAssetIds)
       const tables = {
+        ...bankingTables(source, filters),
         ...activityTables(source, filters, today),
         ...positions.tables,
         ...tradingTables(source, filters, today),

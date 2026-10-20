@@ -87,6 +87,7 @@ export const bankTransactionSchema = z
   .strict()
 export type BankTransactionInput = z.infer<typeof bankTransactionSchema>
 export type BankTransaction = Omit<BankTransactionInput, 'externalId'> & {
+  transferStatus?:'unmatched'|'paired'
   id: string
   householdId: string
   accountId: string
@@ -119,6 +120,7 @@ export type BankInbox = {
     status: string
     proposal: unknown
     proposedBy: string
+    proposedByName?: string
     createdAt: string
   }[]
 }

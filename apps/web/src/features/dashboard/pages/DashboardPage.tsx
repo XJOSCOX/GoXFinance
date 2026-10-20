@@ -1,4 +1,5 @@
 import { OverviewBudgets } from '../components/OverviewBudgets'
+import { OverviewBanking } from '../components/OverviewBanking'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useEffect, useState } from 'react'
@@ -67,13 +68,16 @@ export function DashboardPage() {
           </Button>
         </Card>
       ) : data && selected ? (
-        <OverviewContent
-          data={data}
-          home={selected.id}
-          tradingSummary={<OverviewTrading key={selected.id} home={selected.id} month={month} />}
-          budgetSummary={<OverviewBudgets key={selected.id} home={selected.id} month={month} />}
-          goalSummary={<OverviewGoals key={selected.id} home={selected.id} />}
-        />
+        <>
+          <OverviewContent
+            data={data}
+            home={selected.id}
+            tradingSummary={<OverviewTrading key={selected.id} home={selected.id} month={month} />}
+            budgetSummary={<OverviewBudgets key={selected.id} home={selected.id} month={month} />}
+            goalSummary={<OverviewGoals key={selected.id} home={selected.id} />}
+          />
+          <OverviewBanking key={selected.id} home={selected.id} />
+        </>
       ) : (
         <p role="status">Loading overview…</p>
       )}

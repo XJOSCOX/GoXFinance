@@ -90,6 +90,7 @@ export function expenseService(
       return {
         expenses: store.list(home).map((row) => view(user, home, row)),
         categories: store.categories(home),
+        refunds: store.refunds(home),
       }
     },
     initialize(user: PublicUser, home: string) {
@@ -155,3 +156,4 @@ export function expenseService(
     },
   }
 }
+export type ExpenseService = ReturnType<typeof expenseService>

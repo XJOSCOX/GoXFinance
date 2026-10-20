@@ -4,6 +4,7 @@ import {
   confirmManualImportSchema,
   bankTransactionSchema,
   bankSuggestion,
+  normalizeBankMerchant,
   type PublicUser,
   type ImportPreview,
   type BankTransaction,
@@ -196,6 +197,8 @@ export function importService(
       const ctx = access.context(user, home),
         data = accounts.list(user, home),
         ids = new Set(data.accounts.map((a) => a.id)),
+        legs = store.legs(home),
+        learnedRules = new Map(data.accounts.map((a) => [a.id, store.rules(home, a.id)])),
         transactions = bank
           .transactions(home)
           .filter((t) => ids.has(t.accountId))
@@ -224,6 +227,17 @@ export function importService(
               replacedById: t.replacedById,
               createdAt: t.createdAt,
               updatedAt: t.updatedAt,
+              ...(legs.some((l) => l.transactionId === t.id)
+                ? {
+                    transferStatus:
+                      legs.filter(
+                        (l) =>
+                          l.transferId === legs.find((v) => v.transactionId === t.id)!.transferId,
+                      ).length === 2
+                        ? ('paired' as const)
+                        : ('unmatched' as const),
+                  }
+                : {}),
             }
           }),
         txIds = new Set(transactions.map((t) => t.id))
@@ -243,19 +257,38 @@ export function importService(
             id: r.id,
             transactionId: r.transactionId,
             status: r.status,
-            proposal: JSON.parse(r.proposalJson),
+            proposal: JSON.parse(r.proposalJson).proposal ?? JSON.parse(r.proposalJson),
             proposedBy: r.proposedByUserId,
+            proposedByName:
+              ctx.people.find((m) => m.linkedUserId === r.proposedByUserId)?.fullName ??
+              'Former member',
             createdAt: r.createdAt,
           })),
         suggestions: Object.fromEntries(
           transactions.map((t) => [
             t.id,
-            bankSuggestion(
-              t.merchant,
-              t.description,
-              t.amountCents,
-              data.accounts.find((a) => a.id === t.accountId)?.type === 'credit_card',
-            ),
+            (() => {
+              const rule =
+                t.merchant && t.amountCents < 0
+                  ? learnedRules
+                      .get(t.accountId)
+                      ?.find((r) => r.merchant === normalizeBankMerchant(t.merchant!))
+                  : null
+              return rule
+                ? {
+                    classification: rule.classification,
+                    category: null,
+                    categoryId: rule.categoryId,
+                    reason:
+                      'Previously Owner-approved merchant/category rule for this account. Review before recording.',
+                  }
+                : bankSuggestion(
+                    t.merchant,
+                    t.description,
+                    t.amountCents,
+                    data.accounts.find((a) => a.id === t.accountId)?.type === 'credit_card',
+                  )
+            })(),
           ]),
         ),
       }

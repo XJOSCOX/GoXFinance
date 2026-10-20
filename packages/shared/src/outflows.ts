@@ -2,11 +2,12 @@ import { localBillDate } from './financial-dates'
 import type { BillPayment } from './bills'
 import type { DebtPayment } from './debt-payments'
 import type { Expense } from './expenses'
+import type { FinancialRefund } from './bank-review'
 
 export type Outflow = {
   id: string
   date: string
-  source: 'expense' | 'bill' | 'debt'
+  source: 'expense' | 'bill' | 'debt' | 'refund'
   spendingCents: number
   cashOutflowCents: number
 }
@@ -17,6 +18,7 @@ export function cashOutflows(
   bills: BillPayment[],
   debts: DebtPayment[],
   today = localBillDate(),
+  refunds: FinancialRefund[] = [],
 ): Outflow[] {
   const result: Outflow[] = []
   for (const expense of expenses.filter((item) => !item.voided && item.transactionDate <= today))
@@ -53,6 +55,18 @@ export function cashOutflows(
       cashOutflowCents: bill.method === 'credit_card' ? 0 : bill.amountCents,
     })
   }
+  const seenRefunds = new Set<string>()
+  for (const r of refunds.filter((r) => r.status === 'completed' && r.date <= today)) {
+    if (seenRefunds.has(r.id)) continue
+    seenRefunds.add(r.id)
+    result.push({
+      id: r.id,
+      date: r.date,
+      source: 'refund',
+      spendingCents: r.debtPaymentId ? 0 : -r.amountCents,
+      cashOutflowCents: r.method === 'credit_card' ? 0 : -r.amountCents,
+    })
+  }
   return result
 }
 export function sumCents(values: number[]) {
@@ -61,4 +75,18 @@ export function sumCents(values: number[]) {
     if (!Number.isSafeInteger(total)) throw new Error('Total exceeds the supported range')
     return total
   }, 0)
+}
+export function paymentNetCents(
+  payment: {
+    amountCents: number
+    refunds?: { amountCents: number; date: string; status: string }[]
+  },
+  today = localBillDate(),
+) {
+  return sumCents([
+    payment.amountCents,
+    ...(payment.refunds ?? [])
+      .filter((r) => r.status === 'completed' && r.date <= today)
+      .map((r) => -r.amountCents),
+  ])
 }

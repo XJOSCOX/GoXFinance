@@ -59,6 +59,7 @@ export function goalWindows(goal: GoalInput, today: string) {
   }))
 }
 export type GoalSources = {
+  refunds?: import('./bank-review').FinancialRefund[]
   accounts: TradingAccount[]
   results: TradingResult[]
   events: CopyEvent[]
@@ -126,6 +127,8 @@ export function goalProgress(
         sources.expenses.filter((e) => !member || e.responsibleMemberId === member),
         bills.flatMap((b) => b.payments),
         [],
+        undefined,
+        sources.refunds?.filter((r) => !member || r.memberIds.includes(member)),
       )
         .filter((r) => within(r.date))
         .map((r) => r.spendingCents),

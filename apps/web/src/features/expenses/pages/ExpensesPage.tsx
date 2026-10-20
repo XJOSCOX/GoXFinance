@@ -25,6 +25,7 @@ export function ExpensesPage() {
     notify = useNotify()
   const {
     expenses,
+    refunds,
     categories,
     members,
     debts,
@@ -59,6 +60,22 @@ export function ExpensesPage() {
     )
     .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
   const active = filtered.filter((item) => !item.voided && item.transactionDate <= localBillDate())
+  const selectedRefunds = refunds.filter(
+    (r) =>
+      r.status === 'completed' &&
+      r.date <= localBillDate() &&
+      r.date.startsWith(month) &&
+      (!from || r.date >= from) &&
+      (!to || r.date <= to) &&
+      (!member || r.memberIds.includes(member)) &&
+      (!category || r.allocations.some((a) => a.categoryId === category)) &&
+      (!query ||
+        expenses.some(
+          (e) =>
+            e.id === r.expenseId &&
+            `${e.description} ${e.merchant ?? ''}`.toLowerCase().includes(query.toLowerCase()),
+        )),
+  )
   return (
     <WorkspaceLayout title="Expenses">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -81,18 +98,30 @@ export function ExpensesPage() {
         <SummaryStat
           label="Monthly purchases"
           tone="warning"
-          amount={formatMoney(sumCents(active.map((item) => item.amountCents)))}
-          detail="Everyday expenses in this selection"
+          amount={formatMoney(
+            sumCents([
+              ...active.map((item) => item.amountCents),
+              ...selectedRefunds.map((r) => -r.amountCents),
+            ]),
+          )}
+          detail={
+            selectedRefunds.length
+              ? 'Net of recorded refund credits'
+              : 'Everyday expenses in this selection'
+          }
         />
         <SummaryStat
           label="Paid without credit"
           tone="info"
           amount={formatMoney(
-            sumCents(
-              active
+            sumCents([
+              ...active
                 .filter((item) => item.paymentMethod !== 'credit_card')
                 .map((item) => item.amountCents),
-            ),
+              ...selectedRefunds
+                .filter((r) => r.method !== 'credit_card')
+                .map((r) => -r.amountCents),
+            ]),
           )}
           detail="No bank balances are changed"
         />
@@ -100,11 +129,14 @@ export function ExpensesPage() {
           label="Credit-card purchases"
           tone="warning"
           amount={formatMoney(
-            sumCents(
-              active
+            sumCents([
+              ...active
                 .filter((item) => item.paymentMethod === 'credit_card')
                 .map((item) => item.amountCents),
-            ),
+              ...selectedRefunds
+                .filter((r) => r.method === 'credit_card')
+                .map((r) => -r.amountCents),
+            ]),
           )}
           detail="Repayments are not another purchase"
         />
@@ -238,7 +270,33 @@ export function ExpensesPage() {
           ))
         )}
       </Card>
-      <SpendingBreakdown expenses={active} categories={categories} members={members} />
+      {selectedRefunds.length > 0 && (
+        <Card className="mb-4 p-4">
+          <h2 className="text-sm font-semibold">Refund credits</h2>
+          {selectedRefunds.map((r) => (
+            <div
+              key={r.id}
+              className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm"
+            >
+              <div>
+                <span>
+                  {expenses.find((e) => e.id === r.expenseId)?.description ?? 'Earlier purchase'}
+                </span>
+                <p className="mt-1 text-xs text-slate-400">
+                  {r.date} · {r.method === 'credit_card' ? 'Credit-card credit' : 'Returned cash'}
+                </p>
+              </div>
+              <strong className="text-emerald-300">−{formatMoney(r.amountCents)}</strong>
+            </div>
+          ))}
+        </Card>
+      )}
+      <SpendingBreakdown
+        expenses={active}
+        categories={categories}
+        members={members}
+        refunds={selectedRefunds}
+      />
       {form !== undefined && (
         <ExpenseForm
           expense={form ?? undefined}

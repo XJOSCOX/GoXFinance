@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { paymentNetCents } from './outflows'
 import type { Debt } from './debts'
 import type { DebtPayment } from './debt-payments'
 const cents = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
@@ -101,7 +102,7 @@ export function settlementProgress(offer: SettlementInput, payments: DebtPayment
     const payment = payments.find((p) => p.id === item.paymentId && p.debtId === offer.debtId)
     const paidCents =
       payment?.paymentStatus === 'completed' && payment.paymentDate <= today
-        ? payment.amountCents
+        ? paymentNetCents(payment, today)
         : 0
     return {
       ...item,

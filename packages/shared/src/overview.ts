@@ -6,6 +6,7 @@ import type { Debt } from './debts'
 import type { DebtSummary } from './debt-calculations'
 import type { Expense, ExpenseCategory } from './expenses'
 export type HouseholdOverview = {
+  refunds?: import('./bank-review').FinancialRefund[]
   debtProgress: ReturnType<typeof debtPayoffProgress>
   payments: ReturnType<typeof overviewPayments>
   income: { confirmedCents: number; netRecordedCashFlowCents: number }

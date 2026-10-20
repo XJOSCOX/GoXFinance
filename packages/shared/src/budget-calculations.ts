@@ -1,5 +1,6 @@
 import type { BillView } from './bills'
 import type { Expense } from './expenses'
+import type { FinancialRefund } from './bank-review'
 import type { FinancialCategory } from './categories'
 import type { BudgetInput, BudgetCategoryRow, BudgetStatus } from './budgets'
 import { cashOutflows, sumCents } from './outflows'
@@ -32,6 +33,7 @@ export function budgetSpending(
   month: string,
   member: string | null,
   today = localBillDate(),
+  refunds: FinancialRefund[] = [],
 ) {
   const scopedExpenses = [
     ...new Map(
@@ -71,6 +73,15 @@ export function budgetSpending(
       )
     }
   }
+  for (const r of refunds.filter(
+    (r) =>
+      r.status === 'completed' &&
+      !r.debtPaymentId &&
+      r.date <= today &&
+      r.date.startsWith(month) &&
+      (!member || r.memberIds.includes(member)),
+  ))
+    for (const a of r.allocations) add(a.categoryId, -a.amountCents)
   return [...totals].map(([categoryId, actualCents]) => ({ categoryId, actualCents }))
 }
 export function budgetCategoryRows(

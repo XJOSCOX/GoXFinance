@@ -8,6 +8,8 @@ import { FormField, Select } from '../../../components/ui/FormField'
 import { useBanking } from '../hooks/useBanking'
 import { BankAmount } from '../components/BankAmount'
 import { StatementImport } from '../components/StatementImport'
+import { BankReviewDialog } from '../components/review/BankReviewDialog'
+import { BankReviewRequests } from '../components/review/BankReviewRequests'
 type InboxData = BankInbox & { suggestions: Record<string, ReturnType<typeof bankSuggestion>> }
 export function BankInboxPage() {
   const { householdId = '' } = useParams()
@@ -16,6 +18,8 @@ export function BankInboxPage() {
 function TransactionInbox({ home }: { home: string }) {
   const { data, error, refresh } = useBanking<InboxData>(home, '/inbox'),
     [importing, setImporting] = useState(false),
+    [reviewId, setReviewId] = useState(''),
+    [request, setRequest] = useState<BankInbox['requests'][number]>(),
     [account, setAccount] = useState(''),
     [search, setSearch] = useState(''),
     [status, setStatus] = useState('unreviewed'),
@@ -62,6 +66,13 @@ function TransactionInbox({ home }: { home: string }) {
       {!data && !error && <p role="status">Loading transactions…</p>}
       {data && (
         <>
+          <BankReviewRequests
+            data={data}
+            open={(r) => {
+              setRequest(r)
+              setReviewId(r.transactionId)
+            }}
+          />
           <Card className="mb-4 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-6">
             <FormField label="Search">
               <Input
@@ -116,17 +127,43 @@ function TransactionInbox({ home }: { home: string }) {
                     {t.description}
                   </p>
                   <p className="mt-2 text-xs text-slate-500">{data.suggestions[t.id]?.reason}</p>
+                  {t.transferStatus && (
+                    <p
+                      className={
+                        t.transferStatus === 'unmatched'
+                          ? 'mt-2 text-xs text-amber-200'
+                          : 'mt-2 text-xs text-slate-400'
+                      }
+                    >
+                      {t.transferStatus === 'unmatched'
+                        ? 'Unmatched transfer — other leg unresolved'
+                        : 'Transfer legs paired'}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <strong className={t.amountCents > 0 ? 'text-emerald-300' : 'text-slate-200'}>
                     <BankAmount cents={t.amountCents} currency={t.currency} />
                   </strong>
                   <p className="text-[10px] text-slate-500">
-                    {t.amountCents > 0
-                      ? 'Inflow · not assumed income'
-                      : 'Outflow · not yet accounting'}
+                    {t.reviewStatus === 'reconciled'
+                      ? 'Linked accounting record'
+                      : t.reviewStatus === 'ignored'
+                        ? 'Excluded from accounting'
+                        : t.amountCents > 0
+                          ? 'Inflow · not assumed income'
+                          : 'Outflow · not yet accounting'}
                   </p>
                 </div>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setRequest(undefined)
+                    setReviewId(t.id)
+                  }}
+                >
+                  {data.canReview ? 'Review' : 'Details'}
+                </Button>
               </Card>
             ))}
           </div>
@@ -148,6 +185,18 @@ function TransactionInbox({ home }: { home: string }) {
               home={home}
               accounts={data.accounts}
               close={() => setImporting(false)}
+              saved={refresh}
+            />
+          )}
+          {reviewId && (
+            <BankReviewDialog
+              home={home}
+              id={reviewId}
+              request={request}
+              close={() => {
+                setReviewId('')
+                setRequest(undefined)
+              }}
               saved={refresh}
             />
           )}

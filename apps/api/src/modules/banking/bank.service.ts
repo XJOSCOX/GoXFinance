@@ -117,15 +117,33 @@ export function bankService(
           if (!ctx.people.some((m) => m.id === member && m.status === 'active'))
             throw new FinancialError('Select active household members', 400)
         if (p.values.assetId) {
+          if (p.values.currency !== 'USD')
+            throw new FinancialError(
+              'The current Asset ledger uses USD. Confirm USD currency before mapping.',
+              400,
+            )
           if (p.values.type === 'credit_card')
             throw new FinancialError('Credit accounts cannot be cash assets', 400)
-          if (!assets.all(home).some((a) => a.id === p.values.assetId))
+          if (
+            !assets
+              .all(home)
+              .some(
+                (a) =>
+                  a.id === p.values.assetId && ['cash', 'checking', 'savings'].includes(a.category),
+              )
+          )
             throw new FinancialError('Asset not found', 404)
         }
         if (p.values.debtId) {
+          if (p.values.currency !== 'USD')
+            throw new FinancialError(
+              'The current Debt ledger uses USD. Confirm USD currency before mapping.',
+              400,
+            )
           if (p.values.type !== 'credit_card')
             throw new FinancialError('Only credit accounts may map to a debt', 400)
-          debts.get(user, home, p.values.debtId)
+          if (debts.get(user, home, p.values.debtId).accountType !== 'credit_card')
+            throw new FinancialError('Map a credit account to an existing credit-card debt.', 400)
         }
         if (
           store

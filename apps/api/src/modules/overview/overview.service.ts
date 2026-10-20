@@ -28,10 +28,13 @@ export function overviewService(
         billList = bills.list(user, householdId),
         expenseList = expenses.list(user, householdId)
       const payments = store.payments(householdId)
+      const refunds = store.refunds(householdId)
       const outflows = cashOutflows(
         expenseList.expenses,
         billList.flatMap((item) => item.payments),
         payments,
+        localBillDate(),
+        refunds,
       ).filter((item) => item.date.startsWith(month))
       const received = incomeSummary(
         income.list(user, householdId).transactions,
@@ -40,7 +43,18 @@ export function overviewService(
       ).confirmedCents
       const paid = sumCents(outflows.map((item) => item.cashOutflowCents))
       return {
-        categoryTotals: categoryReport(billList, debtList.debts, expenseList.expenses, payments, month),
+        categoryTotals: categoryReport(
+          billList,
+          debtList.debts,
+          expenseList.expenses,
+          payments,
+          month,
+          localBillDate(),
+          refunds,
+        ),
+        refunds: refunds.filter(
+          (r) => r.status === 'completed' && r.date.startsWith(month) && r.date <= localBillDate(),
+        ),
         debtProgress: debtPayoffProgress(debtList.debts, store.balances(householdId)),
         income: { confirmedCents: received, netRecordedCashFlowCents: sumCents([received, -paid]) },
         month,

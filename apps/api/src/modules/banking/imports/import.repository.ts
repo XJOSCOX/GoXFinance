@@ -1,14 +1,18 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, asc } from 'drizzle-orm'
 import {
   bankImportBatches,
   bankTransactions,
   bankReviewRequests,
   bankReconciliations,
   bankMerchantRules,
+  bankTransferLegs,
 } from '../../../../../../packages/db/src/schema'
 import type { DatabaseConnection } from '../../../db/connection'
 export function importRepository(db: DatabaseConnection) {
   return {
+    legs(home: string) {
+      return db.select().from(bankTransferLegs).where(eq(bankTransferLegs.householdId, home)).all()
+    },
     batches(home: string) {
       return db
         .select()
@@ -27,6 +31,7 @@ export function importRepository(db: DatabaseConnection) {
         .select()
         .from(bankReviewRequests)
         .where(eq(bankReviewRequests.householdId, home))
+        .orderBy(asc(bankReviewRequests.createdAt), asc(bankReviewRequests.id))
         .all()
     },
     links(home: string) {

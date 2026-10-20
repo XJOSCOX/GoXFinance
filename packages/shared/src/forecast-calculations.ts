@@ -29,21 +29,31 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
     s.bills.flatMap((b) => b.payments),
     s.payments,
     today,
+    s.refunds,
   ))
-    if (t.cashOutflowCents > 0 || t.spendingCents > 0)
+    if (t.cashOutflowCents !== 0 || t.spendingCents !== 0)
       add({
         id: 'actual:' + t.id,
         date: t.date,
         name:
-          t.source === 'expense'
-            ? (s.expenses.find((e) => e.id === t.id)?.description ?? 'Purchase')
-            : t.source === 'debt'
-              ? 'Completed debt payment'
-              : 'Completed bill payment',
-        amountCents: t.cashOutflowCents,
+          t.source === 'refund'
+            ? 'Confirmed refund credit'
+            : t.source === 'expense'
+              ? (s.expenses.find((e) => e.id === t.id)?.description ?? 'Purchase')
+              : t.source === 'debt'
+                ? 'Completed debt payment'
+                : 'Completed bill payment',
+        amountCents: Math.abs(t.cashOutflowCents),
         spendingCents: t.spendingCents,
-        direction: 'out',
-        kind: t.source === 'expense' ? 'purchase' : t.source === 'debt' ? 'debt_repayment' : 'bill',
+        direction: t.source === 'refund' ? 'in' : 'out',
+        kind:
+          t.source === 'refund'
+            ? 'refund'
+            : t.source === 'expense'
+              ? 'purchase'
+              : t.source === 'debt'
+                ? 'debt_repayment'
+                : 'bill',
         estimated: false,
       })
   forecastInflows(s, v, today, add, warnings)
@@ -124,10 +134,14 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
       })
   }
   const incomeCents = sumCents(
-      events.filter((e) => e.direction === 'in').map((e) => e.amountCents ?? 0),
+      events
+        .filter((e) => e.direction === 'in' && e.kind !== 'refund')
+        .map((e) => e.amountCents ?? 0),
     ),
     outflowCents = sumCents(
-      events.filter((e) => e.direction === 'out').map((e) => e.amountCents ?? 0),
+      events
+        .filter((e) => e.direction === 'out' || e.kind === 'refund')
+        .map((e) => (e.kind === 'refund' ? -1 : 1) * (e.amountCents ?? 0)),
     )
   return {
     spendingCents: sumCents(events.map((e) => e.spendingCents ?? 0)),

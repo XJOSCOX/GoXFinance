@@ -16,6 +16,7 @@ import { incomeTransactions } from './income'
 import { billPayments } from './bills'
 import { debtPayments } from './debt-payments'
 import { households } from './households'
+import { householdMembers } from './household-members'
 export const bankRefunds = sqliteTable(
   'bank_refunds',
   {
@@ -89,6 +90,26 @@ export const bankRefundAllocations = sqliteTable(
       'bank_refund_allocation_amount',
       sql`(${t.amountCents}>0 and ${t.amountCents}<=9007199254740991) and (${t.amountCents} is null or cast(${t.amountCents} as integer)=${t.amountCents})`,
     ),
+  ],
+)
+export const bankRefundMembers = sqliteTable(
+  'bank_refund_members',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    refundId: text('refund_id').notNull(),
+    memberId: text('member_id').notNull(),
+  },
+  (t) => [
+    uniqueIndex('bank_refund_member_once').on(t.refundId, t.memberId),
+    foreignKey({
+      columns: [t.refundId, t.householdId],
+      foreignColumns: [bankRefunds.id, bankRefunds.householdId],
+    }),
+    foreignKey({
+      columns: [t.memberId, t.householdId],
+      foreignColumns: [householdMembers.id, householdMembers.householdId],
+    }),
   ],
 )
 export const bankTransfers = sqliteTable(

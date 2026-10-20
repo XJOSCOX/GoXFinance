@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Debt, Expense, ExpenseCategory, HouseholdMember } from '@goxfinance/shared'
+import type {
+  Debt,
+  Expense,
+  ExpenseCategory,
+  HouseholdMember,
+  FinancialRefund,
+} from '@goxfinance/shared'
 import { errorMessage } from '../../../lib/api'
 import { listMembers } from '../../households/api/householdClient'
 import { listDebts } from '../../debts/api/debtClient'
@@ -8,10 +14,11 @@ import { initializeExpenses, listExpenses } from '../api/expenseClient'
 export function useExpenses(householdId: string) {
   const [data, setData] = useState<{
     expenses: Expense[]
+    refunds: FinancialRefund[]
     categories: ExpenseCategory[]
     members: HouseholdMember[]
     debts: Debt[]
-  }>({ expenses: [], categories: [], members: [], debts: [] })
+  }>({ expenses: [], categories: [], members: [], debts: [], refunds: [] })
   const [error, setError] = useState(''),
     [loading, setLoading] = useState(true)
   const fetchData = useCallback(async () => {
@@ -23,6 +30,7 @@ export function useExpenses(householdId: string) {
     ])
     return {
       expenses: result.expenses,
+      refunds: result.refunds ?? [],
       categories: result.categories,
       members: people.members,
       debts: accounts.debts,
@@ -36,7 +44,7 @@ export function useExpenses(householdId: string) {
     let active = true
     setLoading(true)
     setError('')
-    setData({ expenses: [], categories: [], members: [], debts: [] })
+    setData({ expenses: [], categories: [], members: [], debts: [], refunds: [] })
     void fetchData()
       .then((result) => {
         if (active) setData(result)

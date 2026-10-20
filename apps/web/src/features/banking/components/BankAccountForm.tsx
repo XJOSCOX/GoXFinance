@@ -2,17 +2,22 @@ import { bankAccountSchema, type BankAccount, type BankingData } from '@goxfinan
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { Input } from '../../../components/ui'
+import { useState } from 'react'
+import { BankAccountMapping } from './BankAccountMapping'
 export function BankAccountForm({
   data,
   record,
   save,
   close,
+  home,
 }: {
   data: BankingData
   record?: BankAccount
   save: (body: unknown) => Promise<void>
   close: () => void
+  home: string
 }) {
+  const [type, setType] = useState(record?.type ?? 'checking')
   return (
     <FinancialEditor
       title={record ? 'Edit bank account' : 'Add manual account'}
@@ -30,8 +35,8 @@ export function BankAccountForm({
           currency: String(form.get('currency') || '').toUpperCase() || null,
           memberIds: form.getAll('members'),
           status: form.get('status'),
-          assetId: record?.assetId ?? null,
-          debtId: record?.debtId ?? null,
+          assetId: String(form.get('assetId') || '') || null,
+          debtId: String(form.get('debtId') || '') || null,
         })
       }
     >
@@ -43,7 +48,7 @@ export function BankAccountForm({
           <Input name="institution" defaultValue={record?.institution} required maxLength={160} />
         </FormField>
         <FormField label="Account type">
-          <Select name="type" defaultValue={record?.type ?? 'checking'}>
+          <Select name="type" value={type} onChange={(e) => setType(e.target.value as typeof type)}>
             <option value="checking">Checking</option>
             <option value="savings">Savings</option>
             <option value="credit_card">Credit card</option>
@@ -69,6 +74,12 @@ export function BankAccountForm({
           </Select>
         </FormField>
       </div>
+      <BankAccountMapping
+        home={home}
+        credit={type === 'credit_card'}
+        assetId={record?.assetId}
+        debtId={record?.debtId}
+      />
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Members allowed to view this account</legend>
         <p className="mb-3 text-xs text-slate-400">

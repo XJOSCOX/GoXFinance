@@ -1,4 +1,6 @@
 import { categoryRepository } from '../categories/category.repository'
+import { billPaymentRefunds } from '../banking/reconciliation/refund-source'
+import { guardBankReference } from '../../db/financial-reference-guard'
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import type { Bill, BillInput, BillPayment, BillChangeRequest } from '@goxfinance/shared'
@@ -182,6 +184,7 @@ export function billRepository(db: DatabaseConnection) {
             : undefined
           return {
             ...row,
+            refunds: billPaymentRefunds(db, householdId, row.id, row.debtPaymentId),
             ...(linked
               ? {
                   amountCents: linked.amountCents,
@@ -234,6 +237,7 @@ export function billRepository(db: DatabaseConnection) {
       id: string,
       values: Partial<typeof billPayments.$inferInsert>,
     ) {
+      guardBankReference(db, householdId, 'billPaymentId', id)
       db.update(billPayments)
         .set({ ...values, updatedAt: new Date().toISOString() })
         .where(paymentKey(householdId, id))

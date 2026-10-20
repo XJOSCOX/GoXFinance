@@ -3,6 +3,7 @@ import {
   type Expense,
   type ExpenseCategory,
   type HouseholdMember,
+  type FinancialRefund,
 } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
@@ -10,10 +11,12 @@ export function SpendingBreakdown({
   expenses,
   categories,
   members,
+  refunds = [],
 }: {
   expenses: Expense[]
   categories: ExpenseCategory[]
   members: HouseholdMember[]
+  refunds?: FinancialRefund[]
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -23,12 +26,16 @@ export function SpendingBreakdown({
           {categories
             .map((category) => ({
               ...category,
-              total: sumCents(
-                expenses
+              total: sumCents([
+                ...expenses
                   .flatMap((expense) => expense.allocations)
                   .filter((item) => item.categoryId === category.id)
                   .map((item) => item.amountCents),
-              ),
+                ...refunds
+                  .flatMap((r) => r.allocations)
+                  .filter((a) => a.categoryId === category.id)
+                  .map((a) => -a.amountCents),
+              ]),
             }))
             .filter((item) => item.total)
             .map((item) => (
@@ -46,11 +53,14 @@ export function SpendingBreakdown({
           {members
             .map((member) => ({
               ...member,
-              total: sumCents(
-                expenses
+              total: sumCents([
+                ...expenses
                   .filter((item) => item.responsibleMemberId === member.id)
                   .map((item) => item.amountCents),
-              ),
+                ...refunds
+                  .filter((r) => r.memberIds.includes(member.id))
+                  .map((r) => -r.amountCents),
+              ]),
             }))
             .filter((item) => item.total)
             .map((item) => (

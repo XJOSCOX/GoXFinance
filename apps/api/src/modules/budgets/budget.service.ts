@@ -18,12 +18,18 @@ import {
   type Expense,
   type FinancialCategory,
   type PublicUser,
+  type FinancialRefund,
 } from '@goxfinance/shared'
 import { FinancialError } from '../households/financial-access'
 import type { TradingPermissions } from '../trading/trading.permissions'
 import { checkRevision } from '../trading/trading.permissions'
 import type { BudgetRepository } from './budget.repository'
-type Sources = { bills: BillView[]; expenses: Expense[]; categories: FinancialCategory[] }
+type Sources = {
+  bills: BillView[]
+  expenses: Expense[]
+  categories: FinancialCategory[]
+  refunds?: FinancialRefund[]
+}
 export function budgetService(
   store: BudgetRepository,
   permissions: TradingPermissions,
@@ -107,7 +113,14 @@ export function budgetService(
         })) as Budget[],
         budget = records.find((r) => r.month === month && r.responsibleMemberId === member) ?? null,
         active = budget?.status === 'active' ? budget : null
-      const actual = budgetSpending(data.expenses, data.bills, month, member),
+      const actual = budgetSpending(
+          data.expenses,
+          data.bills,
+          month,
+          member,
+          undefined,
+          data.refunds,
+        ),
         actualCents = sumCents(actual.map((r) => r.actualCents)),
         prev = previousBudgetMonth(month),
         previous = records.find(
@@ -128,7 +141,9 @@ export function budgetService(
         previous: {
           month: prev,
           actualCents: sumCents(
-            budgetSpending(data.expenses, data.bills, prev, member).map((r) => r.actualCents),
+            budgetSpending(data.expenses, data.bills, prev, member, undefined, data.refunds).map(
+              (r) => r.actualCents,
+            ),
           ),
           plannedCents: previous?.totalCents ?? null,
         },

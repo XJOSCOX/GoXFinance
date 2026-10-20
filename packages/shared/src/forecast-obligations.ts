@@ -1,5 +1,5 @@
 import { budgetFromBills } from './budget-planning'
-import { sumCents } from './outflows'
+import { sumCents, paymentNetCents } from './outflows'
 import { debtObligationGroups, representativeDebtBalance } from './debt-calculations'
 import type { ForecastSources, ForecastInput, ForecastEvent } from './forecasts'
 export function forecastObligations(
@@ -40,7 +40,7 @@ export function forecastObligations(
   }
   for (const p of new Map(s.payments.map((p) => [p.id, p])).values()) {
     if (p.paymentStatus === 'completed' && p.paymentDate <= today)
-      credit(p.debtId, p.paymentDate, p.amountCents)
+      credit(p.debtId, p.paymentDate, paymentNetCents(p, today))
     if (
       (['scheduled', 'pending'].includes(p.paymentStatus) ||
         (p.paymentStatus === 'completed' && p.paymentDate > today)) &&
@@ -118,7 +118,7 @@ export function forecastObligations(
               pay.paymentDate <= today &&
               pay.paymentDate.slice(0, 7) !== date.slice(0, 7),
           )
-          .reduce((n, pay) => sumCents([n, pay.amountCents]), 0)
+          .reduce((n, pay) => sumCents([n, paymentNetCents(pay, today)]), 0)
         if (earlier) credit(link, date, earlier)
         const key = bill.id + ':' + date.slice(0, 7),
           old = linkedBills.get(key)
@@ -175,19 +175,23 @@ export function forecastObligations(
     for (const offer of s.offers.filter((o) => o.status === 'accepted'))
       for (const item of offer.schedule) {
         const p = s.payments.find((p) => p.id === item.paymentId)
-        if (p && ['completed', 'scheduled', 'pending'].includes(p.paymentStatus)) continue
+        const paid =
+          p?.paymentStatus === 'completed' && p.paymentDate <= today ? paymentNetCents(p, today) : 0
+        if (p && ['scheduled', 'pending'].includes(p.paymentStatus)) continue
+        const remaining = Math.max(0, item.amountCents - paid)
+        if (remaining === 0) continue
         const date = item.dueDate < v.startDate ? v.startDate : item.dueDate
         if (inside(date)) {
           add({
             id: 'settlement:' + item.id,
             date,
             name: offer.creditor + ' settlement',
-            amountCents: item.amountCents,
+            amountCents: remaining,
             direction: 'out',
             kind: 'settlement',
             estimated: true,
           })
-          credit(offer.debtId, date, item.amountCents)
+          credit(offer.debtId, date, remaining)
         }
       }
   for (const [key, c] of commitments) {

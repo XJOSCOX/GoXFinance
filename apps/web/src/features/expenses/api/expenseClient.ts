@@ -1,10 +1,18 @@
-import type { Expense, ExpenseAudit, ExpenseCategory, ExpenseInput } from '@goxfinance/shared'
+import type {
+  Expense,
+  ExpenseAudit,
+  ExpenseCategory,
+  ExpenseInput,
+  FinancialRefund,
+} from '@goxfinance/shared'
 import { apiRequest } from '../../../lib/api'
 const path = (home: string) => `households/${home}/expenses`
 export const initializeExpenses = (home: string) =>
   apiRequest(path(home) + '/initialize', { method: 'POST', body: '{}' })
 export const listExpenses = (home: string) =>
-  apiRequest<{ expenses: Expense[]; categories: ExpenseCategory[] }>(path(home))
+  apiRequest<{ expenses: Expense[]; categories: ExpenseCategory[]; refunds: FinancialRefund[] }>(
+    path(home),
+  )
 export const getExpense = (home: string, id: string) =>
   apiRequest<{ expense: Expense; audit: ExpenseAudit[] }>(`${path(home)}/${id}`)
 export const saveExpense = (

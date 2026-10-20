@@ -85,6 +85,25 @@ export function reportScope(
     ),
     source: {
       ...source,
+      refunds: source.refunds.filter(
+        (r) =>
+          associated(r.memberIds) &&
+          (!r.debtPaymentId ||
+            source.payments.some((p) => p.id === r.debtPaymentId && selectedDebtIds.has(p.debtId))),
+      ),
+      banking: source.banking
+        ? {
+            summary: {
+              ...source.banking.summary,
+              accounts: source.banking.summary.accounts.filter((a) => associated(a.memberIds)),
+            },
+            transactions: source.banking.transactions.filter((t) =>
+              source.banking!.summary.accounts.some(
+                (a) => a.id === t.accountId && associated(a.memberIds),
+              ),
+            ),
+          }
+        : null,
       debts: scopedDebts,
       bills,
       assets,
