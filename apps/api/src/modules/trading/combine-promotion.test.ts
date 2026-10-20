@@ -77,7 +77,7 @@ it.each([false, true])(
       status: 'active',
       xfaPath: 'standard',
       tierCents: 5000000,
-      reportedBalanceCents: null,
+      reportedBalanceCents: 5000000,
       sourceCombineAccountId: source.id,
     })
     expect(child.ruleSnapshots).toEqual([])

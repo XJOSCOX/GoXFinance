@@ -4,7 +4,7 @@ import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/re
 import type { TradingAccount } from '@goxfinance/shared'
 import { CombinePromotionForm } from './CombinePromotionForm'
 afterEach(cleanup)
-it('requires provider confirmation and leaves funded figures unknown instead of copying evaluation money', async () => {
+it('requires provider confirmation and defaults to the nominal tracking tier without copying evaluation profit', async () => {
   const save = vi.fn().mockResolvedValue(undefined)
   render(
     <CombinePromotionForm
@@ -14,6 +14,7 @@ it('requires provider confirmation and leaves funded figures unknown instead of 
           nickname: 'Example Combine',
           revision: 3,
           reportedBalanceCents: 5300000,
+          tierCents: 5000000,
         } as TradingAccount
       }
       save={save}
@@ -21,8 +22,9 @@ it('requires provider confirmation and leaves funded figures unknown instead of 
     />,
   )
   expect(
-    (screen.getByLabelText('Actual XFA reported balance ($, optional)') as HTMLInputElement).value,
-  ).toBe('')
+    (screen.getByLabelText('Starting XFA tracking balance ($, not cash)') as HTMLInputElement)
+      .value,
+  ).toBe('50000.00')
   fireEvent.click(screen.getByRole('button', { name: 'Create linked XFA' }))
   expect(save).not.toHaveBeenCalled()
   fireEvent.click(
@@ -35,7 +37,7 @@ it('requires provider confirmation and leaves funded figures unknown instead of 
   expect(save.mock.calls[0][0].values).toMatchObject({
     sourceRevision: 3,
     confirmedPassed: true,
-    reportedBalanceCents: null,
+    reportedBalanceCents: 5000000,
     ruleSnapshot: null,
     xfaPath: 'standard',
   })

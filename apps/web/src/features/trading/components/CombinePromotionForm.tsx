@@ -68,16 +68,18 @@ export function CombinePromotionForm({
         </FormField>
         <DateField label="XFA activation date (optional)" name="activationDate" />
         <AmountField
-          label="Actual XFA reported balance ($, optional)"
+          label="Starting XFA tracking balance ($, not cash)"
           name="reportedBalanceCents"
+          value={account.tierCents}
         />
         <AmountField label="XFA maximum loss limit ($, optional)" name="maximumLossCents" />
         <AmountField label="XFA daily loss limit ($, optional)" name="dailyLossCents" />
       </div>
       <p className="text-xs text-slate-500">
-        Enter the new provider account's actual figures, including zero if confirmed. Blank values
-        remain unknown. Nominal tier and household owner are retained; evaluation profits never
-        become payout income.
+        The tracking balance starts at the nominal tier (for example, $50,000 for a 50K account).
+        This display baseline is not cash or transferred Combine profit, and is separate from the
+        provider's funded profit balance. You may enter zero or another confirmed tracking value.
+        Other blank figures remain unknown; only actual payout deposits can become income.
       </p>
       <FormField label="Promotion notes">
         <Input name="notes" maxLength={4000} />

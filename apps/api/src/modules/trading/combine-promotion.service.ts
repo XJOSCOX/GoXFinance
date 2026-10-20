@@ -58,7 +58,7 @@ export function promoteCombine(
       stage: 'xfa',
       xfaPath: values.xfaPath,
       tierCents: source.tierCents,
-      reportedBalanceCents: values.reportedBalanceCents,
+      reportedBalanceCents: values.reportedBalanceCents ?? source.tierCents,
       maximumLossCents: values.maximumLossCents,
       dailyLossCents: values.dailyLossCents,
       activationDate: values.activationDate,

@@ -25,6 +25,11 @@ export function OverviewTrading({ home, month }: { home: string; month: string }
             </span>
           )}
         </div>
+        {data?.accounts.some((a) => a.stage === 'combine') && (
+          <p className="mt-2 text-xs text-slate-400">
+            Includes simulated Combine results — excluded from cash and income.
+          </p>
+        )}
         {error ? (
           <div className="mt-3">
             <p role="alert" className="text-sm text-rose-300">

@@ -35,6 +35,7 @@ import { BatchForm } from '../components/BatchForm'
 import { TradingAccounts } from '../components/TradingAccounts'
 import { TradingPerformance } from '../components/TradingPerformance'
 import { TradingHistory } from '../components/TradingHistory'
+import { TradingJournalCalendar } from '../components/TradingJournalCalendar'
 type Editor =
   | { kind: 'accounts'; record?: TradingAccount; template?: TradingAccount }
   | { kind: 'results'; record?: TradingResult }
@@ -66,6 +67,7 @@ export function TradingPage() {
   }, [home, household, selected?.id, select])
   const accounts = data?.accounts ?? [],
     managed = accounts.filter((a) => a.canManage && !a.deletedAt),
+    funded = managed.filter((a) => a.stage !== 'combine'),
     canCreate = data?.canCreate ?? household?.role !== 'viewer'
   const allowedMembers = members.filter(
     (m) => household?.role === 'owner' || m.linkedUserId === user?.id,
@@ -108,10 +110,10 @@ export function TradingPage() {
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <SummaryStat
               compact
-              label="Net realized P&L"
+              label="Trading P&L · not cash"
               tone={amountTone(sumCents(data.results.map((r) => r.netCents)))}
               amount={formatMoney(sumCents(data.results.map((r) => r.netCents)))}
-              detail="All recorded accounts; not deposited income"
+              detail="Includes simulated Combine results; not deposited income"
             />
             <SummaryStat
               compact
@@ -139,7 +141,7 @@ export function TradingPage() {
             />
           </div>
           <div className="mb-4 flex flex-wrap gap-2">
-            {['accounts', 'performance', 'results', 'groups', 'payouts'].map((value) => (
+            {['accounts', 'journal', 'performance', 'results', 'groups', 'payouts'].map((value) => (
               <Button
                 key={value}
                 size="small"
@@ -150,6 +152,7 @@ export function TradingPage() {
                 {
                   {
                     accounts: 'Accounts',
+                    journal: 'Daily journal',
                     performance: 'Performance',
                     results: 'Results',
                     groups: 'Copy groups',
@@ -168,10 +171,18 @@ export function TradingPage() {
               <Button size="small" onClick={() => setEditor({ kind: 'results' })}>
                 Record daily result
               </Button>
-              <Button size="small" onClick={() => setEditor({ kind: 'payouts' })}>
+              <Button
+                size="small"
+                disabled={!funded.length}
+                onClick={() => setEditor({ kind: 'payouts' })}
+              >
                 Record payout
               </Button>
-              <Button size="small" onClick={() => setEditor({ kind: 'batches' })}>
+              <Button
+                size="small"
+                disabled={!funded.length}
+                onClick={() => setEditor({ kind: 'batches' })}
+              >
                 Record payout batch
               </Button>
               {managed.length >= 2 && (
@@ -210,6 +221,8 @@ export function TradingPage() {
                 onEditAll={(accounts) => setEditor({ kind: 'accounts/rules', accounts })}
               />
             </>
+          ) : tab === 'journal' ? (
+            <TradingJournalCalendar data={data} />
           ) : tab === 'performance' ? (
             <TradingPerformance data={data} />
           ) : (
@@ -276,7 +289,7 @@ export function TradingPage() {
       {editor?.kind === 'payouts' && (
         <PayoutForm
           payout={editor.record}
-          accounts={editor.record ? accounts.filter((a) => a.canManage) : managed}
+          accounts={editor.record ? accounts.filter((a) => a.canManage) : funded}
           income={income}
           onBatch={() => setEditor({ kind: 'batches' })}
           save={save}
@@ -301,7 +314,7 @@ export function TradingPage() {
         />
       )}
       {editor?.kind === 'batches' && (
-        <BatchForm accounts={managed} save={save} close={() => setEditor(null)} />
+        <BatchForm accounts={funded} save={save} close={() => setEditor(null)} />
       )}
       {audit && (
         <FinancialAudit

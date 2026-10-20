@@ -35,3 +35,4 @@ export * from './trading-overview'
 
 export * from './trading-promotion'
 export * from './combine-journal'
+export * from './trading-calendar'

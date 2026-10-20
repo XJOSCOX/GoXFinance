@@ -110,7 +110,10 @@ export function TradingAccounts({
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
           {[
-            ['Reported trading balance', account.reportedBalanceCents],
+            [
+              account.stage === 'xfa' ? 'Tracking balance (not cash)' : 'Reported trading balance',
+              account.reportedBalanceCents,
+            ],
             ['Nominal tier (not cash)', account.tierCents],
             ['Maximum loss limit', account.maximumLossCents],
             ['Daily loss limit', account.dailyLossCents],

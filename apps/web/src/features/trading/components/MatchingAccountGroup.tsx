@@ -42,7 +42,11 @@ export function MatchingAccountGroup({
           <dd className="mt-1">{formatMoney(first.tierCents)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-slate-500">Reported balance per account</dt>
+          <dt className="text-xs text-slate-500">
+            {first.stage === 'xfa'
+              ? 'Tracking balance per account (not cash)'
+              : 'Reported balance per account'}
+          </dt>
           <dd className="mt-1">{formatMoney(first.reportedBalanceCents)}</dd>
         </div>
         <div>

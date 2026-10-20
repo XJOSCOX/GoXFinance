@@ -155,6 +155,11 @@ export function payoutService(
         permissions.manage(user, home, parent.responsibleMemberId, true)
         const old = id ? store.payouts(home).find((p) => p.id === id) : undefined
         if (id && !old) throw new FinancialError('Payout not found', 404)
+        if (parent.stage === 'combine' && (!old || v.status !== 'cancelled'))
+          throw new FinancialError(
+            'Combine results are simulated, not cash. Record payouts only on an activated funded account.',
+            409,
+          )
         if ('idempotencyKey' in parsed) {
           const previous = store
             .payouts(home)
