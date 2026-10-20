@@ -41,3 +41,5 @@ Manual Trading, copy events and payout batches live in separate services/reposit
 
 
 Monthly budgets live in `modules/budgets` (routes, service, repository) and `features/budgets` (API, hook, forms and presentation). Shared Zod schemas and pure spending/progress calculations live in `packages/shared`. The database adds three normalized tables through migration 0025. Reports reuse authoritative purchase-spending classification, keep member/household ceilings independent, and never consume trading results or count debt transfers as purchases. See `docs/budgets.md` for scope, permissions and migration details.
+
+Debt Planning separates payoff calculations and Zod contracts in packages/shared, household-scoped service/repository/routes in modules/debt-planning, and feature UI in features/debt-planning. Migration 0026 adds settlement schedules with authoritative debt-payment links and immutable scenario snapshots. See docs/debt-planning.md.

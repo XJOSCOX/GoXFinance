@@ -1,3 +1,6 @@
+import { planningRepository } from './modules/debt-planning/planning.repository'
+import { planningService } from './modules/debt-planning/planning.service'
+import { registerPlanningRoutes } from './modules/debt-planning/planning.routes'
 import { budgetRepository } from './modules/budgets/budget.repository'
 import { budgetService } from './modules/budgets/budget.service'
 import { registerBudgetRoutes } from './modules/budgets/budget.routes'
@@ -185,6 +188,11 @@ export async function buildApp(options: AppOptions) {
         financialAccess(householdStore, memberStore),
       ).list(user, home).categories,
     })),
+  )
+  registerPlanningRoutes(
+    app,
+    auth,
+    planningService(planningRepository(db), tradeAccess, debts, payments),
   )
   registerIncomeRoutes(app, auth, income)
   registerExpenseRoutes(app, auth, expenses)

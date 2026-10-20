@@ -183,6 +183,13 @@
       "when": 1792518018630,
       "tag": "0025_sturdy_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1792521908812,
+      "tag": "0026_chubby_veda",
+      "breakpoints": true
     }
   ]
 }

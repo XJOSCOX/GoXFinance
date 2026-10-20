@@ -20,3 +20,4 @@ export * from './trading'
 export * from './goals'
 
 export * from './budgets'
+export * from './debt-planning'
