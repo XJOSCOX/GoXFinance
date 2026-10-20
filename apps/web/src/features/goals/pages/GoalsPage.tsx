@@ -10,7 +10,7 @@ import { useHousehold } from '../../households/hooks/useHousehold'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useTrading } from '../../trading/hooks/useTrading'
 import { useGoals } from '../hooks/useGoals'
-import { saveGoal } from '../api/goalClient'
+import { saveGoal, saveGoalBatch } from '../api/goalClient'
 import { GoalForm } from '../components/GoalForm'
 import { ContributionForm } from '../components/ContributionForm'
 import { GoalCard } from '../components/GoalCard'
@@ -26,6 +26,8 @@ export function GoalsPage() {
     [contribution, setContribution] = useState<{ goal: Goal; entry?: GoalContribution } | null>(
       null,
     ),
+    [selectedGoals, setSelectedGoals] = useState<string[]>([]),
+    [batchGoals, setBatchGoals] = useState<Goal[] | undefined>(),
     [audit, setAudit] = useState(''),
     [query, setQuery] = useState(''),
     [period, setPeriod] = useState(''),
@@ -34,7 +36,16 @@ export function GoalsPage() {
     if (household && selected?.id !== home) select(home)
   }, [home, household, selected?.id, select])
   const save = async (body: unknown) => {
-    await saveGoal(home, body, contribution?.entry?.id ?? form?.id, !!contribution)
+    if (
+      body &&
+      typeof body === 'object' &&
+      'values' in body &&
+      body.values &&
+      typeof body.values === 'object' &&
+      'accounts' in body.values
+    )
+      await saveGoalBatch(home, body)
+    else await saveGoal(home, body, contribution?.entry?.id ?? form?.id, !!contribution)
     await refresh()
     notify('success', 'Goal record saved')
   }
@@ -55,7 +66,13 @@ export function GoalsPage() {
           </p>
         </div>
         {data?.canCreate && (
-          <Button variant="primary" onClick={() => setForm(null)}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setBatchGoals(undefined)
+              setForm(null)
+            }}
+          >
             Create goal
           </Button>
         )}
@@ -101,6 +118,38 @@ export function GoalsPage() {
           No goals to show. Create a goal or adjust your filters.
         </Card>
       )}
+      {data?.goals.some((g) => g.canManage && g.tradingAccountId) && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Button
+            size="small"
+            onClick={() =>
+              setSelectedGoals(
+                visible
+                  .filter((g) => g.canManage && g.tradingAccountId && !g.copyGroupId)
+                  .map((g) => g.id),
+              )
+            }
+          >
+            Select account goals
+          </Button>
+          <Button
+            size="small"
+            disabled={selectedGoals.length < 2}
+            onClick={() => {
+              const chosen = data.goals.filter((g) => selectedGoals.includes(g.id))
+              setBatchGoals(chosen)
+              setForm(chosen[0])
+            }}
+          >
+            Edit selected ({selectedGoals.length})
+          </Button>
+          {!!selectedGoals.length && (
+            <Button size="small" variant="ghost" onClick={() => setSelectedGoals([])}>
+              Clear selection
+            </Button>
+          )}
+        </div>
+      )}
       <div className="grid items-start gap-3 lg:grid-cols-2">
         {visible.map((goal) => (
           <GoalCard
@@ -108,7 +157,21 @@ export function GoalsPage() {
             goal={goal}
             contributions={data?.contributions.filter((c) => c.goalId === goal.id) ?? []}
             trading={trading.data}
-            onEdit={() => setForm(goal)}
+            selected={selectedGoals.includes(goal.id)}
+            onSelect={
+              goal.canManage && goal.tradingAccountId && !goal.copyGroupId
+                ? (checked) =>
+                    setSelectedGoals(
+                      checked
+                        ? [...selectedGoals, goal.id]
+                        : selectedGoals.filter((id) => id !== goal.id),
+                    )
+                : undefined
+            }
+            onEdit={() => {
+              setBatchGoals(undefined)
+              setForm(goal)
+            }}
             onContribute={(entry) => setContribution({ goal, entry })}
             onAudit={setAudit}
           />
@@ -117,13 +180,17 @@ export function GoalsPage() {
       {form !== undefined && (
         <GoalForm
           goal={form ?? undefined}
+          batchGoals={batchGoals}
           trading={trading.data}
           allowHousehold={household?.role === 'owner'}
           members={trading.members.filter(
             (m) => household?.role === 'owner' || m.linkedUserId === user?.id,
           )}
           save={save}
-          close={() => setForm(undefined)}
+          close={() => {
+            setForm(undefined)
+            setBatchGoals(undefined)
+          }}
         />
       )}
       {contribution && (

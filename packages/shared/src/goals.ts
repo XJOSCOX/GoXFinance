@@ -79,3 +79,40 @@ export type Goal = GoalInput & {
   history: GoalProgress[]
 }
 export type GoalsData = { goals: Goal[]; contributions: GoalContribution[]; canCreate: boolean }
+
+// One independent goal per account; the common target is never a pooled pass target.
+export const goalAccountBatchSchema = z
+  .object({
+    template: goalSchema.refine(
+      (v) =>
+        ['trading_profit', 'trading_loss'].includes(v.goalType) &&
+        !v.tradingAccountId &&
+        !v.copyGroupId,
+      'Use an unlinked trading goal template',
+    ),
+    accounts: z
+      .array(
+        z
+          .object({
+            accountId: z.uuid(),
+            goalId: z.uuid().optional(),
+            revision: z.number().int().positive().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    if (new Set(v.accounts.map((a) => a.accountId)).size !== v.accounts.length)
+      ctx.addIssue({ code: 'custom', message: 'Select each account once' })
+    const editing = v.accounts.some((a) => a.goalId || a.revision)
+    if (editing && v.accounts.some((a) => !a.goalId || !a.revision))
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Select an existing goal and revision for every edited account',
+      })
+    if (editing && new Set(v.accounts.map((a) => a.goalId)).size !== v.accounts.length)
+      ctx.addIssue({ code: 'custom', message: 'Select each goal once' })
+  })

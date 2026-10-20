@@ -12,6 +12,9 @@ export function registerGoalRoutes(app: FastifyInstance, auth: AuthService, serv
       .code(201)
       .send({ record: service.save(user(r), params.parse(r.params).householdId, r.body) }),
   )
+  app.post(base + '/batch', (r) => ({
+    records: service.saveBatch(user(r), params.parse(r.params).householdId, r.body),
+  }))
   app.patch(base + '/:id', (r) => {
     const p = params.parse(r.params)
     return { record: service.save(user(r), p.householdId, r.body, p.id) }

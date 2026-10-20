@@ -7,6 +7,8 @@ export function GoalCard({
   goal,
   contributions,
   trading,
+  selected,
+  onSelect,
   onEdit,
   onContribute,
   onAudit,
@@ -14,6 +16,8 @@ export function GoalCard({
   goal: Goal
   contributions: GoalContribution[]
   trading: TradingData | null
+  selected?: boolean
+  onSelect?: (selected: boolean) => void
   onEdit: () => void
   onContribute: (entry?: GoalContribution) => void
   onAudit: (id: string) => void
@@ -37,7 +41,18 @@ export function GoalCard({
     <Card className={`min-w-0 border-t-2 p-5 ${toneStyles[tone].border}`}>
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <h2 className="font-semibold">{goal.name}</h2>
+          <div className="flex items-center gap-2">
+            {onSelect && (
+              <input
+                className="mr-2"
+                type="checkbox"
+                aria-label={`Select goal ${goal.name}`}
+                checked={!!selected}
+                onChange={(e) => onSelect(e.target.checked)}
+              />
+            )}
+            <h2 className="font-semibold">{goal.name}</h2>
+          </div>
           <p className="mt-1 text-xs capitalize text-slate-500">
             {goal.goalType.replaceAll('_', ' ')} / {goal.period} / {goal.status}
           </p>

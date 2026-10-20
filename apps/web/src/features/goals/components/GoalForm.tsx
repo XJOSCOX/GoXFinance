@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   goalSchema,
+  goalAccountBatchSchema,
   goalEndDate,
   localBillDate,
   type Goal,
@@ -8,6 +9,7 @@ import {
   type TradingData,
   type HouseholdMember,
 } from '@goxfinance/shared'
+import { GoalAccountSelection } from './GoalAccountSelection'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { AmountField } from '../../../components/financial/EntryFields'
 import { readMoney, text, optionalText } from '../../../lib/financial-entry'
@@ -15,6 +17,7 @@ import { Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 export function GoalForm({
   goal,
+  batchGoals,
   trading,
   members,
   allowHousehold,
@@ -22,6 +25,7 @@ export function GoalForm({
   close,
 }: {
   goal?: Goal
+  batchGoals?: Goal[]
   trading: TradingData | null
   members: HouseholdMember[]
   allowHousehold: boolean
@@ -35,15 +39,40 @@ export function GoalForm({
   const [type, setType] = useState<GoalInput['goalType']>(goal?.goalType ?? 'trading_profit'),
     [period, setPeriod] = useState<GoalInput['period']>(goal?.period ?? 'daily'),
     [start, setStart] = useState(goal?.startDate ?? localBillDate()),
-    [link, setLink] = useState(goal?.copyGroupId ? 'group' : 'account')
+    [link, setLink] = useState(
+      batchGoals || !goal ? 'accounts' : goal.copyGroupId ? 'group' : 'account',
+    )
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>(
+    batchGoals?.map((g) => g.tradingAccountId!) ?? [],
+  )
+  const batch = link === 'accounts' && ['trading_profit', 'trading_loss'].includes(type)
+  const accounts = (trading?.accounts ?? []).filter((a) =>
+    batchGoals
+      ? batchGoals.some((g) => g.tradingAccountId === a.id)
+      : a.canManage && !a.deletedAt && a.status === 'active',
+  )
+  const goalName =
+    batchGoals && goal?.tradingAccountId
+      ? goal.name.replace(
+          ' · ' + (trading?.accounts.find((a) => a.id === goal.tradingAccountId)?.nickname ?? ''),
+          '',
+        )
+      : goal?.name
   return (
     <FinancialEditor
-      title={goal ? 'Edit goal' : 'Create financial goal'}
+      title={
+        batchGoals
+          ? `Edit ${batchGoals.length} account goals`
+          : goal
+            ? 'Edit goal'
+            : 'Create financial goal'
+      }
+      submitLabel={batch ? `Save ${selectedAccounts.length} account goals` : 'Save goal'}
       record={goal}
       save={save}
       close={close}
-      build={(data) =>
-        goalSchema.parse({
+      build={(data) => {
+        const values = goalSchema.parse({
           timezone: ['trading_profit', 'trading_loss'].includes(type)
             ? text(data, 'timezone')
             : null,
@@ -69,14 +98,30 @@ export function GoalForm({
           status: text(data, 'status'),
           notes: optionalText(data, 'notes'),
         })
-      }
+        return batch
+          ? goalAccountBatchSchema.parse({
+              template: values,
+              accounts: selectedAccounts.map((accountId) => {
+                const old = batchGoals?.find((g) => g.tradingAccountId === accountId)
+                return { accountId, ...(old ? { goalId: old.id, revision: old.revision } : {}) }
+              }),
+            })
+          : values
+      }}
     >
+      {batchGoals && (
+        <p className="rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-xs text-amber-200">
+          Common values below will replace the selected goals’ settings. Review the target, dates,
+          member, and notes before saving. Each goal keeps its history and independent progress.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Goal name">
-          <Input name="name" defaultValue={goal?.name} required />
+          <Input name="name" defaultValue={goalName} required />
         </FormField>
         <FormField label="Goal type">
           <Select
+            disabled={!!batchGoals}
             value={type}
             onChange={(e) => {
               const next = e.target.value as typeof type
@@ -103,7 +148,7 @@ export function GoalForm({
           </Select>
         </FormField>
         <AmountField
-          label="Target amount ($)"
+          label={batch ? 'Target per account ($)' : 'Target amount ($)'}
           name="targetCents"
           value={goal?.targetCents}
           required
@@ -181,12 +226,19 @@ export function GoalForm({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Trading scope">
-              <Select value={link} onChange={(e) => setLink(e.target.value)}>
+              <Select
+                value={link}
+                disabled={!!batchGoals}
+                onChange={(e) => setLink(e.target.value)}
+              >
+                {(!goal || batchGoals) && (
+                  <option value="accounts">Multiple accounts / Combine group</option>
+                )}
                 <option value="account">Account / combined accounts</option>
-                <option value="group">Copy-trading group</option>
+                <option value="group">Copied events only (group)</option>
               </Select>
             </FormField>
-            {link === 'account' ? (
+            {link === 'accounts' ? null : link === 'account' ? (
               <FormField label="Linked account">
                 <Select name="tradingAccountId" defaultValue={goal?.tradingAccountId ?? ''}>
                   <option value="">All accounts for the selected member / household</option>
@@ -210,6 +262,15 @@ export function GoalForm({
               </FormField>
             )}
           </div>
+          {batch && (
+            <GoalAccountSelection
+              trading={trading}
+              accounts={accounts}
+              selected={selectedAccounts}
+              onChange={setSelectedAccounts}
+              editing={!!batchGoals}
+            />
+          )}
         </>
       )}
       <p className="text-xs leading-5 text-slate-400">

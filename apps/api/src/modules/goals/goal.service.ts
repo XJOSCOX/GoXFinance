@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { saveGoalBatch } from './goal-batch.service'
 import {
   goalSchema,
   tradingSessionDate,
@@ -167,6 +168,14 @@ export function goalService(
         store.audit(home, user.id, old ? 'goal_corrected' : 'goal_created', row.id, old, row, v)
         return row
       })
+    },
+    saveBatch(user: PublicUser, home: string, body: unknown) {
+      const ctx = permissions.context(user, home)
+      if (ctx.role === 'viewer') throw new FinancialError('You cannot manage goals', 403)
+      const data = sources(user, home)
+      return saveGoalBatch(store, user, home, body, data.accounts, (input, id) =>
+        this.save(user, home, input, id)!,
+      )
     },
     contribute(user: PublicUser, home: string, body: unknown, id?: string) {
       return store.atomic(() => {
