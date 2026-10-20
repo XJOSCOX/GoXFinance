@@ -11,6 +11,7 @@ export function FinancialEditor({
   close,
   children,
   submitLabel = 'Save record',
+  reasonLabel = 'Reason for correction',
 }: {
   title: string
   record?: { revision: number }
@@ -19,6 +20,7 @@ export function FinancialEditor({
   close: () => void
   children: ReactNode
   submitLabel?: string
+  reasonLabel?: string
 }) {
   const key = useRef(crypto.randomUUID()),
     pending = useRef(false),
@@ -67,7 +69,7 @@ export function FinancialEditor({
           <fieldset disabled={busy} className="space-y-5">
             {children}
             {record && (
-              <FormField label="Reason for correction">
+              <FormField label={reasonLabel}>
                 <Input name="correctionReason" required maxLength={2000} />
               </FormField>
             )}

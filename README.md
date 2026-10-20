@@ -53,6 +53,8 @@ See [Bills & Expenses guide](docs/bills-expenses.md) for workflows, accounting r
 
 ## Income
 
+**Income → Payroll** adds source-specific payroll settings, weekly hours/forecasts, local PDF/image paystub review, separate actual-deposit confirmation, and tax/deduction history. See [Payroll](docs/payroll.md) for offline extraction dependencies, forecast assumptions, privacy limits and the required manual acceptance checklist. Private paystubs are never source fixtures or automatically received income.
+
 **Income** supports multiple earning members and sources, variable hourly work, configurable paydays and overtime multipliers, actual deposit confirmation, versioned corrections/cancellations, and audit history. Source estimates and pending paychecks never count as received income. The Overview uses confirmed deposits minus confirmed cash outflows for net recorded cash flow, not a bank balance. See [Income workflows and limits](docs/income.md).
 
 ## Security and storage

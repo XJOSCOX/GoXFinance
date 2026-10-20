@@ -18,6 +18,7 @@ import { IncomeHistory } from '../components/IncomeHistory'
 import { IncomeDetails } from '../components/IncomeDetails'
 import { IncomeSourceForm } from '../components/IncomeSourceForm'
 import { IncomeTransactionForm } from '../components/IncomeTransactionForm'
+import { PayrollPanel } from '../payroll/PayrollPanel'
 export function IncomePage() {
   const { householdId = '' } = useParams(),
     { households, selected, select } = useHousehold(),
@@ -120,6 +121,7 @@ export function IncomePage() {
               ['overview', 'Overview'],
               ['sources', 'Income sources'],
               ['history', 'Paycheck history'],
+              ['payroll', 'Payroll'],
             ].map(([id, label]) => (
               <Button
                 key={id}
@@ -132,47 +134,56 @@ export function IncomePage() {
               </Button>
             ))}
           </div>
-          <Card className="mb-5 grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4">
-            <FormField label="Reporting month">
-              <Input
-                type="month"
-                value={month}
-                onChange={(e) => {
-                  if (e.target.value) setMonth(e.target.value)
-                }}
-              />
-            </FormField>
-            <FormField label="Earning member">
-              <Select value={member} onChange={(e) => setMember(e.target.value)}>
-                <option value="">All members</option>
-                {data.members.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.fullName}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-            <FormField label="Search sources">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Employer or source"
-              />
-            </FormField>
-            {tab === 'history' && (
-              <FormField label="Paycheck status">
-                <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="">All statuses</option>
-                  {['expected', 'pending', 'confirmed', 'cancelled'].map((v) => (
-                    <option key={v} value={v}>
-                      {v.charAt(0).toUpperCase() + v.slice(1)}
+          {tab !== 'payroll' && (
+            <Card className="mb-5 grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4">
+              <FormField label="Reporting month">
+                <Input
+                  type="month"
+                  value={month}
+                  onChange={(e) => {
+                    if (e.target.value) setMonth(e.target.value)
+                  }}
+                />
+              </FormField>
+              <FormField label="Earning member">
+                <Select value={member} onChange={(e) => setMember(e.target.value)}>
+                  <option value="">All members</option>
+                  {data.members.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.fullName}
                     </option>
                   ))}
                 </Select>
               </FormField>
-            )}
-          </Card>
-          {tab === 'overview' ? (
+              <FormField label="Search sources">
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Employer or source"
+                />
+              </FormField>
+              {tab === 'history' && (
+                <FormField label="Paycheck status">
+                  <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="">All statuses</option>
+                    {['expected', 'pending', 'confirmed', 'cancelled'].map((v) => (
+                      <option key={v} value={v}>
+                        {v.charAt(0).toUpperCase() + v.slice(1)}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              )}
+            </Card>
+          )}
+          {tab === 'payroll' ? (
+            <PayrollPanel
+              home={householdId}
+              sources={data.sources}
+              transactions={data.transactions}
+              changed={data.refresh}
+            />
+          ) : tab === 'overview' ? (
             <IncomeOverview
               data={{
                 ...data,
