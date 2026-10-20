@@ -1,5 +1,6 @@
 import {
   Wallet,
+  FileText,
   PieChart,
   TrendingUp,
   Target,
@@ -45,6 +46,7 @@ export function WorkspaceSidebar({
     { href: `/households/${household.id}/budgets`, label: 'Budgets', icon: PieChart },
     { href: `/households/${household.id}/assets`, label: 'Assets & net worth', icon: Home },
     { href: `/households/${household.id}/goals`, label: 'Goals', icon: Target },
+    { href: `/households/${household.id}/reports`, label: 'Reports', icon: FileText },
   ]
   return (
     <>

@@ -1,3 +1,6 @@
+import { reportSources } from './modules/reports/report.sources'
+import { reportService } from './modules/reports/report.service'
+import { registerReportRoutes } from './modules/reports/report.routes'
 import { assetRepository } from './modules/assets/asset.repository'
 import { assetService } from './modules/assets/asset.service'
 import { registerAssetRoutes } from './modules/assets/asset.routes'
@@ -169,20 +172,17 @@ export async function buildApp(options: AppOptions) {
     copier,
     payoutBatchService(copyRepository(db), tradeStore, trading, payouts, tradeAccess),
   )
-  registerGoalRoutes(
-    app,
-    auth,
-    goalService(goalRepository(db), tradeAccess, (user, home) => ({
-      accounts: trading.accounts(user, home),
-      results: trading.results(user, home),
-      ...copier.list(user, home),
-      income: income.list(user, home).transactions,
-      bills: bills.list(user, home),
-      expenses: expenses.list(user, home).expenses,
-      debts: debts.list(user, home).debts,
-      balances: overviewRepository(db).balances(home),
-    })),
-  )
+  const goals = goalService(goalRepository(db), tradeAccess, (user, home) => ({
+    accounts: trading.accounts(user, home),
+    results: trading.results(user, home),
+    ...copier.list(user, home),
+    income: income.list(user, home).transactions,
+    bills: bills.list(user, home),
+    expenses: expenses.list(user, home).expenses,
+    debts: debts.list(user, home).debts,
+    balances: overviewRepository(db).balances(home),
+  }))
+  registerGoalRoutes(app, auth, goals)
   registerBudgetRoutes(
     app,
     auth,
@@ -226,6 +226,23 @@ export async function buildApp(options: AppOptions) {
     auth,
     assetService(assetRepository(db), tradeAccess, debts, (home) =>
       overviewRepository(db).balances(home),
+    ),
+  )
+  registerReportRoutes(
+    app,
+    auth,
+    reportService(
+      financialAccess(householdStore, memberStore),
+      reportSources(
+        { debts, bills, expenses, income, trading, payouts, copier, goals },
+        {
+          assets: assetRepository(db),
+          planning: planningRepository(db),
+          forecasts: forecastRepository(db),
+          budgets: budgetRepository(db),
+          overview: overviewRepository(db),
+        },
+      ),
     ),
   )
   registerIncomeRoutes(app, auth, income)

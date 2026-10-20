@@ -39,7 +39,6 @@ Payment forms share amount selectors, optional breakdown fields, clearance revie
 
 Manual Trading, copy events and payout batches live in separate services/repositories under `modules/trading`; Goals uses its own module and shared pure progress calculators. Only confirmed payout receipts call Income, atomically. Linked Income edits are guarded and routed through the payout service. Feature-based frontend folders reuse common financial editor, monetary fields and audit dialogs. See [trading-goals.md](trading-goals.md) for session boundaries, source-of-truth rules, permissions, migration portability and the manual QA handoff.
 
-
 Monthly budgets live in `modules/budgets` (routes, service, repository) and `features/budgets` (API, hook, forms and presentation). Shared Zod schemas and pure spending/progress calculations live in `packages/shared`. The database adds three normalized tables through migration 0025. Reports reuse authoritative purchase-spending classification, keep member/household ceilings independent, and never consume trading results or count debt transfers as purchases. See `docs/budgets.md` for scope, permissions and migration details.
 
 Debt Planning separates payoff calculations and Zod contracts in packages/shared, household-scoped service/repository/routes in modules/debt-planning, and feature UI in features/debt-planning. Migration 0026 adds settlement schedules with authoritative debt-payment links and immutable scenario snapshots. See docs/debt-planning.md.
@@ -47,3 +46,7 @@ Debt Planning separates payoff calculations and Zod contracts in packages/shared
 Cash Flow Forecasting separates inflow scheduling, obligation deduplication and daily cash calculations in packages/shared. The forecasts API snapshots sources/results behind household authorization and stale-source checks. Immutable scenarios/audit use additive migration 0027. See docs/forecasts.md.
 
 Assets separates profiles, member/debt links, append-only valuations, audit and immutable net-worth captures through migration 0028. Net worth reuses debt grouping/balance history and explicitly marks legacy historical association limits. Topstep balances are never asset inputs. See docs/assets.md.
+
+## Advanced planning and reporting
+
+Debt planning, forecasts, and assets each have independent API/web feature folders, shared schemas/calculation modules, additive migrations, audit records and immutable scenario/snapshot history. Reports are a read-only composition of those modules; they export whitelisted financial DTOs with stronger member-scoped privacy checks and reuse the same shared calculations. See [debt planning](debt-planning.md), [forecasts](forecasts.md), [assets](assets.md), [reports](reports.md), and the [final manual QA checklist](final-manual-qa.md).

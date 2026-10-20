@@ -86,7 +86,17 @@ See the [2026-10-19 audit report](docs/application-audit-2026-10-19.md) for veri
 
 **Goals** tracks account/group/combined profit targets, loss budgets, confirmed income, verified debt reduction, purchase spending limits, bill payments, and manual savings/custom contributions. Session timezones and boundaries are explicit. Goal history uses the current definition for up to 12 anchored periods. See [Trading and Goals documentation and manual QA checklist](docs/trading-goals.md) before entering live records. All new persistence uses additive migrations and the existing SQLite encryption configuration.
 
-
 ## Monthly budgets
 
 The Budgets page tracks household or member purchase-spending ceilings, category limits, paid-versus-unpaid bill obligations, alerts, independent month copies and previous-month comparisons. See [Budget accounting, permissions and manual testing](docs/budgets.md). It uses additive migration 0025 and the current database encryption configuration without conversion or credential changes.
+
+## Planning, net worth and financial reports
+
+- [Debt planning](docs/debt-planning.md): payoff strategies, explicit assumptions, settlement offers and schedules linked to existing payments.
+- [Cash flow forecasting](docs/forecasts.md): explicit starting cash, income scenarios, obligation deduplication and immutable forecast snapshots.
+- [Assets and net worth](docs/assets.md): dated valuations, corrections, linked liabilities, equity and captured net-worth history.
+- [Financial reports](docs/reports.md): authorized previews and PDF/Excel/CSV/JSON downloads. JSON financial reports are not restorable SQLite backups. Ordinary downloads are not protected by database encryption.
+
+After updating, restart GoXFinance using the existing Windows launcher to load the API and additive migrations 0026�0028. The normal migration gate creates and verifies a safety backup before applying pending migrations. Encryption settings and financial records are preserved; no database conversion is performed by these phases.
+
+All feature work for Phases 10�13 is complete. Continue with the [final full-application manual QA checklist](docs/final-manual-qa.md) in an isolated fictional database before adding further features or using new workflows with real records.
