@@ -1,3 +1,6 @@
+import { importRepository } from './modules/banking/imports/import.repository'
+import { importService } from './modules/banking/imports/import.service'
+import { registerImportRoutes } from './modules/banking/imports/import.routes'
 import { bankRepository } from './modules/banking/bank.repository'
 import { bankPermissions } from './modules/banking/bank.permissions'
 import { bankService } from './modules/banking/bank.service'
@@ -253,6 +256,8 @@ export async function buildApp(options: AppOptions) {
     bankAccess = bankPermissions(financialAccess(householdStore, memberStore), bankStore),
     banks = bankService(bankStore, bankAccess, assetRepository(db), debts)
   registerBankRoutes(app, auth, banks)
+  const imports = importService(bankStore, importRepository(db), bankAccess, banks)
+  registerImportRoutes(app, auth, imports)
   registerIncomeRoutes(app, auth, income)
   registerExpenseRoutes(app, auth, expenses)
   registerOverviewRoutes(

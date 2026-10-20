@@ -97,6 +97,22 @@ export function bankService(
           old = id ? access.account(user, home, id) : undefined
         if (old && ('revision' in p ? p.revision : 0) !== old.revision)
           throw new FinancialError('Bank account changed. Refresh before saving.', 409)
+        if (
+          old &&
+          store.transactions(home).some((t) => t.accountId === old.id) &&
+          (old.type !== p.values.type || old.currency !== p.values.currency)
+        )
+          throw new FinancialError(
+            'Account type and currency cannot change after transactions are imported.',
+            409,
+          )
+        if (
+          old?.connectionId &&
+          ['type', 'currency', 'mask', 'subtype', 'institution'].some(
+            (k) => old[k as keyof typeof old] !== p.values[k as keyof typeof p.values],
+          )
+        )
+          throw new FinancialError('Connected account metadata must come from the provider.', 409)
         for (const member of p.values.memberIds)
           if (!ctx.people.some((m) => m.id === member && m.status === 'active'))
             throw new FinancialError('Select active household members', 400)

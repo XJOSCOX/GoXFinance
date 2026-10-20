@@ -1,4 +1,6 @@
 import { ReportsPage } from '../features/reports/pages/ReportsPage'
+import { BankAccountsPage } from '../features/banking/pages/BankAccountsPage'
+import { BankInboxPage } from '../features/banking/pages/BankInboxPage'
 import { AssetsPage } from '../features/assets/pages/AssetsPage'
 import { ForecastPage } from '../features/forecasts/pages/ForecastPage'
 import { DebtPlanningPage } from '../features/debt-planning/pages/DebtPlanningPage'
@@ -70,6 +72,22 @@ export default function App() {
         <HouseholdProvider>
           <BrowserRouter>
             <Routes>
+              <Route
+                path="/households/:householdId/bank-accounts"
+                element={
+                  <ProtectedRoute>
+                    <BankAccountsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/households/:householdId/transactions"
+                element={
+                  <ProtectedRoute>
+                    <BankInboxPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/signup" element={<AuthPage mode="signup" />} />
               <Route

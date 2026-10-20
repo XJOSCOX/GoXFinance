@@ -1,5 +1,7 @@
 import {
   Wallet,
+  Landmark,
+  Inbox,
   FileText,
   PieChart,
   TrendingUp,
@@ -31,6 +33,8 @@ export function WorkspaceSidebar({
   const { households, select } = useHousehold()
   const navigation = [
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { href: `/households/${household.id}/bank-accounts`, label: 'Bank accounts', icon: Landmark },
+    { href: `/households/${household.id}/transactions`, label: 'Transactions', icon: Inbox },
     { href: `/households/${household.id}/members`, label: 'Household', icon: Users },
     { href: `/households/${household.id}/debts`, label: 'Debts', icon: CreditCard },
     { href: `/households/${household.id}/debt-planning`, label: 'Debt planning', icon: Target },
