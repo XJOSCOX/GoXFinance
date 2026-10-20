@@ -34,6 +34,20 @@ export function reportPdf(report: FinancialReport): Promise<Buffer> {
       line(t.basis, 9, '#59635d')
       if (!t.rows.length) line('No records in this scope.', 10, '#59635d')
       t.rows.forEach((r, i) => {
+        doc.font('Helvetica').fontSize(9)
+        const height =
+          28 +
+          t.columns.reduce(
+            (n, c) =>
+              n +
+              doc.heightOfString(
+                c.label.replace(' (cents)', '') + ': ' + reportDisplay(r[c.key] ?? null, c.unit),
+                { width: 507, lineGap: 2 },
+              ) +
+              5,
+            0,
+          )
+        if (height < doc.page.height - 110 && doc.y + height > doc.page.height - 66) doc.addPage()
         line('Record ' + (i + 1), 10, '#1e3327', 3)
         for (const c of t.columns)
           line(

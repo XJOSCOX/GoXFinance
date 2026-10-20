@@ -56,3 +56,7 @@ Perform write tests in a disposable QA database with fictional records. Keep the
 - [ ] Confirm git status contains source only: no databases, WAL/SHM files, passphrases, reports, backups, or personal records.
 
 After this checklist, stop feature development and review any failures before entering new real data.
+
+## Completed new-module validation
+
+The focused nine-item Phases 10�13 validation completed on October 20, 2026 using fictional data. See [results, arithmetic, fixed issue and test methods](new-module-qa-2026-10-20.md). The broader checklist above remains a separate manual exercise; its boxes are not automatically marked complete by this focused pass.

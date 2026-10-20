@@ -51,7 +51,8 @@ export function reportSources(
       .map((b) => ({ ...b, status: b.status as Budget['status'], canManage: false })),
     offerHistory: stores.planning.offers(home).flatMap((o) =>
       stores.planning.history(home, o.id).map((a) => {
-        const after = JSON.parse(a.afterJson ?? '{}')
+        const entry = JSON.parse(a.afterJson ?? '{}')
+        const after = entry.record ?? entry
         return {
           offerId: o.id,
           action: a.action,
