@@ -21,7 +21,6 @@ it.each([false, true])(
     )
     const remove = (body: object) =>
       testRequest(f.app, 'DELETE', f.base + '/trading/accounts/' + a.id, f.owner.cookie, body)
-    expect((await remove({ revision: a.revision, permanent: true })).statusCode).toBe(409)
     const hidden = await remove({ revision: a.revision })
     expect(hidden.statusCode).toBe(200)
     expect(hidden.json().record.deletedAt).toBeTruthy()

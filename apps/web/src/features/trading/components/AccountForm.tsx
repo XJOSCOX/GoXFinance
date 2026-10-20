@@ -193,13 +193,11 @@ export function AccountForm({
           label="Daily loss limit ($)"
           value={defaults?.dailyLossCents}
         />
-        {count === 1 && (
-          <DateField
-            name="activationDate"
-            label="Activation date"
-            value={defaults?.activationDate}
-          />
-        )}
+        <DateField
+          name="activationDate"
+          label={stage === 'combine' ? 'Combine start date' : 'Activation date'}
+          value={defaults?.activationDate}
+        />
         <FormField label="Status">
           <Select name="status" defaultValue={defaults?.status ?? 'active'}>
             {['active', 'passed', 'failed', 'closed', 'paused'].map((s) => (
@@ -226,8 +224,8 @@ export function AccountForm({
       </div>
       {count > 1 && (
         <p className="text-xs text-slate-400">
-          New account balances and activation dates start unknown. Enter them separately after
-          creation.
+          New account balances start unknown. The entered start date applies to every account in
+          this batch; no trading results are created.
         </p>
       )}
       <p className="text-xs text-slate-400">

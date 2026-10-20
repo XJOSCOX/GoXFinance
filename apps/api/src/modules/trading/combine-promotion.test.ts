@@ -102,11 +102,11 @@ it.each([false, true])(
     expect(
       (await f.send('DELETE', `/trading/accounts/${child.id}`, { revision: 1, permanent: true }))
         .statusCode,
-    ).toBe(409)
+    ).toBe(200)
     const app = await f.restart()
     expect(
       (await testRequest(app, 'GET', f.base + '/trading', f.owner.cookie)).json().accounts,
-    ).toHaveLength(2)
+    ).toHaveLength(1)
     const db = openSqlite(f.options.databasePath, f.options.databaseSecurity)
     try {
       expect(db.pragma('foreign_key_check')).toEqual([])

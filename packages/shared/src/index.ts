@@ -34,3 +34,4 @@ export * from './goal-weekly-summary'
 export * from './trading-overview'
 
 export * from './trading-promotion'
+export * from './combine-journal'

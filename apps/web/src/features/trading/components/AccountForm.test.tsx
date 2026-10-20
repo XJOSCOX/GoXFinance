@@ -59,6 +59,7 @@ it('creates a batch with separate names and identifiers and preserves inputs aft
   const save = vi.fn().mockRejectedValue(new Error('Save unavailable'))
   render(<AccountForm template={template} members={[member]} save={save} close={() => {}} />)
   fireEvent.change(screen.getByLabelText('Number of accounts'), { target: { value: '4' } })
+  fireEvent.change(screen.getByLabelText('Activation date'), { target: { value: '2026-10-09' } })
   fireEvent.change(screen.getByLabelText('Account 2 nickname'), {
     target: { value: 'Second account' },
   })
@@ -74,6 +75,7 @@ it('creates a batch with separate names and identifiers and preserves inputs aft
     nickname: 'Second account',
     maskedExternalId: '4321',
     reportedBalanceCents: null,
+    activationDate: '2026-10-09',
   })
   expect((screen.getByLabelText('Account 2 nickname') as HTMLInputElement).value).toBe(
     'Second account',

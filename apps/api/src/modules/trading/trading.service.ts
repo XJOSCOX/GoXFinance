@@ -17,6 +17,7 @@ import type { TradingRepository } from './trading.repository'
 import { createAccounts } from './account-batch.service'
 import { updateAccountRules, correctAccountRule } from './account-rules.service'
 import { promoteCombine } from './combine-promotion.service'
+import { setAccountDeleted } from './account-removal.service'
 import { saveTradingBatch } from './trading-batch'
 export function tradingService(store: TradingRepository, permissions: TradingPermissions) {
   function account(user: PublicUser, home: string, id: string) {
@@ -37,7 +38,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         promotions.find((p) => p.targetAccountId === row.id)?.sourceAccountId ?? null,
       promotedToAccountId:
         promotions.find((p) => p.sourceAccountId === row.id)?.targetAccountId ?? null,
-      canManage: permissions.canManage(user, home, row.responsibleMemberId),
+      canManage:
+        !row.permanentlyDeletedAt && permissions.canManage(user, home, row.responsibleMemberId),
       ruleSnapshots: store
         .rules(home, row.id)
         .map((r) => ({ ...JSON.parse(r.rulesJson), id: r.id, createdAt: r.createdAt })),
@@ -45,21 +47,33 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
   }
   function results(user: PublicUser, home: string): TradingResult[] {
     permissions.context(user, home)
+    const retired = new Set(
+      store
+        .accounts(home)
+        .filter((a) => a.permanentlyDeletedAt)
+        .map((a) => a.id),
+    )
     const canManage = (id: string) =>
       permissions.canManage(user, home, account(user, home, id).responsibleMemberId)
-    const copied = store.copyResults(home).map(({ row, event }) => ({
-      ...row,
-      copyEventId: event.id,
-      sessionAt: event.sessionAt,
-      notes: event.notes,
-      tradeCount: null,
-      revision: event.revision,
-      createdAt: event.createdAt,
-      updatedAt: event.updatedAt,
-      canManage: false,
-    }))
+    const copied = store
+      .copyResults(home)
+      .filter(({ row }) => !retired.has(row.accountId))
+      .map(({ row, event }) => ({
+        ...row,
+        copyEventId: event.id,
+        sessionAt: event.sessionAt,
+        notes: event.notes,
+        tradeCount: null,
+        revision: event.revision,
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+        canManage: false,
+      }))
     return [
-      ...store.results(home).map((r) => ({ ...r, canManage: canManage(r.accountId) })),
+      ...store
+        .results(home)
+        .filter((r) => !retired.has(r.accountId))
+        .map((r) => ({ ...r, canManage: canManage(r.accountId) })),
       ...copied,
     ] as TradingResult[]
   }
@@ -90,42 +104,20 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
     accounts(user: PublicUser, home: string) {
       permissions.context(user, home)
       const promotions = store.promotions(home)
-      return store.accounts(home).map((r) => accountView(user, home, r, promotions))
+      return store
+        .accounts(home)
+        .filter((r) => !r.permanentlyDeletedAt)
+        .map((r) => accountView(user, home, r, promotions))
     },
     setAccountDeleted(user: PublicUser, home: string, id: string, body: unknown, deleted: boolean) {
-      return store.atomic(() => {
-        const input = z
-          .object({ revision: z.number().int().positive(), permanent: z.boolean().optional() })
-          .strict()
-          .parse(body)
-        const old = account(user, home, id)
-        permissions.manage(user, home, old.responsibleMemberId, true)
-        checkRevision(old.revision, input.revision)
-        if (input.permanent) {
-          if (!deleted)
-            throw new FinancialError('Permanent deletion is not a restore operation', 400)
-          if (old.incomeSourceId || store.hasAccountHistory(home, id))
-            throw new FinancialError(
-              'This account has linked history. Hide it instead to preserve financial records.',
-              409,
-            )
-          store.removeAccount(home, id)
-          store.audit(home, user.id, 'account_permanently_deleted', id, old, null)
-          store.audit(home, user.id, 'account_submission_retired', old.idempotencyKey, null, { id })
-          return null
-        }
-        if (!!old.deletedAt === deleted) return accountView(user, home, old)
-        const now = new Date().toISOString()
-        const row = {
-          ...old,
-          deletedAt: deleted ? now : null,
-          updatedAt: now,
-          revision: old.revision + 1,
-        }
-        store.writeAccount(row, true)
-        store.audit(home, user.id, deleted ? 'account_deleted' : 'account_restored', id, old, row)
-        return accountView(user, home, row)
-      })
+      return setAccountDeleted(
+        { store, permissions, account, accountView },
+        user,
+        home,
+        id,
+        body,
+        deleted,
+      )
     },
     saveAccounts(user: PublicUser, home: string, body: unknown): TradingAccount[] {
       return createAccounts(
@@ -138,6 +130,7 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         (id) => {
           const row = account(user, home, id)
           permissions.manage(user, home, row.responsibleMemberId, true)
+          if (row.permanentlyDeletedAt) throw new FinancialError('Account permanently removed', 409)
           return accountView(user, home, row)
         },
       )
@@ -173,7 +166,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           : createTradingSchema(tradingAccountSchema).parse(body)
         const values = parsed.values,
           old = id ? account(user, home, id) : undefined
-        if (old?.deletedAt) throw new FinancialError('Restore this account before editing it', 409)
+        if (old?.deletedAt)
+          throw new FinancialError('This account is removed; restore it first if recoverable', 409)
         permissions.manage(
           user,
           home,
@@ -294,6 +288,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           values = parsed.values
         const parent = account(user, home, values.accountId)
         permissions.manage(user, home, parent.responsibleMemberId, true)
+        if (parent.permanentlyDeletedAt)
+          throw new FinancialError('Account permanently removed', 409)
         if (parent.deletedAt && !id)
           throw new FinancialError('Restore this account before adding results', 409)
         const old = id ? store.results(home).find((r) => r.id === id) : undefined
@@ -378,6 +374,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         if (!old) throw new FinancialError('Daily result not found', 404)
         const parent = account(user, home, old.accountId)
         permissions.manage(user, home, parent.responsibleMemberId, true)
+        if (parent.permanentlyDeletedAt)
+          throw new FinancialError('Account permanently removed', 409)
         checkRevision(old.revision, parsed.revision)
         store.audit(home, user.id, 'result_deleted', id, old, { reason: parsed.reason })
         store.audit(home, user.id, 'result_submission_retired', old.idempotencyKey, null, { id })

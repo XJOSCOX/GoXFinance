@@ -1,6 +1,7 @@
 import { tradingPayoutProgress, type TradingAccount, type TradingResult } from '@goxfinance/shared'
 import { formatMoney } from '../../../lib/money'
 import { amountTone, toneStyles } from '../../../components/ui/semantic-tones'
+import { CombineJournal } from './CombineJournal'
 export function CombineEvaluationProgress({
   account,
   results,
@@ -52,6 +53,7 @@ export function CombineEvaluationProgress({
         Simulated evaluation results are not payout income. Topstep confirms passing; consistency
         can increase the required target. These saved settings do not enforce provider limits.
       </p>
+      <CombineJournal account={account} results={results} />
     </section>
   )
 }

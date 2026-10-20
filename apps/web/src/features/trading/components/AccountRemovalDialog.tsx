@@ -64,8 +64,10 @@ export function AccountRemovalDialog({
           {permanent && (
             <>
               <p className="text-sm text-amber-200">
-                This cannot be undone. Only accounts without linked results, payouts, groups or
-                goals can be permanently deleted. A deletion audit entry is retained.
+                This cannot be undone. The account and its results will be removed from tracking and
+                totals. Accounts with any payout history cannot be permanently deleted. Historical
+                references and audit records are retained for integrity; the account cannot be
+                restored. Copy groups containing it will no longer be available.
               </p>
               <FormField label={`Type ${account.nickname} to confirm`}>
                 <Input

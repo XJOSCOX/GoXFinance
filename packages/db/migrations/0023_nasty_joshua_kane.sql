@@ -1,0 +1,1 @@
+ALTER TABLE `trading_accounts` ADD `permanently_deleted_at` text;

@@ -6,6 +6,7 @@ import {
 } from './trading'
 import { sumCents } from './outflows'
 import { tradingPayoutProgress } from './trading-progress'
+import { combineJournal } from './combine-journal'
 
 // Identity and record IDs differ between copied accounts; their financial state must match.
 export function groupMatchingTradingAccounts(
@@ -72,6 +73,7 @@ export function groupMatchingTradingAccounts(
       qualifyingDays: p.qualifyingDays,
       target: p.target,
       estimate: p.estimate,
+      journal: account.stage === 'combine' ? combineJournal(account, results, now) : null,
     })
     groups.set(key, [...(groups.get(key) ?? []), account])
   }

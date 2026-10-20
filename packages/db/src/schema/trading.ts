@@ -50,6 +50,7 @@ export const tradingAccounts = sqliteTable(
     notes: text('notes'),
     incomeSourceId: text('income_source_id'),
     deletedAt: text('deleted_at'),
+    permanentlyDeletedAt: text('permanently_deleted_at'),
   },
   (t) => [
     uniqueIndex('trading_account_scope').on(t.id, t.householdId),

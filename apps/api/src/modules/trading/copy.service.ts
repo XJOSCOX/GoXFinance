@@ -21,33 +21,50 @@ export function copyService(
   permissions: TradingPermissions,
 ) {
   const manage = (user: PublicUser, home: string, ids: string[]) =>
-    ids.forEach((id) =>
-      permissions.manage(user, home, trading.account(user, home, id).responsibleMemberId, true),
-    )
+    ids.forEach((id) => {
+      const account = trading.account(user, home, id)
+      permissions.manage(user, home, account.responsibleMemberId, true)
+      if (account.permanentlyDeletedAt) throw new FinancialError('Account permanently removed', 409)
+    })
   const canManage = (user: PublicUser, home: string, ids: string[]) =>
-    ids.every((id) =>
-      permissions.canManage(user, home, trading.account(user, home, id).responsibleMemberId),
+    ids.every(
+      (id) =>
+        !trading.account(user, home, id).permanentlyDeletedAt &&
+        permissions.canManage(user, home, trading.account(user, home, id).responsibleMemberId),
     )
   return {
     list(user: PublicUser, home: string) {
       permissions.context(user, home)
+      const retired = new Set(
+        trades
+          .accounts(home)
+          .filter((a) => a.permanentlyDeletedAt)
+          .map((a) => a.id),
+      )
       return {
-        groups: store.groups(home).map((g) => ({
-          ...g,
-          canManage: canManage(
-            user,
-            home,
-            g.members.map((m) => m.accountId),
-          ),
-        })) as CopyGroup[],
-        events: store.events(home).map((e) => ({
-          ...e,
-          canManage: canManage(
-            user,
-            home,
-            e.entries.map((r) => r.accountId),
-          ),
-        })) as CopyEvent[],
+        groups: store
+          .groups(home)
+          .filter((g) => !g.members.some((m) => retired.has(m.accountId)))
+          .map((g) => ({
+            ...g,
+            canManage: canManage(
+              user,
+              home,
+              g.members.map((m) => m.accountId),
+            ),
+          })) as CopyGroup[],
+        events: store
+          .events(home)
+          .filter((e) => e.entries.some((r) => !retired.has(r.accountId)))
+          .map((e) => ({
+            ...e,
+            entries: e.entries.filter((r) => !retired.has(r.accountId)),
+            canManage: canManage(
+              user,
+              home,
+              e.entries.map((r) => r.accountId),
+            ),
+          })) as CopyEvent[],
         batches: store.batches(home),
       }
     },

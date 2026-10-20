@@ -154,6 +154,7 @@ export type TradingAccount = Omit<TradingAccountInput, 'ruleSnapshot'> & {
   promotedToAccountId?: string | null
   incomeSourceId: string | null
   deletedAt: string | null
+  permanentlyDeletedAt?: string | null
   ruleSnapshots: (z.infer<typeof tradingRuleSchema> & { id: string; createdAt: string })[]
 }
 export type TradingResult = TradingResultInput & {
