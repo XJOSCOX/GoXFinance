@@ -1,3 +1,4 @@
+import { BudgetsPage } from '../features/budgets/pages/BudgetsPage'
 import { TradingPage } from '../features/trading/pages/TradingPage'
 import { GoalsPage } from '../features/goals/pages/GoalsPage'
 import { IncomePage } from '../features/income/pages/IncomePage'
@@ -144,6 +145,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <GoalsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/households/:householdId/budgets"
+                element={
+                  <ProtectedRoute>
+                    <BudgetsPage />
                   </ProtectedRoute>
                 }
               />

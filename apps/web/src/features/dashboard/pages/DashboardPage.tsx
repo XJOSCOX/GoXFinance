@@ -1,3 +1,4 @@
+import { OverviewBudgets } from '../components/OverviewBudgets'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useEffect, useState } from 'react'
@@ -70,6 +71,7 @@ export function DashboardPage() {
           data={data}
           home={selected.id}
           tradingSummary={<OverviewTrading key={selected.id} home={selected.id} month={month} />}
+          budgetSummary={<OverviewBudgets key={selected.id} home={selected.id} month={month} />}
           goalSummary={<OverviewGoals key={selected.id} home={selected.id} />}
         />
       ) : (

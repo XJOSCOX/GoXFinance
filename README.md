@@ -85,3 +85,8 @@ See the [2026-10-19 audit report](docs/application-audit-2026-10-19.md) for veri
 **Trading** tracks independent Topstep accounts, one daily summary per account/session, explicit copied-account event results, historical group membership, and independent payout records within batches. No trades or payout requests are transmitted. Nominal tiers and realized P&L are not household cash. Only confirmed payout deposits create or link Income; corrections and cancellations synchronize that same authoritative deposit.
 
 **Goals** tracks account/group/combined profit targets, loss budgets, confirmed income, verified debt reduction, purchase spending limits, bill payments, and manual savings/custom contributions. Session timezones and boundaries are explicit. Goal history uses the current definition for up to 12 anchored periods. See [Trading and Goals documentation and manual QA checklist](docs/trading-goals.md) before entering live records. All new persistence uses additive migrations and the existing SQLite encryption configuration.
+
+
+## Monthly budgets
+
+The Budgets page tracks household or member purchase-spending ceilings, category limits, paid-versus-unpaid bill obligations, alerts, independent month copies and previous-month comparisons. See [Budget accounting, permissions and manual testing](docs/budgets.md). It uses additive migration 0025 and the current database encryption configuration without conversion or credential changes.

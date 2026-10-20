@@ -38,3 +38,6 @@ Payment forms share amount selectors, optional breakdown fields, clearance revie
 ## Trading and goals
 
 Manual Trading, copy events and payout batches live in separate services/repositories under `modules/trading`; Goals uses its own module and shared pure progress calculators. Only confirmed payout receipts call Income, atomically. Linked Income edits are guarded and routed through the payout service. Feature-based frontend folders reuse common financial editor, monetary fields and audit dialogs. See [trading-goals.md](trading-goals.md) for session boundaries, source-of-truth rules, permissions, migration portability and the manual QA handoff.
+
+
+Monthly budgets live in `modules/budgets` (routes, service, repository) and `features/budgets` (API, hook, forms and presentation). Shared Zod schemas and pure spending/progress calculations live in `packages/shared`. The database adds three normalized tables through migration 0025. Reports reuse authoritative purchase-spending classification, keep member/household ceilings independent, and never consume trading results or count debt transfers as purchases. See `docs/budgets.md` for scope, permissions and migration details.

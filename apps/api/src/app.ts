@@ -1,3 +1,6 @@
+import { budgetRepository } from './modules/budgets/budget.repository'
+import { budgetService } from './modules/budgets/budget.service'
+import { registerBudgetRoutes } from './modules/budgets/budget.routes'
 import { payoutBatchService } from './modules/trading/payout-batch.service'
 import { tradingRepository } from './modules/trading/trading.repository'
 import { tradingPermissions } from './modules/trading/trading.permissions'
@@ -169,6 +172,18 @@ export async function buildApp(options: AppOptions) {
       expenses: expenses.list(user, home).expenses,
       debts: debts.list(user, home).debts,
       balances: overviewRepository(db).balances(home),
+    })),
+  )
+  registerBudgetRoutes(
+    app,
+    auth,
+    budgetService(budgetRepository(db), tradeAccess, (user, home) => ({
+      bills: bills.list(user, home),
+      expenses: expenses.list(user, home).expenses,
+      categories: categoryService(
+        categoryRepository(db),
+        financialAccess(householdStore, memberStore),
+      ).list(user, home).categories,
     })),
   )
   registerIncomeRoutes(app, auth, income)
