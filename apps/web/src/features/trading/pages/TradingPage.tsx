@@ -19,7 +19,6 @@ import { AccountRemovalDialog } from '../components/AccountRemovalDialog'
 import { AccountForm } from '../components/AccountForm'
 import { AccountRulesForm } from '../components/AccountRulesForm'
 import { EditRuleForm } from '../components/EditRuleForm'
-import { CombinedPayoutProgress } from '../components/CombinedPayoutProgress'
 import { ResultRemovalDialog } from '../components/ResultRemovalDialog'
 import { CombinePromotionForm } from '../components/CombinePromotionForm'
 import { ResultForm } from '../components/ResultForm'
@@ -127,7 +126,6 @@ export function TradingPage() {
               </Button>
             ))}
           </div>
-          {tab === 'accounts' && <CombinedPayoutProgress data={data} />}
           {managed.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               <Button size="small" onClick={() => setEditor({ kind: 'accounts/rules' })}>

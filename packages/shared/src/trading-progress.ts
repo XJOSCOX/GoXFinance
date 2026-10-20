@@ -96,3 +96,46 @@ export function combinedTradingProgress(
       : null,
   }
 }
+
+/** Advisory only: saved Standard-path checks cannot establish provider eligibility. */
+export function tradingWithdrawalEstimate(
+  accounts: TradingAccount[],
+  results: TradingResult[],
+  payouts: TradingPayout[],
+  now: string,
+) {
+  const active = [
+    ...new Map(
+      accounts
+        .filter((a) => ['xfa', 'lfa'].includes(a.stage) && a.status === 'active' && !a.deletedAt)
+        .map((a) => [a.id, a]),
+    ).values(),
+  ]
+  const rows = active.map((a) => ({
+    account: a,
+    progress: tradingPayoutProgress(a, results, payouts, now),
+  }))
+  const assessed = rows.filter(
+    ({ account, progress: p }) =>
+      account.xfaPath === 'standard' &&
+      p.target != null &&
+      p.target > 0 &&
+      p.threshold != null &&
+      p.rule?.maximumPayoutCents != null &&
+      p.estimate != null,
+  )
+  const ready = assessed.filter(
+    ({ progress: p }) =>
+      p.targetMet && (p.rule?.minimumNetCents == null || p.netCents >= p.rule.minimumNetCents),
+  )
+  return {
+    accountCount: active.length,
+    assessedCount: assessed.length,
+    readyCount: ready.length,
+    incomplete: assessed.length < active.length,
+    traderCents:
+      active.length && !assessed.length
+        ? null
+        : sumCents(ready.map(({ progress: p }) => p.estimate!.traderCents)),
+  }
+}

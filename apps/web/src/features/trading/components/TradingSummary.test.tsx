@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from 'vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import type { TradingData } from '@goxfinance/shared'
 import { TradingSummary } from './TradingSummary'
 afterEach(cleanup)
-it('shows per-account stage totals and only confirmed funded deposits as cash', () => {
+it('shows a compact ordered summary and only confirmed funded deposits as cash', () => {
   const paid = {
     id: 'p',
     accountId: 'funded',
@@ -43,14 +43,43 @@ it('shows per-account stage totals and only confirmed funded deposits as cash', 
       }
     />,
   )
-  expect(
-    within(screen.getByRole('region', { name: 'Combine P&L' })).getAllByText('$100.00'),
-  ).toHaveLength(2)
-  expect(
-    within(screen.getByRole('region', { name: 'Funded account P&L' })).getAllByText('-$20.00'),
-  ).toHaveLength(2)
+  expect(screen.getByText('$100.00 each')).toBeTruthy()
+  expect(screen.getByText('-$20.00')).toBeTruthy()
   expect(screen.getByText('$90.00')).toBeTruthy()
-  expect(screen.getByText('$1,150.00')).toBeTruthy()
+  expect(screen.getByText(/\$1,150.00 requested \/ approved/)).toBeTruthy()
+  expect(screen.queryByRole('region', { name: 'Combine P&L' })).toBeNull()
+  expect(screen.queryByText('Evaluation')).toBeNull()
   expect(screen.queryByText('$9,999.99')).toBeNull()
   expect(screen.queryByText('$80.00')).toBeNull()
+})
+
+it('shows each and total only for matching account results, and uses a combined total when they differ', () => {
+  const data = {
+    accounts: [
+      { id: 'a', stage: 'combine' },
+      { id: 'b', stage: 'combine' },
+      { id: 'c', stage: 'combine' },
+    ],
+    results: ['a', 'b', 'c'].map((accountId) => ({
+      id: accountId,
+      accountId,
+      netCents: 15000,
+      feesCents: 0,
+    })),
+    payouts: [],
+  } as unknown as TradingData
+  const view = render(<TradingSummary data={data} />)
+  expect(screen.getByText('$150.00 each')).toBeTruthy()
+  expect(screen.getByText('$450.00 all 3 accounts · not cash')).toBeTruthy()
+  view.rerender(
+    <TradingSummary
+      data={{
+        ...data,
+        results: data.results.map((r) => ({ ...r, netCents: r.accountId === 'a' ? -5000 : 15000 })),
+      }}
+    />,
+  )
+  expect(screen.queryByText(/each/)).toBeNull()
+  expect(screen.getByText('$250.00')).toBeTruthy()
+  expect(screen.getByText('3 accounts · results differ · not cash')).toBeTruthy()
 })

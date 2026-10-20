@@ -1,5 +1,9 @@
 import { it, expect } from 'vitest'
-import { tradingPayoutProgress, combinedTradingProgress } from './trading-progress'
+import {
+  tradingPayoutProgress,
+  combinedTradingProgress,
+  tradingWithdrawalEstimate,
+} from './trading-progress'
 import { ruleForPayout, latestSavedRule } from './trading-rules'
 import type { TradingAccount, TradingResult, TradingPayout } from './trading'
 
@@ -163,4 +167,78 @@ it('excludes Combine evaluations from funded payout estimates without changing f
     estimatedAccountCount: 1,
     estimatedTraderCents: 9000,
   })
+})
+
+it('estimates withdrawal only for funded accounts meeting their own saved checks, never Combine profits', () => {
+  const funded = {
+    ...account,
+    stage: 'xfa',
+    xfaPath: 'standard',
+    ruleSnapshots: [{ ...rule, minimumDays: 1, minimumNetCents: 18000 }],
+  } as TradingAccount
+  const combine = { ...funded, id: 'combine', stage: 'combine' } as TradingAccount
+  const rows = [
+    result('eligible', '2026-10-10', 20000),
+    { ...result('sim', '2026-10-10', 9999999), accountId: 'combine' },
+  ]
+  expect(tradingWithdrawalEstimate([funded, funded, combine], rows, [], now)).toMatchObject({
+    accountCount: 1,
+    assessedCount: 1,
+    readyCount: 1,
+    traderCents: 18000,
+    incomplete: false,
+  })
+  expect(
+    tradingWithdrawalEstimate([funded], [result('low', '2026-10-10', 16000)], [], now),
+  ).toMatchObject({ readyCount: 0, traderCents: 0 })
+  expect(
+    tradingWithdrawalEstimate(
+      [funded],
+      rows,
+      [
+        {
+          id: 'reserve',
+          accountId: 'account',
+          status: 'requested',
+          requestedCents: 10000,
+          requestDate: '2026-10-12',
+          approvedCents: null,
+        } as TradingPayout,
+      ],
+      now,
+    ).traderCents,
+  ).toBe(9000)
+  expect(tradingWithdrawalEstimate([combine], rows, [], now)).toMatchObject({
+    accountCount: 0,
+    traderCents: 0,
+  })
+})
+it('does not invent withdrawal eligibility for incomplete or unsupported saved rules', () => {
+  const funded = {
+    ...account,
+    stage: 'xfa',
+    xfaPath: 'standard',
+    ruleSnapshots: [],
+  } as TradingAccount
+  expect(tradingWithdrawalEstimate([funded], [], [], now)).toMatchObject({
+    traderCents: null,
+    incomplete: true,
+    assessedCount: 0,
+  })
+  expect(
+    tradingWithdrawalEstimate(
+      [{ ...funded, xfaPath: 'consistency', ruleSnapshots: [rule] }],
+      [],
+      [],
+      now,
+    ).traderCents,
+  ).toBeNull()
+  expect(
+    tradingWithdrawalEstimate(
+      [{ ...funded, status: 'failed' as TradingAccount['status'] }],
+      [],
+      [],
+      now,
+    ).accountCount,
+  ).toBe(0)
 })
