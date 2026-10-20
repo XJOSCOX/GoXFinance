@@ -47,7 +47,7 @@ export function TradingHistory({
               <th>Profit</th>
               <th>Loss</th>
               <th>Gross</th>
-              <th>Fees</th>
+              <th>Additional fees</th>
               <th>Net</th>
               <th>Actions</th>
             </tr>
@@ -67,15 +67,32 @@ export function TradingHistory({
                     {r.sessionDate}
                     <span className="block text-xs text-slate-500">{r.timezone}</span>
                   </td>
-                  <td className={r.profitCents == null ? 'text-slate-500' : toneStyles.positive.text}>{formatMoney(r.profitCents ?? null)}</td>
-                  <td className={r.lossCents == null ? 'text-slate-500' : toneStyles.negative.text}>{formatMoney(r.lossCents ?? null)}</td>
+                  <td
+                    className={r.profitCents == null ? 'text-slate-500' : toneStyles.positive.text}
+                  >
+                    {formatMoney(r.profitCents ?? null)}
+                  </td>
+                  <td className={r.lossCents == null ? 'text-slate-500' : toneStyles.negative.text}>
+                    {formatMoney(r.lossCents ?? null)}
+                  </td>
                   <td>{formatMoney(r.grossCents)}</td>
-                  <td>{formatMoney(r.feesCents)}</td>
+                  <td>{r.feesIncluded ? 'Included in P&L' : formatMoney(r.feesCents)}</td>
                   <td className={toneStyles[amountTone(r.netCents)].text}>
                     {formatMoney(r.netCents)}
                   </td>
                   <td>
                     <div className="flex gap-1">
+                      {r.copyEventId &&
+                        data.events.find((e) => e.id === r.copyEventId)?.canManage && (
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              onEvent(data.events.find((e) => e.id === r.copyEventId)!)
+                            }
+                          >
+                            Edit result
+                          </Button>
+                        )}
                       {r.canManage && (
                         <Button size="small" onClick={() => onResult(r)}>
                           Edit

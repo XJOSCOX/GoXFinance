@@ -107,3 +107,33 @@ it('protects Owner results against deletion by Admin, Editor, Viewer and outside
   ).toBe(404)
   expect((await f.ok('GET', '/trading')).results).toHaveLength(1)
 }, 20000)
+
+it('persists fee-adjusted manual results and rejects double fee deductions', async () => {
+  const f = await setup(false)
+  const account = (await f.ok('POST', '/trading/accounts', create(accountInput(f.member)))).record
+  const values = {
+    accountId: account.id,
+    sessionAt: '2026-10-10T20:00:00Z',
+    profitCents: 10000,
+    lossCents: 3000,
+    grossCents: 7000,
+    feesCents: 0,
+    feesIncluded: true,
+    tradeCount: null,
+    notes: null,
+  }
+  expect(
+    (await f.send('POST', '/trading/results', create({ ...values, feesCents: 100 }))).statusCode,
+  ).toBe(400)
+  const record = (await f.ok('POST', '/trading/results', create(values))).record
+  expect(record).toMatchObject({ feesIncluded: true, netCents: 7000 })
+  const app = await f.restart()
+  const loaded = (await testRequest(app, 'GET', f.base + '/trading', f.owner.cookie)).json()
+  expect(loaded.results[0]).toMatchObject({
+    feesIncluded: true,
+    netCents: 7000,
+    profitCents: 10000,
+    lossCents: 3000,
+  })
+  expect(loaded.payouts).toEqual([])
+}, 20000)

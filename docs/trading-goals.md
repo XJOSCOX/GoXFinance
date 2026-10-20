@@ -87,7 +87,7 @@ Remaining limits: manual entry only; no official rule/eligibility engine, broker
 
 Daily summaries accept nonnegative profit, loss and fees in integer cents. Gross is profit minus loss; net is gross minus fees. Select one or multiple accounts, enter shared amounts once, explicitly apply them, then review or adjust each account before saving. Batch creation is atomic and idempotent. No result creates household income.
 
-Migration 0020 only adds nullable profit/loss columns. Historical gross-only summaries and copied events retain an unknown breakdown; no historical split is inferred. Corrections can retain gross-only mode or supply a complete breakdown. Copied events continue using their existing signed gross fields and event correction workflow.
+Migration 0020 only adds nullable profit/loss columns. Historical gross-only summaries and copied events retain an unknown breakdown until explicitly corrected; no historical split is inferred. Corrections can retain gross-only mode or supply a complete breakdown. Copied events continue using their existing signed gross fields and event correction workflow.
 
 Daily-summary deletion requires current revision, confirmation and a reason. Permission checks, audit snapshots, submission retirement and deletion run in one transaction. Deleted summaries leave performance/goal totals; delayed retries cannot recreate them. Audit history remains in SQLite. Deleting a result does not cancel a payout or its Income deposit.
 
@@ -96,3 +96,10 @@ Daily-summary deletion requires current revision, confirmation and a reason. Per
 The overview has a compact trading performance card scoped to the reporting month using recorded account session dates. It totals entered profit and loss separately, fees, and authoritative net results across household accounts. Manual summaries and copied account results count once by result ID. Historical gross-only entries are included in fees and net, while their unavailable profit/loss breakdown is clearly identified; partial profit/loss totals are labelled known. An empty month shows zero without creating transactions.
 
 Payout records are not inputs to this calculation. Confirmed payout deposits remain in Income received through the existing income integration. This is a frontend presentation and shared calculation change; no database migration or API restart is required. Tests cover three-account aggregation, negative days, fees, duplicate records, month filtering, unavailable breakdowns, empty states and payout separation.
+
+
+## Correcting copied results and fee-adjusted P&L
+
+Results now provides Edit result on authorized copied entries, opening their existing event with its historical account membership. Each account can switch from signed gross mode to entered profit and loss. Revisions, ownership checks and the existing atomic event audit apply; result identifiers and payout records are preserved. Migration 0021 only adds nullable copied profit/loss and a fees-included flag (false for existing records). No historical amounts or breakdowns are inferred.
+
+When P&L already includes trading fees, record fee-adjusted profit and loss and select that option. Additional fee deductions must be zero, enforced by shared API validation. The fee flag persists in SQLite and history says Included in P&L, rather than asserting the provider charged no fees. Optional additional fees apply only to amounts entered before fees. The provider profit split is applied only by existing advisory payout calculations, never again to recorded P&L or household income.

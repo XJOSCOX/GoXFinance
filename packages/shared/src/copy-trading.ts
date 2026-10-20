@@ -35,9 +35,24 @@ export const copyEventSchema = z
             accountId: z.uuid(),
             quantity,
             grossCents: cents,
+            profitCents: cents.nonnegative().nullable().optional(),
+            lossCents: cents.nonnegative().nullable().optional(),
+            feesIncluded: z.boolean().optional(),
             feesCents: cents.nonnegative(),
           })
           .strict()
+          .refine(
+            (v) =>
+              (v.profitCents == null && v.lossCents == null) ||
+              (v.profitCents != null &&
+                v.lossCents != null &&
+                v.grossCents === v.profitCents - v.lossCents),
+            'Enter both profit and loss; gross must equal profit minus loss',
+          )
+          .refine(
+            (v) => !v.feesIncluded || v.feesCents === 0,
+            'Fees already included cannot be deducted again',
+          )
           .refine((v) => Number.isSafeInteger(v.grossCents - v.feesCents), 'Net amount too large'),
       )
       .min(1)

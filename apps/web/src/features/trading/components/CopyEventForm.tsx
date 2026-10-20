@@ -6,8 +6,9 @@ import {
   type TradingAccount,
 } from '@goxfinance/shared'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
-import { AmountField } from '../../../components/financial/EntryFields'
-import { readMoney, text, optionalText } from '../../../lib/financial-entry'
+import { CopyResultFields } from './CopyResultFields'
+import { readCopyAmounts } from '../lib/copy-result-amounts'
+import { text, optionalText } from '../../../lib/financial-entry'
 import { Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { AccountSelectionToolbar } from './AccountSelectionToolbar'
@@ -46,8 +47,7 @@ export function CopyEventForm({
           entries: selected.map((accountId) => ({
             accountId,
             quantity: text(data, 'quantity:' + accountId),
-            grossCents: readMoney(data, 'gross:' + accountId, true),
-            feesCents: readMoney(data, 'fees:' + accountId, true),
+            ...readCopyAmounts(data, accountId),
           })),
         })
       }
@@ -160,18 +160,13 @@ export function CopyEventForm({
                     inputMode="decimal"
                   />
                 </FormField>
-                <AmountField
-                  label="Gross realized P&L ($)"
-                  name={'gross:' + member.accountId}
-                  value={row?.grossCents}
-                  required
-                />
-                <AmountField
-                  label="Fees ($)"
-                  name={'fees:' + member.accountId}
-                  value={row?.feesCents}
-                  required
-                />
+                <div className="sm:col-span-3">
+                  <CopyResultFields
+                    accountId={member.accountId}
+                    nickname={account?.nickname ?? 'Historical account'}
+                    row={row}
+                  />
+                </div>
               </div>
             )}
           </section>

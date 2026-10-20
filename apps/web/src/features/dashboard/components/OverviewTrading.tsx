@@ -10,7 +10,7 @@ export function OverviewTrading({ home, month }: { home: string; month: string }
     ? [
         ['Total profit', totals.profitCents, 'positive'],
         ['Total loss', totals.lossCents, 'negative'],
-        ['Fees', totals.feesCents, 'warning'],
+        ['Additional fees', totals.feesCents, 'warning'],
         ['Combined net', totals.netCents, amountTone(totals.netCents)],
       ]
     : []
@@ -69,9 +69,10 @@ export function OverviewTrading({ home, month }: { home: string; month: string }
           </>
         )}
         <p className="mt-3 border-t border-white/[.07] pt-2 text-xs leading-5 text-slate-500">
-          Recorded session results for the reporting month. Net = profit − loss − fees when the
-          breakdown is known. Not payout income or available cash; confirmed payout deposits stay in
-          Income received.
+          Recorded session results for the reporting month. Fees shown are additional deductions
+          only; fee-adjusted P&L is not charged again. Net = profit − loss − fees when the breakdown
+          is known. Not payout income or available cash; confirmed payout deposits stay in Income
+          received.
         </p>
       </section>
     </Card>

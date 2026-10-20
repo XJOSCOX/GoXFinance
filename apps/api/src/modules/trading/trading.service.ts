@@ -314,6 +314,7 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
             ...old,
             ...values,
             profitCents: values.profitCents ?? null,
+            feesIncluded: values.feesIncluded ?? false,
             lossCents: values.lossCents ?? null,
             id: id ?? randomUUID(),
             householdId: home,

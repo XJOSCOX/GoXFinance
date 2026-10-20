@@ -193,6 +193,9 @@ export function copyService(
             )
           return {
             ...entry,
+            profitCents: entry.profitCents ?? null,
+            lossCents: entry.lossCents ?? null,
+            feesIncluded: entry.feesIncluded ?? false,
             id: previous?.id ?? randomUUID(),
             householdId: home,
             eventId: target,

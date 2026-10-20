@@ -8,6 +8,7 @@ import { Input } from '../../../components/ui'
 import { ProfitLossFields } from './ProfitLossFields'
 import { resultAmounts, type ResultAmounts } from '../lib/result-amounts'
 import { moneyText } from '../../../lib/financial-entry'
+import { formatMoney } from '../../../lib/money'
 import { TradingAccountSelect } from './TradingAccountSelect'
 export function ResultForm({
   result,
@@ -26,6 +27,7 @@ export function ResultForm({
     profit: moneyText(result?.profitCents),
     loss: moneyText(result?.lossCents),
     fees: moneyText(result?.feesCents),
+    feesIncluded: result?.feesIncluded ?? false,
   })
   const account = accounts.find((a) => a.id === id)
   return (
@@ -56,6 +58,11 @@ export function ResultForm({
         <p className="text-sm">{account?.nickname}</p>
       ) : (
         <TradingAccountSelect accounts={accounts} value={id} onChange={setId} />
+      )}
+      {result && (
+        <p className="text-sm text-slate-300">
+          Saved net result: {formatMoney(result.netCents)}. Changes take effect only after saving.
+        </p>
       )}
       <p className="text-xs text-slate-400">
         One summary per account/session. Correct the existing record instead of adding another. Net

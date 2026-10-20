@@ -75,6 +75,7 @@ export const tradingResultSchema = z
     sessionAt: z.iso.datetime(),
     grossCents: money,
     profitCents: positive.nullable().optional(),
+    feesIncluded: z.boolean().optional(),
     lossCents: positive.nullable().optional(),
     feesCents: positive,
     tradeCount: z.number().int().nonnegative().max(100000).nullable(),
@@ -88,6 +89,10 @@ export const tradingResultSchema = z
         v.lossCents != null &&
         v.grossCents === v.profitCents - v.lossCents),
     'Enter both profit and loss; gross must equal profit minus loss',
+  )
+  .refine(
+    (v) => !v.feesIncluded || v.feesCents === 0,
+    'Fees already included cannot be deducted again',
   )
   .refine(
     (v) => Number.isSafeInteger(v.grossCents - v.feesCents),

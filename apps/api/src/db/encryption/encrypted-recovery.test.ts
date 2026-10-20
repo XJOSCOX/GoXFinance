@@ -125,6 +125,8 @@ it.each(['before-cutover', 'after-retain', 'after-promote'])(
     expect(existsSync(manifest)).toBe(false)
     expect(existsSync(manifest + '.plan')).toBe(false)
   },
+  // Native encryption, verified file copies and migrations can exceed five seconds under parallel load.
+  20000,
 )
 
 it('rejects a corrupt encrypted backup before cutover and preserves existing data and the queued request', async () => {

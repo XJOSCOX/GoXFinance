@@ -24,21 +24,36 @@ export function ProfitLossFields({
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
-        {(['profit', 'loss', 'fees'] as const).map((key) => (
-          <FormField
-            key={key}
-            label={`${label}${{ profit: 'Profit', loss: 'Loss', fees: 'Fees' }[key]} ($)`}
-          >
-            <Input
-              inputMode="decimal"
-              required={required}
-              value={value[key]}
-              placeholder="0.00"
-              onChange={(event) => onChange({ ...value, [key]: event.target.value })}
-            />
-          </FormField>
-        ))}
+        {(['profit', 'loss', 'fees'] as const)
+          .filter((key) => key !== 'fees' || !value.feesIncluded)
+          .map((key) => (
+            <FormField
+              key={key}
+              label={`${label}${{ profit: 'Profit', loss: 'Loss', fees: 'Fees' }[key]} ($)`}
+            >
+              <Input
+                inputMode="decimal"
+                required={required && key !== 'fees'}
+                value={value[key]}
+                placeholder="0.00"
+                onChange={(event) => onChange({ ...value, [key]: event.target.value })}
+              />
+            </FormField>
+          ))}
       </div>
+      <label className="flex items-center gap-2 text-xs text-slate-400">
+        <input
+          type="checkbox"
+          checked={value.feesIncluded ?? false}
+          onChange={(e) => onChange({ ...value, feesIncluded: e.target.checked })}
+        />
+        {label}P&amp;L already includes trading fees
+      </label>
+      <p className="text-xs text-slate-500">
+        {value.feesIncluded
+          ? 'Enter fee-adjusted profit and loss. No additional fees are deducted.'
+          : 'Fees are optional. Enter them only if they are not already included in your P&L.'}
+      </p>
       <p className="text-sm text-slate-300" aria-live="polite">
         {net}
       </p>
