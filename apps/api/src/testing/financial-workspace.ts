@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
+import type { PlaidRuntime } from '../modules/banking/plaid/plaid.runtime'
 import { buildApp } from '../app'
 import { openSqlite, plaintext, type DatabaseSecurity } from '../db/encryption/sqlite-engine'
 import { initializeEncryptedDatabase } from '../db/encryption/initialize-database'
@@ -17,7 +18,7 @@ afterEach(async () => {
   for (const key of keys.splice(0)) key.fill(0)
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true })
 })
-export async function setup(encrypted: boolean) {
+export async function setup(encrypted: boolean, plaid?: PlaidRuntime) {
   const folder = mkdtempSync(join(tmpdir(), 'gox-financial-'))
   folders.push(folder)
   const key = randomBytes(32)
@@ -25,6 +26,7 @@ export async function setup(encrypted: boolean) {
   const security: DatabaseSecurity = encrypted ? { mode: 'encrypted', key } : plaintext
   const path = join(folder, 'test.sqlite'),
     options = {
+      plaid,
       databasePath: path,
       databaseSecurity: security,
       frontendOrigin: testOrigin,

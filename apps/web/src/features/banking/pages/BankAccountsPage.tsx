@@ -11,6 +11,7 @@ import { useBanking } from '../hooks/useBanking'
 import { BankAccountForm } from '../components/BankAccountForm'
 import { BankBalanceForm } from '../components/BankBalanceForm'
 import { BankAmount } from '../components/BankAmount'
+import { BankConnections } from '../components/BankConnections'
 export function BankAccountsPage() {
   const { householdId = '' } = useParams()
   return <BankAccounts key={householdId} home={householdId} />
@@ -62,6 +63,9 @@ function BankAccounts({ home }: { home: string }) {
       {!data && !error && <p role="status">Loading accounts…</p>}
       {data && (
         <>
+          {data.owner && (
+            <BankConnections home={home} connections={data.connections} refresh={refresh} />
+          )}
           <label className="mb-4 flex items-center gap-2 text-xs text-slate-400">
             <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
             Show hidden accounts

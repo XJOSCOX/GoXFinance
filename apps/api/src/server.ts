@@ -1,4 +1,5 @@
 import { buildApp } from './app'
+import { localPlaidRuntime, type PlaidRuntime } from './modules/banking/plaid/plaid.runtime'
 import { config } from './config/env'
 import { acquireDatabaseLease } from './db/runtime-lease'
 import { restoreQueuedSnapshot } from './db/sqlite-backups'
@@ -9,6 +10,7 @@ let release: (() => void) | undefined
 let key: Buffer | undefined
 let app: Awaited<ReturnType<typeof buildApp>> | undefined
 let closing = false
+let plaid: PlaidRuntime | undefined
 async function shutdown() {
   if (closing) return
   closing = true
@@ -44,7 +46,11 @@ try {
   const databaseSecurity: DatabaseSecurity = key ? { mode: 'encrypted', key } : plaintext
   release = acquireDatabaseLease(config.databasePath)
   await restoreQueuedSnapshot(config.databasePath, databaseSecurity)
-  app = await buildApp({ ...config, databaseSecurity })
+  plaid = await localPlaidRuntime()
+  app = await buildApp({ ...config, databaseSecurity, plaid })
+  app.addHook('onClose', async () => {
+    if (plaid && 'vault' in plaid) plaid.vault.dispose()
+  })
   key?.fill(0)
   app.addHook('onClose', async () => release?.())
   await app.listen({ host: '127.0.0.1', port: config.port })
@@ -64,4 +70,5 @@ try {
   process.exitCode = 1
 } finally {
   key?.fill(0)
+  if (!app && plaid && 'vault' in plaid) plaid.vault.dispose()
 }

@@ -52,3 +52,4 @@ export * from './reports'
 export * from './banking'
 
 export * from './bank-imports'
+export * from './bank-plaid'

@@ -1,4 +1,9 @@
 import { importRepository } from './modules/banking/imports/import.repository'
+import { plaidRepository } from './modules/banking/plaid/plaid.repository'
+import { plaidLinkService } from './modules/banking/plaid/link.service'
+import { plaidSyncService } from './modules/banking/plaid/sync.service'
+import { registerPlaidRoutes } from './modules/banking/plaid/plaid.routes'
+import type { PlaidRuntime } from './modules/banking/plaid/plaid.runtime'
 import { importService } from './modules/banking/imports/import.service'
 import { registerImportRoutes } from './modules/banking/imports/import.routes'
 import { bankRepository } from './modules/banking/bank.repository'
@@ -86,6 +91,7 @@ import { overviewRepository } from './modules/overview/overview.repository'
 import { overviewService } from './modules/overview/overview.service'
 
 type AppOptions = {
+  plaid?: PlaidRuntime
   databasePath: string
   frontendOrigin: string
   secureCookie: boolean
@@ -258,6 +264,27 @@ export async function buildApp(options: AppOptions) {
   registerBankRoutes(app, auth, banks)
   const imports = importService(bankStore, importRepository(db), bankAccess, banks)
   registerImportRoutes(app, auth, imports)
+  const providerStore = plaidRepository(db),
+    configuredRuntime = options.plaid ?? {
+      disabledReason:
+        'Sandbox credentials and protected token storage are not configured. Manual imports remain available.',
+    },
+    providerRuntime =
+      'vault' in configuredRuntime && providerStore.hasDifferentKey(configuredRuntime.vault.keyId)
+        ? {
+            disabledReason:
+              'The protected application key does not match saved bank connections. Restore the original Windows-protected key before connecting or syncing.',
+          }
+        : configuredRuntime,
+    providerLinks = plaidLinkService(bankStore, providerStore, bankAccess, providerRuntime),
+    providerSync = plaidSyncService(
+      bankStore,
+      providerStore,
+      bankAccess,
+      providerLinks,
+      providerRuntime,
+    )
+  registerPlaidRoutes(app, auth, providerLinks, providerSync)
   registerIncomeRoutes(app, auth, income)
   registerExpenseRoutes(app, auth, expenses)
   registerOverviewRoutes(
