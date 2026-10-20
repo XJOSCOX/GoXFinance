@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { TradingData } from '@goxfinance/shared'
 import { useOverviewTrading } from '../hooks/useOverviewTrading'
 import { OverviewTrading } from './OverviewTrading'
@@ -32,6 +32,8 @@ it('shows combined performance separately from payout deposits', () => {
     })),
     payouts: [{ status: 'paid', receivedCents: 999999 }],
   } as TradingData)
+  expect(screen.getByText('Profit, loss & account details').closest('details')!.open).toBe(false)
+  fireEvent.click(screen.getByText('Profit, loss & account details'))
   const region = within(screen.getByRole('region', { name: 'Trading performance' }))
   const combine = within(region.getByRole('region', { name: 'Combine P&L' }))
   const funded = within(region.getByRole('region', { name: 'Funded account P&L' }))
@@ -48,7 +50,8 @@ it('shows combined performance separately from payout deposits', () => {
 it('reports an empty month without inventing transactions', () => {
   show({ accounts: [], results: [], payouts: [] } as unknown as TradingData)
   expect(screen.getByText('No results recorded for this month.')).toBeTruthy()
-  expect(screen.getAllByText('$0.00')).toHaveLength(8)
+  expect(screen.getByRole('region', { name: 'Combine summary' }).textContent).toContain('$0.00')
+  expect(screen.getByRole('region', { name: 'Funded summary' }).textContent).toContain('$0.00')
 })
 it('shows loading and errors without misleading zero totals', () => {
   show(null, 'Request failed')

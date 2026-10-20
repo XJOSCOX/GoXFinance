@@ -100,6 +100,7 @@ function show(data = overview()) {
       <OverviewContent data={data} home="example-home" />
     </MemoryRouter>,
   )
+  fireEvent.click(screen.getByText('Bill progress & payment activity'))
 }
 
 it('keeps confirmed cash flow separate from pending and scheduled activity', () => {

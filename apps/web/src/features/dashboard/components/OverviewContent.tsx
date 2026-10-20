@@ -8,6 +8,7 @@ import { OverviewBills } from './OverviewBills'
 import { OverviewAttention } from './OverviewAttention'
 import { OverviewProgress } from './OverviewProgress'
 import { OverviewDebtProgress } from './OverviewDebtProgress'
+import { OverviewDetails } from './OverviewDetails'
 export function OverviewContent({
   data,
   home,
@@ -23,7 +24,7 @@ export function OverviewContent({
 }) {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-3">
         <section aria-label="Monthly cash flow" className="contents">
           <div className="contents">
             <SummaryStat
@@ -55,60 +56,66 @@ export function OverviewContent({
             />
           </div>
         </section>
-        <section aria-label="Monthly spending and obligations" className="contents">
-          <SummaryStat
-            compact
-            label="Bills remaining"
-            tone="warning"
-            amount={formatMoney(
-              data.payments.billAmounts.confirmedCount === 0 &&
-                data.payments.billAmounts.unconfirmedCount > 0
-                ? null
-                : data.payments.billAmounts.remainingCents,
-            )}
-            detail={
-              data.payments.billAmounts.unconfirmedCount
-                ? `${data.payments.billAmounts.unconfirmedCount} unknown amounts excluded`
-                : 'Known bills due this month'
-            }
-          />
-          <SummaryStat
-            compact
-            label="Monthly payment plan"
-            tone="info"
-            amount={formatMoney(data.bills.householdMonthlyObligationsCents)}
-            detail="Known bills + debt minimums; includes estimates"
-          />
-          <SummaryStat
-            compact
-            label="Purchase spending"
-            tone="warning"
-            amount={formatMoney(data.actual.spendingCents)}
-            detail="Expenses + standalone bill payments"
-          />
+        <section
+          aria-label="Monthly spending and obligations"
+          className="col-span-full rounded-xl border border-white/[.07] px-4 py-3"
+        >
+          <dl className="grid grid-cols-3 gap-3 text-xs">
+            <div>
+              <dt className="text-slate-400">Bills remaining</dt>
+              <dd className="mt-1 font-semibold tabular-nums">
+                {formatMoney(
+                  data.payments.billAmounts.confirmedCount === 0 &&
+                    data.payments.billAmounts.unconfirmedCount > 0
+                    ? null
+                    : data.payments.billAmounts.remainingCents,
+                )}
+              </dd>
+              {data.payments.billAmounts.unconfirmedCount > 0 && (
+                <p className="mt-1 text-[10px] text-amber-200">
+                  {data.payments.billAmounts.unconfirmedCount} amounts unconfirmed
+                </p>
+              )}
+            </div>
+            <div>
+              <dt className="text-slate-400">Monthly payment plan</dt>
+              <dd className="mt-1 font-semibold tabular-nums">
+                {formatMoney(data.bills.householdMonthlyObligationsCents)}
+              </dd>
+              <p className="mt-1 text-[10px] text-slate-500">Includes estimates</p>
+            </div>
+            <div>
+              <dt className="text-slate-400">Purchase spending</dt>
+              <dd className="mt-1 font-semibold tabular-nums">
+                {formatMoney(data.actual.spendingCents)}
+              </dd>
+            </div>
+          </dl>
         </section>
       </div>
-      <div className="grid items-start gap-3 lg:grid-cols-[1.2fr_1fr] xl:grid-cols-3">
-        <div className="order-2 space-y-3 lg:order-1 xl:col-span-2">
-          <OverviewProgress data={data} />
+      <div className="grid items-start gap-3 lg:grid-cols-2">
+        <div className="space-y-3">
           <OverviewBills data={data} home={home} />
-          <OverviewPayments payments={data.payments} home={home} />
+          <OverviewDetails label="Bill progress & payment activity">
+            <div className="space-y-3">
+              <OverviewProgress data={data} />
+              <OverviewPayments payments={data.payments} home={home} />
+            </div>
+          </OverviewDetails>
         </div>
-        <div className="contents lg:order-2 lg:block lg:space-y-3">
-          <div className="order-1">
-            <OverviewAttention data={data} home={home} />
-          </div>
-          <div className="order-3 space-y-3">
-            {budgetSummary}
-            {tradingSummary}
-            {goalSummary}
-          </div>
-          <div className="order-4">
+        <div className="space-y-3">
+          <OverviewAttention data={data} home={home} />
+          {budgetSummary}
+        </div>
+      </div>
+      <div className="grid items-start gap-3 lg:grid-cols-3">
+        {tradingSummary}
+        {goalSummary}
+        <div className="space-y-3">
+          <OverviewDebtSnapshot data={data} home={home} />
+          <OverviewDetails label="Debt payoff history">
             <OverviewDebtProgress data={data} />
-          </div>
-          <div className="order-5">
-            <OverviewDebtSnapshot data={data} home={home} />
-          </div>
+          </OverviewDetails>
         </div>
       </div>
       <p className="border-t border-white/[.07] pt-4 text-xs leading-5 text-slate-500">

@@ -2,6 +2,9 @@ import { tradingStageTotals } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { TradingProfitGroups } from '../../../components/financial/TradingProfitGroups'
 import { useOverviewTrading } from '../hooks/useOverviewTrading'
+import { OverviewDetails } from './OverviewDetails'
+import { formatMoney } from '../../../lib/money'
+import { amountTone, toneStyles } from '../../../components/ui/semantic-tones'
 export function OverviewTrading({ home, month }: { home: string; month: string }) {
   const { data, error, retry } = useOverviewTrading(home)
   const report = data ? tradingStageTotals(data.accounts, data.results, month) : null
@@ -31,8 +34,27 @@ export function OverviewTrading({ home, month }: { home: string; month: string }
           </p>
         ) : (
           <>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {[report.combine, report.funded].map((group) => (
+                <section
+                  key={group.stage}
+                  aria-label={group.stage === 'combine' ? 'Combine summary' : 'Funded summary'}
+                >
+                  <p className="text-xs text-slate-400">
+                    {group.stage === 'combine' ? 'Combine · simulated' : 'Funded P&L'}
+                  </p>
+                  <strong
+                    className={`mt-1 block text-lg tabular-nums ${toneStyles[amountTone(group.netCents)].text}`}
+                  >
+                    {formatMoney(group.netCents)}
+                  </strong>
+                </section>
+              ))}
+            </div>
             <div className="mt-3">
-              <TradingProfitGroups report={report} showBreakdown />
+              <OverviewDetails label="Profit, loss & account details">
+                <TradingProfitGroups report={report} showBreakdown />
+              </OverviewDetails>
             </div>
             {!report.combine.resultCount &&
               !report.funded.resultCount &&
@@ -41,11 +63,8 @@ export function OverviewTrading({ home, month }: { home: string; month: string }
               )}
           </>
         )}
-        <p className="mt-3 border-t border-white/[.07] pt-2 text-xs leading-5 text-slate-500">
-          Recorded session results for the reporting month. Fees shown are additional deductions
-          only; fee-adjusted P&L is not charged again. Net = profit − loss − fees when the breakdown
-          is known. Not payout income or available cash; confirmed payout deposits stay in Income
-          received.
+        <p className="mt-2 text-[11px] text-slate-500">
+          Not payout income or available cash. Only confirmed deposits reach income.
         </p>
       </section>
     </Card>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { budgetCategoryRows, type BudgetReport, type FinancialCategory } from '@goxfinance/shared'
 import { useBudgets } from '../../budgets/hooks/useBudgets'
@@ -45,6 +45,10 @@ function show(data: BudgetReport | null, error = '') {
 }
 it('keeps monthly allocation, category assignments and spending performance distinct', () => {
   show(report())
+  const categoryDetails = screen.getByText('Category performance (2)').closest('details')!
+  expect(categoryDetails.open).toBe(false)
+  fireEvent.click(screen.getByText('Category performance (2)'))
+  expect(categoryDetails.open).toBe(true)
   expect(screen.getByText('Monthly allocation').textContent).toContain('$1,000.00')
   expect(screen.getByText('Assigned to categories').textContent).toContain('$900.00')
   expect(screen.getByText('Unallocated').textContent).toContain('$100.00')
@@ -99,6 +103,6 @@ it('keeps long category lists expandable and distinguishes over-allocation spend
       limitCents: 10000,
     })),
   })
-  expect(screen.getByText('All categories (6)')).toBeTruthy()
+  expect(screen.getByText('Category performance (6)')).toBeTruthy()
   expect(screen.getByText('Over monthly allocation').textContent).toContain('$200.00')
 })

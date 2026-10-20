@@ -6,6 +6,7 @@ import { sumCents } from '@goxfinance/shared'
 import { BudgetAllocationRing } from '../../budgets/components/BudgetAllocationRing'
 import { BudgetPerformanceRows } from '../../budgets/components/BudgetPerformanceRows'
 import { ChartPie } from 'lucide-react'
+import { OverviewDetails } from './OverviewDetails'
 export function OverviewBudgets({ home, month }: { home: string; month: string }) {
   const { data, error } = useBudgets(home, month),
     budget = data?.budget?.status === 'active' ? data.budget : null
@@ -86,27 +87,21 @@ export function OverviewBudgets({ home, month }: { home: string; month: string }
               </p>
             )}
             {rows.length > 0 && (
-              <div className="mt-2">
-                <div className="flex justify-between text-[10px] uppercase tracking-wider text-slate-500">
-                  <span>Category performance</span>
-                  <span>Allocated</span>
-                </div>
-                <BudgetPerformanceRows rows={rows.slice(0, 4)} categories={data.categories} />
-                {rows.length > 4 && (
-                  <details className="mt-1 text-xs">
-                    <summary className="cursor-pointer text-slate-400">
-                      All categories ({rows.length})
-                    </summary>
-                    <BudgetPerformanceRows rows={rows.slice(4)} categories={data.categories} />
-                  </details>
-                )}
+              <div className="mt-3">
+                <OverviewDetails label={`Category performance (${rows.length})`}>
+                  <div className="flex justify-between text-[10px] uppercase tracking-wider text-slate-500">
+                    <span>Category performance</span>
+                    <span>Allocated</span>
+                  </div>
+                  <BudgetPerformanceRows rows={rows} categories={data.categories} />
+                </OverviewDetails>
               </div>
             )}
             <p className="mt-2 border-t border-white/[.06] pt-2 text-[10px] text-slate-500">
               {budget
                 ? `${data.rows.filter((r) => r.status === 'Over Budget').length} categories over budget`
                 : 'No active household budget'}{' '}
-              · {month} · Allocation is a plan, not spending or available cash.
+              · {month} · Planned allocation ≠ cash available.
             </p>
           </>
         )}
