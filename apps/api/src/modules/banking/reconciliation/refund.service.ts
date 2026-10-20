@@ -57,7 +57,8 @@ export function bankRefundService(bank: BankRepository, store: ReviewRepository)
       if (
         amount <= 0 ||
         t.date < date ||
-        sumCents([amount, ...previous.map((r) => r.amountCents)]) > original.amountCents
+        previous.reduce((total, r) => total + BigInt(r.amountCents), BigInt(amount)) >
+          BigInt(original.amountCents)
       )
         throw new FinancialError(
           'Refund must follow the original date and cannot exceed its unrefunded amount.',
@@ -77,6 +78,31 @@ export function bankRefundService(bank: BankRepository, store: ReviewRepository)
           throw new FinancialError('Allocate the refund total to categories explicitly.', 400)
         if (allocations.some((v) => !data.categories.some((c) => c.id === v.categoryId)))
           throw new FinancialError('Refund category not found in this household.', 404)
+        const originalAllocations =
+          expense?.allocations ??
+          (() => {
+            const period = bill?.periods.find((v) => v.id === billPayment?.periodId)
+            return period?.categoryId
+              ? [{ categoryId: period.categoryId, amountCents: original.amountCents }]
+              : null
+          })()
+        if (
+          originalAllocations &&
+          allocations.some((allocation) => {
+            const limit = originalAllocations.find(
+              (v) => v.categoryId === allocation.categoryId,
+            )?.amountCents
+            const refunded = previous
+              .flatMap((r) => r.allocations)
+              .filter((v) => v.categoryId === allocation.categoryId)
+              .reduce((total, v) => total + BigInt(v.amountCents), 0n)
+            return limit === undefined || refunded + BigInt(allocation.amountCents) > BigInt(limit)
+          })
+        )
+          throw new FinancialError(
+            'Refund allocations cannot exceed the original category amounts remaining.',
+            409,
+          )
         allocations = [...allocations]
       }
       if (

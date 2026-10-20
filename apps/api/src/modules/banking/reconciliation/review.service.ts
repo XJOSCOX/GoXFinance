@@ -34,15 +34,27 @@ export function bankReviewService(
           ? !p.proposal.expenseId
           : kind === 'income'
             ? !p.proposal.transactionId
-            : kind === 'debt_payment' || kind === 'bill_payment'
-              ? !p.proposal.paymentId
-              : false
+            : kind === 'bill_payment'
+              ? !(p.proposal.paymentId || p.proposal.existingDebtPaymentId)
+              : kind === 'debt_payment'
+                ? !p.proposal.paymentId
+                : false
     if (
       isNew &&
       !p.newRecordConfirmed &&
-      data.matches.some((m) =>
-        kind === 'fee' ? m.classification === 'expense' : m.classification === kind,
-      )
+      data.matches.some((m) => {
+        if (kind === 'fee') return m.classification === 'expense'
+        if (p.proposal.classification === 'bill_payment' && m.classification === 'debt_payment') {
+          const proposal = p.proposal
+          return (
+            m.parentId ===
+            data.bills
+              .find((b) => b.id === proposal.billId)
+              ?.periods.find((r) => r.id === proposal.periodId)?.linkedDebtId
+          )
+        }
+        return m.classification === kind
+      })
     )
       throw new FinancialError(
         'A matching financial record exists. Link it, or explicitly confirm this is a separate transaction.',

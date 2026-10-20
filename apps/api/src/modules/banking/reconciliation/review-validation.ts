@@ -1,11 +1,6 @@
 import { bankHash } from '../imports/import.service'
 import { FinancialError } from '../../households/financial-access'
-import {
-  localBillDate,
-  sumCents,
-  type BankProposal,
-  type BankReviewOptions,
-} from '@goxfinance/shared'
+import { localBillDate, type BankProposal, type BankReviewOptions } from '@goxfinance/shared'
 import { nearBankDate } from './review-context'
 import type { BankPermissions } from '../bank.permissions'
 function fail(message: string, status = 400): never {
@@ -86,6 +81,8 @@ export function validateBankProposal(
       period = b?.periods.find((r) => r.id === p.periodId)
     if (!b || !period) fail('Bill or billing period not found.', 404)
     scope(b.memberIds)
+    if (p.paymentId && p.existingDebtPaymentId)
+      fail('Choose a bill payment or an existing debt payment, not both.')
     if (period.linkedDebtId) {
       const d = data.debts.find((d) => d.id === period.linkedDebtId)
       if (!d) fail('Linked debt is outside your member scope.', 403)
@@ -96,8 +93,38 @@ export function validateBankProposal(
       if (!payment || payment.status !== 'completed')
         fail('Select a completed payment in this billing period.', 409)
       matching(payment.amountCents, payment.paymentDate, payment.method)
+      if (
+        p.billedAmountCents !== null ||
+        [p.principalAmountCents, p.interestAmountCents, p.feesAmountCents].some((v) => v !== null)
+      )
+        fail(
+          'Linking preserves the existing bill/payment values. Correct them in Bills before linking.',
+        )
     } else if (b.status === 'cancelled') fail('Cancelled bills cannot receive a new payment.', 409)
-    target = b
+    const existingDebt = p.existingDebtPaymentId
+      ? data.payments.find(
+          (v) => v.id === p.existingDebtPaymentId && v.debtId === period.linkedDebtId,
+        )
+      : null
+    if (p.existingDebtPaymentId) {
+      if (!existingDebt || existingDebt.paymentStatus !== 'completed')
+        fail('Choose a completed payment on this billing period’s linked debt.', 404)
+      matching(existingDebt.amountCents, existingDebt.paymentDate, existingDebt.paymentMethod)
+      if (data.bills.some((b) => b.payments.some((v) => v.debtPaymentId === existingDebt.id)))
+        fail(
+          'That debt payment already has a bill reference. Select its existing bill payment.',
+          409,
+        )
+      if (
+        ['principalAmountCents', 'interestAmountCents', 'feesAmountCents'].some(
+          (k) =>
+            p[k as keyof typeof p] !== null &&
+            p[k as keyof typeof p] !== existingDebt[k as keyof typeof existingDebt],
+        )
+      )
+        fail('Existing debt payment allocations cannot be changed by linking.')
+    }
+    target = existingDebt ? { bill: b, payment: existingDebt } : b
   } else if (p.classification === 'debt_payment') {
     const d = data.debts.find((d) => d.id === p.debtId)
     if (!d) fail('Debt not found in your member scope.', 404)
@@ -107,6 +134,12 @@ export function validateBankProposal(
       if (!payment || payment.paymentStatus !== 'completed')
         fail('Select a completed debt payment.', 409)
       matching(payment.amountCents, payment.paymentDate, payment.paymentMethod)
+      if (
+        [p.principalAmountCents, p.interestAmountCents, p.feesAmountCents].some((v) => v !== null)
+      )
+        fail(
+          'Linking does not change principal, interest or fees. Correct the existing debt payment first.',
+        )
       target = { debt: d, payment }
     } else {
       if (d.isArchived) fail('Restore the debt before recording a new payment.', 409)
@@ -131,6 +164,13 @@ export function validateBankProposal(
           !nearBankDate(transaction.depositDate, t.date)
         )
           fail('Confirmed income must match the actual deposit and date.', 409)
+        if (
+          (p.actualGrossCents !== null && p.actualGrossCents !== transaction.actualGrossCents) ||
+          (p.deductionsCents !== null && p.deductionsCents !== transaction.deductionsCents)
+        )
+          fail(
+            'Linking preserves confirmed gross pay and deductions. Correct the existing paycheck first.',
+          )
       } else if (!p.confirmPending)
         fail('Confirm the actual receipt before changing pending income.')
     } else if (s.incomeType === 'trading_payout')
@@ -170,14 +210,17 @@ export function validateBankProposal(
     }
     if (
       new Set(p.allocations.map((l) => l.categoryId)).size !== p.allocations.length ||
-      (p.allocations.length && sumCents(p.allocations.map((l) => l.amountCents)) !== amount)
+      (p.allocations.length &&
+        p.allocations.reduce((n, l) => n + BigInt(l.amountCents), 0n) !== BigInt(amount))
     )
       fail('Refund category allocations must equal the refund total.')
   }
   if (
     'principalAmountCents' in p &&
-    sumCents([p.principalAmountCents ?? 0, p.interestAmountCents ?? 0, p.feesAmountCents ?? 0]) >
-      amount
+    BigInt(p.principalAmountCents ?? 0) +
+      BigInt(p.interestAmountCents ?? 0) +
+      BigInt(p.feesAmountCents ?? 0) >
+      BigInt(amount)
   )
     fail('Principal, interest and fees cannot exceed the actual payment.')
   const canonical = JSON.parse(

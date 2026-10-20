@@ -2,12 +2,14 @@ import type { PlaidGateway, SyncPage } from './plaid.gateway'
 import { safeProviderError } from './plaid.gateway'
 /** Any retry starts at the persisted cursor, with no partial database writes. */
 export async function collectSync(gateway: PlaidGateway, token: string, original: string | null) {
+  const deadline = Date.now() + 90000
   for (let attempt = 0; attempt < 3; attempt++) {
     const pages: SyncPage[] = []
     let cursor = original,
       count = 0
     try {
       for (let n = 0; n < 200; n++) {
+        if (Date.now() > deadline) throw new Error('Provider synchronization deadline exceeded')
         const page = await gateway.sync(token, cursor)
         count += page.added.length + page.modified.length + page.removed.length
         if (

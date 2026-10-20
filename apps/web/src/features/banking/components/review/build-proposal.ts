@@ -13,12 +13,10 @@ export function buildBankProposal(
     id = (key: string) => text(key) || null,
     cents = (key: string) => (text(key).trim() ? bankDecimalCents(text(key)) : null),
     allocations = () =>
-      form
-        .getAll('categoryId')
-        .map((categoryId, index) => ({
-          categoryId: String(categoryId),
-          amountCents: bankDecimalCents(String(form.getAll('allocation')[index])),
-        })),
+      form.getAll('categoryId').map((categoryId, index) => ({
+        categoryId: String(categoryId),
+        amountCents: bankDecimalCents(String(form.getAll('allocation')[index])),
+      })),
     breakdown = {
       principalAmountCents: cents('principal'),
       interestAmountCents: cents('interest'),
@@ -50,6 +48,7 @@ export function buildBankProposal(
       periodId: text('periodId'),
       paymentId: id('paymentId'),
       billedAmountCents: form.has('confirmBilledAmount') ? cents('billedAmount') : null,
+      existingDebtPaymentId: id('existingDebtPaymentId'),
       ...breakdown,
     })
   if (kind === 'debt_payment')

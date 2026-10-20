@@ -6,6 +6,36 @@ import { openSqlite } from '../../../db/encryption/sqlite-engine'
 import { providerFixture, fictionalToken, page, tx } from './plaid.fixture'
 import { ProviderError } from './plaid.gateway'
 type Fixture = Awaited<ReturnType<typeof setup>>
+it('rejects a provider transaction moving accounts without advancing the cursor or losing history', async () => {
+  const provider = providerFixture(),
+    f = await setup(false, provider),
+    id = await connect(f)
+  const metadata = await provider.gateway.accounts('fictional')
+  vi.mocked(provider.gateway.accounts).mockResolvedValue({
+    ...metadata,
+    accounts: [
+      ...metadata.accounts,
+      { ...metadata.accounts[0], id: 'savings', subtype: 'savings', name: 'Fictional savings' },
+    ],
+  })
+  await sync(f, id)
+  vi.mocked(provider.gateway.sync).mockResolvedValueOnce(
+    page([], 'cursor-rejected', { modified: [tx('posted-1', { accountId: 'savings' })] }),
+  )
+  const p = await f.ok('POST', `/banking/plaid/${id}/preview`)
+  expect(
+    (await f.send('POST', `/banking/plaid/${id}/sync`, { previewId: p.previewId })).statusCode,
+  ).toBe(409)
+  expect((await f.ok('GET', '/banking/inbox')).transactions).toHaveLength(1)
+  const db = openSqlite(f.options.databasePath, f.options.databaseSecurity, { readonly: true })
+  try {
+    expect(db.prepare('SELECT cursor FROM bank_connections WHERE id=?').get(id)).toEqual({
+      cursor: 'cursor-1',
+    })
+  } finally {
+    db.close()
+  }
+})
 it('fails closed after restoring a database without its matching token key, while manual imports remain available', async () => {
   const provider = providerFixture(),
     f = await setup(false, provider)

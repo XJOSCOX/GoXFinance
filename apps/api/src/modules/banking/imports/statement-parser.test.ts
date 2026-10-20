@@ -3,6 +3,23 @@ import { statementInput } from './import.fixture'
 import { bankSuggestion } from '@goxfinance/shared'
 import { csvRows, ofxRows, parseStatement, safeBankText } from './statement-parser'
 describe('limited local statement parsing', () => {
+  it('rejects ambiguous netted debit/credit rows and trailing date text', async () => {
+    const input = statementInput(
+      undefined,
+      'date,description,debit,credit\n2026-10-01,Ambiguous,10,5',
+    )
+    input.mapping = { ...input.mapping, amount: '', debit: 'debit', credit: 'credit' }
+    expect((await parseStatement(input, 'USD'))[0].values).toBeNull()
+    expect(
+      (
+        await parseStatement(
+          statementInput(undefined, 'date,description,amount\n2026-10-01junk,Bad date,-1'),
+          'USD',
+        )
+      )[0].values,
+    ).toBeNull()
+    expect(() => ofxRows('<OFX><ACCTID>123<ACCTID>456</OFX>', 'USD')).toThrow()
+  })
   it('handles quoted commas, exact cents, nullable currency and explicit sign conventions', async () => {
     const input = statementInput(
       undefined,

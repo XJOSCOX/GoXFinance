@@ -39,7 +39,10 @@ export function csvRows(text: string): Promise<string[][]> {
 }
 function date(value: string, format: ManualImportInput['dateFormat']) {
   const text = value.trim()
-  if (format === 'iso') return text.slice(0, 10)
+  if (format === 'iso') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error('Use an explicit date-only ISO column')
+    return text
+  }
   const m = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(text)
   if (!m) throw new Error('Date does not match the chosen format')
   return `${m[3]}-${(format === 'mdy' ? m[1] : m[2]).padStart(2, '0')}-${(format === 'mdy' ? m[2] : m[1]).padStart(2, '0')}`
@@ -56,6 +59,15 @@ function decode(value: string) {
 export function ofxRows(text: string, currency: string | null): BankTransactionInput[] {
   if (/<!DOCTYPE|<!ENTITY/i.test(text))
     throw new FinancialError('OFX declarations and external entities are not supported.', 400)
+  if (
+    [...text.matchAll(/<BANKTRANLIST\s*>/gi)].length > 1 ||
+    [...text.matchAll(/<ACCTID\s*>/gi)].length > 1 ||
+    [...text.matchAll(/<(?:BANKACCTFROM|CCACCTFROM)\s*>/gi)].length > 1
+  )
+    throw new FinancialError(
+      'Import one account statement at a time. Multi-account OFX/QFX files are not supported.',
+      400,
+    )
   const blocks = [...text.matchAll(/<STMTTRN\s*>([\s\S]*?)<\/STMTTRN\s*>/gi)]
   if (
     !blocks.length ||
@@ -119,6 +131,8 @@ export async function parseStatement(input: ManualImportInput, currency: string 
         : money(get(m.credit) || '0') - money(get(m.debit) || '0')
       if (!m.amount && (money(get(m.credit) || '0') < 0 || money(get(m.debit) || '0') < 0))
         throw new Error('Debit/credit columns must be positive')
+      if (!m.amount && money(get(m.credit) || '0') > 0 && money(get(m.debit) || '0') > 0)
+        throw new Error('Do not net separate nonzero debit and credit values')
       if (m.amount && input.sign === 'outflow_positive') amount = -amount
       const pending = get(m.pending).toLowerCase()
       if (

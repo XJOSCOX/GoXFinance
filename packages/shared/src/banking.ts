@@ -87,7 +87,7 @@ export const bankTransactionSchema = z
   .strict()
 export type BankTransactionInput = z.infer<typeof bankTransactionSchema>
 export type BankTransaction = Omit<BankTransactionInput, 'externalId'> & {
-  transferStatus?:'unmatched'|'paired'
+  transferStatus?: 'unmatched' | 'paired'
   id: string
   householdId: string
   accountId: string
@@ -126,9 +126,12 @@ export type BankInbox = {
 }
 /** Provider decimal amounts must be exact minor units; never silently round source data. */
 export function bankDecimalCents(value: string | number) {
-  const text = String(value).trim().replaceAll(',', '').replace(/^\$/, '')
-  if (!/^-?\d{1,15}(?:\.\d{1,2})?$/.test(text))
+  const supplied = String(value)
+    .trim()
+    .replace(/^(-?)\$/, '$1')
+  if (!/^-?(?:\d{1,15}|\d{1,3}(?:,\d{3}){1,4})(?:\.\d{1,2})?$/.test(supplied))
     throw new Error('Use a monetary amount with at most two decimal places')
+  const text = supplied.replaceAll(',', '')
   const negative = text.startsWith('-'),
     [whole, fraction = ''] = text.replace(/^-/, '').split('.')
   const amount = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0')),

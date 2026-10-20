@@ -64,18 +64,26 @@ export function reviewExecutor(
       const bill = data.bills.find((b) => b.id === p.billId)!
       let payment = bill.payments.find((v) => v.id === p.paymentId)
       if (!payment) {
+        const existingDebt = p.existingDebtPaymentId
+          ? data.payments.find((v) => v.id === p.existingDebtPaymentId)
+          : null
         const key = randomUUID(),
           saved = services.bills.addPayment(user, home, bill.id, p.periodId, {
             idempotencyKey: key,
             amountCents: amount,
-            paymentDate: t.date,
+            paymentDate: existingDebt?.paymentDate ?? t.date,
             method,
             status: 'completed',
-            notes,
-            principalAmountCents: p.principalAmountCents,
-            interestAmountCents: p.interestAmountCents,
-            feesAmountCents: p.feesAmountCents,
-            referenceNumber: null,
+            notes: existingDebt?.notes ?? notes,
+            principalAmountCents: existingDebt
+              ? existingDebt.principalAmountCents
+              : p.principalAmountCents,
+            interestAmountCents: existingDebt
+              ? existingDebt.interestAmountCents
+              : p.interestAmountCents,
+            feesAmountCents: existingDebt ? existingDebt.feesAmountCents : p.feesAmountCents,
+            referenceNumber: existingDebt?.referenceNumber ?? null,
+            ...(p.existingDebtPaymentId ? { existingDebtPaymentId: p.existingDebtPaymentId } : {}),
             ...(p.billedAmountCents !== null
               ? {
                   billAmountConfirmation: {
@@ -102,7 +110,7 @@ export function reviewExecutor(
         workPeriodEnd: old?.workPeriodEnd ?? null,
         regularHours: old?.regularHours ?? null,
         overtimeHours: old?.overtimeHours ?? null,
-        hourlyRateCents: old?.hourlyRateCents ?? source.hourlyRateCents,
+        hourlyRateCents: old ? old.hourlyRateCents : source.hourlyRateCents,
         overtimeMultiplier: old?.overtimeMultiplier ?? source.overtimeMultiplier,
         expectedGrossCents: old?.expectedGrossCents ?? null,
         expectedNetCents: old?.expectedNetCents ?? null,

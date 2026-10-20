@@ -8,7 +8,9 @@ import { AllocationFields } from './AllocationFields'
 export function IncomeReviewFields({ data }: { data: BankReviewOptions }) {
   const linked = data.income.transactions.find((t) => t.id === data.existingLink?.id),
     [source, setSource] = useState(linked?.sourceId ?? ''),
-    [transaction, setTransaction] = useState(linked?.id ?? ''),
+    [transaction, setTransaction] = useState(
+      linked?.status === 'cancelled' ? '' : (linked?.id ?? ''),
+    ),
     old = data.income.transactions.find((t) => t.id === transaction)
   return (
     <>
@@ -97,6 +99,14 @@ export function RefundReviewFields({ data }: { data: BankReviewOptions }) {
   const [type, setType] = useState(data.refund?.originalType ?? 'expense'),
     [original, setOriginal] = useState(data.refund?.originalId ?? ''),
     billPayment = data.bills.flatMap((b) => b.payments).find((p) => p.id === original),
+    expense = data.expenses.find((e) => e.id === original),
+    billPeriod = data.bills.flatMap((b) => b.periods).find((p) => p.id === billPayment?.periodId),
+    categoryIds =
+      type === 'expense'
+        ? expense?.allocations.map((v) => v.categoryId)
+        : billPeriod?.categoryId
+          ? [billPeriod.categoryId]
+          : undefined,
     debtRefund =
       type === 'debt_payment' || (type === 'bill_payment' && !!billPayment?.debtPaymentId),
     records =
@@ -162,7 +172,9 @@ export function RefundReviewFields({ data }: { data: BankReviewOptions }) {
       {!debtRefund && (
         <AllocationFields
           key={type + original}
-          categories={data.categories}
+          categories={data.categories
+            .filter((c) => !categoryIds || categoryIds.includes(c.id))
+            .map((c) => ({ ...c, archived: false }))}
           amount={data.transaction.amountCents}
           initial={data.refund?.allocations}
         />

@@ -37,6 +37,7 @@ export const bankProposalSchema = z
         periodId: z.uuid(),
         paymentId: z.uuid().nullable(),
         billedAmountCents: amount,
+        existingDebtPaymentId: z.uuid().nullable().optional(),
         ...breakdown,
       })
       .strict(),

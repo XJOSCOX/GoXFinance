@@ -29,7 +29,7 @@ export function BankAccountForm({
         bankAccountSchema.parse({
           name: form.get('name'),
           institution: form.get('institution'),
-          type: form.get('type'),
+          type: record?.connectionId ? record.type : form.get('type'),
           subtype: record?.subtype ?? null,
           mask: String(form.get('mask') || '') || null,
           currency: String(form.get('currency') || '').toUpperCase() || null,
@@ -45,10 +45,21 @@ export function BankAccountForm({
           <Input name="name" defaultValue={record?.name} required maxLength={120} />
         </FormField>
         <FormField label="Institution">
-          <Input name="institution" defaultValue={record?.institution} required maxLength={160} />
+          <Input
+            name="institution"
+            readOnly={!!record?.connectionId}
+            defaultValue={record?.institution}
+            required
+            maxLength={160}
+          />
         </FormField>
         <FormField label="Account type">
-          <Select name="type" value={type} onChange={(e) => setType(e.target.value as typeof type)}>
+          <Select
+            name="type"
+            disabled={!!record?.connectionId}
+            value={type}
+            onChange={(e) => setType(e.target.value as typeof type)}
+          >
             <option value="checking">Checking</option>
             <option value="savings">Savings</option>
             <option value="credit_card">Credit card</option>
@@ -56,11 +67,18 @@ export function BankAccountForm({
           </Select>
         </FormField>
         <FormField label="Last four digits (optional)">
-          <Input name="mask" defaultValue={record?.mask ?? ''} maxLength={4} pattern="[0-9]{1,4}" />
+          <Input
+            name="mask"
+            readOnly={!!record?.connectionId}
+            defaultValue={record?.mask ?? ''}
+            maxLength={4}
+            pattern="[0-9]{1,4}"
+          />
         </FormField>
         <FormField label="Currency (optional)">
           <Input
             name="currency"
+            readOnly={!!record?.connectionId}
             placeholder="USD"
             defaultValue={record?.currency ?? ''}
             maxLength={3}

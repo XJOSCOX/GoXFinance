@@ -7,7 +7,9 @@ import { AllocationFields } from './AllocationFields'
 export function ExpenseReviewFields({ data }: { data: BankReviewOptions }) {
   const [existing, setExisting] = useState(
     data.existingLink?.classification === 'expense' || data.existingLink?.classification === 'fee'
-      ? data.existingLink.id
+      ? data.expenses.some((e) => e.id === data.existingLink?.id && !e.voided)
+        ? data.existingLink.id
+        : ''
       : '',
   )
   return (

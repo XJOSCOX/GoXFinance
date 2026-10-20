@@ -1,8 +1,10 @@
 # GoXFinance
 
-GoXFinance is a local website with authentication, household management, debts and payment history, recurring/one-time bills, everyday expenses, income tracking, manual Topstep/copy-trading and payouts, reusable financial goals, and a household Overview. All records live in SQLite. There is no cloud integration.
+GoXFinance is a local website with authentication, household management, debts and payment history, recurring/one-time bills, everyday expenses, income tracking, manual Topstep/copy-trading and payouts, reusable financial goals, and a household Overview. All persistent records live in SQLite. Optional read-only Plaid Sandbox connectivity imports fictional bank activity; real bank connections remain disabled. No cloud database or cloud synchronization is used.
 
 ## Run locally
+
+Bank accounts, manual CSV/OFX imports, and the Transaction Inbox are documented in [Banking](docs/banking.md). Plaid is off by default and Sandbox-only when explicitly configured. Review the [manual QA checklist](docs/banking-manual-qa.md) before any future live activation.
 
 Install Node.js 22 or newer. For an encrypted installation, use the Windows launcher below. For plaintext development, from the repository root:
 

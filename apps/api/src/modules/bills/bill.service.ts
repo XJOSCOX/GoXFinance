@@ -276,7 +276,8 @@ export function billService(
         if (bill.status === 'cancelled') throw new BillError('Bill is cancelled', 409)
         const period = store.periods(householdId, id).find((item) => item.id === periodId)
         if (!period) throw new BillError('Billing period not found', 404)
-        const { billAmountConfirmation, ...values } = billPaymentInputSchema.parse(input),
+        const { billAmountConfirmation, existingDebtPaymentId, ...values } =
+            billPaymentInputSchema.parse(input),
           existing = store.findPaymentKey(householdId, values.idempotencyKey)
         if (existing) {
           const recorded = store
@@ -287,9 +288,11 @@ export function billService(
             )
           const previousConfirmation =
             JSON.parse(recorded?.afterJson ?? '{}').billAmountConfirmation ?? null
+          const previousLink = JSON.parse(recorded?.afterJson ?? '{}').existingDebtPaymentId ?? null
           if (
             existing.billId !== id ||
             existing.periodId !== periodId ||
+            previousLink !== (existingDebtPaymentId ?? null) ||
             Object.entries(values).some(
               ([key, value]) => existing[key as keyof typeof existing] !== value,
             ) ||
@@ -297,6 +300,38 @@ export function billService(
           )
             throw new BillError('Submission key already used', 409)
           return view(user, bill)
+        }
+        if (existingDebtPaymentId) {
+          permissions.manage(user, bill)
+          if (!period.linkedDebtId || values.status !== 'completed')
+            throw new BillError(
+              'An existing debt payment can be linked only to a completed payment on its debt-linked billing period.',
+              400,
+            )
+          const linked = debtPayments.get(
+            user,
+            householdId,
+            period.linkedDebtId,
+            existingDebtPaymentId,
+          ).payment
+          if (
+            linked.paymentStatus !== 'completed' ||
+            linked.amountCents !== values.amountCents ||
+            linked.paymentDate !== values.paymentDate ||
+            linked.paymentMethod !== values.method ||
+            linked.principalAmountCents !== values.principalAmountCents ||
+            linked.interestAmountCents !== values.interestAmountCents ||
+            linked.feesAmountCents !== values.feesAmountCents
+          )
+            throw new BillError(
+              'Link the unchanged completed debt payment, including its recorded allocation and date.',
+              409,
+            )
+          if (store.linkedPayment(householdId, existingDebtPaymentId))
+            throw new BillError(
+              'This debt payment already belongs to a bill period. Link that bill payment instead.',
+              409,
+            )
         }
         if (values.status === 'completed' && values.paymentDate > localBillDate())
           throw new BillError('A completed payment cannot have a future payment date', 400)
@@ -342,7 +377,8 @@ export function billService(
           now = new Date().toISOString()
         if (values.status === 'completed') permissions.manage(user, bill)
         const linkedId =
-          values.status === 'completed' && period.linkedDebtId
+          existingDebtPaymentId ??
+          (values.status === 'completed' && period.linkedDebtId
             ? debtPayments.create(user, householdId, period.linkedDebtId, {
                 idempotencyKey: paymentId,
                 amountCents: values.amountCents,
@@ -355,7 +391,7 @@ export function billService(
                 feesAmountCents: values.feesAmountCents,
                 referenceNumber: values.referenceNumber,
               }).payment.id
-            : null
+            : null)
         store.insertPayment({
           ...values,
           id: paymentId,
@@ -378,7 +414,11 @@ export function billService(
           `payment_recorded_${values.status}`,
           paymentId,
           null,
-          { ...values, ...(billAmountConfirmation ? { billAmountConfirmation } : {}) },
+          {
+            ...values,
+            ...(billAmountConfirmation ? { billAmountConfirmation } : {}),
+            ...(existingDebtPaymentId ? { existingDebtPaymentId } : {}),
+          },
         )
         return view(user, find(user, householdId, id))
       })

@@ -46,12 +46,12 @@ it.each([false, true])(
       paymentStatus: 'partially_paid',
     })
     const refund = await f.importRow('50', 'Fictional utility refund', '2026-10-02'),
-      options = await f.ok('GET', `/banking/transactions/${refund.id}/review`)
+      categoryId = current.periods[0].categoryId
     await f.review(refund.id, {
       classification: 'refund',
       originalType: 'bill_payment',
       originalId: current.payments[0].id,
-      allocations: [{ categoryId: options.categories[0].id, amountCents: 5000 }],
+      allocations: [{ categoryId, amountCents: 5000 }],
     })
     const after = (await f.ok('GET', '/bills/' + bill.id)).bill
     expect(after.periods[0]).toMatchObject({ paidCents: 15000, remainingCents: 19218 })

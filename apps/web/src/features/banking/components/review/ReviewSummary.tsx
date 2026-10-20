@@ -27,7 +27,11 @@ export function ReviewSummary({
     details = [
       data.bills.find((b) => b.id === p.billId)?.name ?? 'Bill',
       `Period: ${data.bills.find((b) => b.id === p.billId)?.periods.find((r) => r.id === p.periodId)?.dueDate ?? 'Selected period'}`,
-      p.paymentId ? 'Link an existing completed payment' : 'Record one completed payment',
+      p.paymentId
+        ? 'Link an existing completed payment'
+        : p.existingDebtPaymentId
+          ? 'Link the existing debt payment to this bill; no second payment is created'
+          : 'Record one completed payment',
       ...(p.billedAmountCents !== null
         ? [`Also confirm actual billed amount: ${formatMoney(p.billedAmountCents)}`]
         : []),
@@ -39,10 +43,14 @@ export function ReviewSummary({
         ? 'Link an existing completed payment'
         : 'Record one completed payment — no automatic payoff or principal assumption',
     ]
-  if ('principalAmountCents' in p)
-    details.push(
-      `Principal ${formatMoney(p.principalAmountCents)} · Interest ${formatMoney(p.interestAmountCents)} · Fees ${formatMoney(p.feesAmountCents)}`,
+  if ('principalAmountCents' in p) {
+    const existing = data.payments.find(
+      (v) => v.id === (p.classification === 'bill_payment' ? p.existingDebtPaymentId : p.paymentId),
     )
+    details.push(
+      `Principal ${formatMoney(existing ? existing.principalAmountCents : p.principalAmountCents)} · Interest ${formatMoney(existing ? existing.interestAmountCents : p.interestAmountCents)} · Fees ${formatMoney(existing ? existing.feesAmountCents : p.feesAmountCents)}`,
+    )
+  }
   if (p.classification === 'income')
     details = [
       data.income.sources.find((s) => s.id === p.sourceId)?.name ?? 'Income source',

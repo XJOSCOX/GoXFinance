@@ -5,6 +5,7 @@ import type { ProviderAccount, SyncPage } from './plaid.gateway'
 import { providerAccount, providerTransaction } from './provider-data'
 import { bankHash } from '../imports/import.service'
 import { FinancialError } from '../../households/financial-access'
+import { safeBankText } from '../imports/statement-parser'
 export function syncApply(bank: BankRepository, store: PlaidRepository) {
   function accounts(
     home: string,
@@ -12,6 +13,7 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
     actor: string,
     member: string,
     source: ProviderAccount[],
+    institution = 'Plaid Sandbox institution',
   ) {
     const now = new Date().toISOString(),
       run = randomUUID(),
@@ -35,6 +37,7 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
           409,
         )
       const fields = {
+        institution: safeBankText(institution).slice(0, 160),
         type: a.type,
         subtype: a.subtype,
         mask: a.mask,
@@ -43,7 +46,7 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
       }
       if (old) {
         if (
-          ['type', 'subtype', 'mask', 'currency'].some(
+          ['institution', 'type', 'subtype', 'mask', 'currency'].some(
             (k) => old[k as keyof typeof old] !== fields[k as keyof typeof fields],
           )
         )
@@ -57,7 +60,6 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
             connectionId: connection,
             providerAccountId: a.id,
             name: a.name,
-            institution: 'Plaid Sandbox institution',
             status: 'active',
             assetId: null,
             debtId: null,
@@ -97,6 +99,20 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
           const t = providerTransaction(raw),
             account = linkedAccounts.find((a) => a.providerAccountId === t.accountId)
           if (!account) continue // Unsupported account types never enter this module.
+          if (
+            bank
+              .transactions(home)
+              .some(
+                (v) =>
+                  linkedAccounts.some((a) => a.id === v.accountId) &&
+                  v.providerTransactionId === t.id &&
+                  v.accountId !== account.id,
+              )
+          )
+            throw new FinancialError(
+              'Provider changed a transaction account association. Review the institution before importing.',
+              409,
+            )
           if (account.currency && t.values.currency !== account.currency)
             throw new FinancialError('Provider transaction currency mismatch', 502)
           const old = bank
@@ -114,7 +130,7 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
                 ...values,
                 pendingProviderId: t.pendingId,
                 removed: false,
-                reviewStatus: ['reconciled', 'needs_review'].includes(old.reviewStatus)
+                reviewStatus: ['reconciled', 'needs_review', 'ignored'].includes(old.reviewStatus)
                   ? 'needs_review'
                   : old.reviewStatus,
                 revision: old.revision + 1,
@@ -157,7 +173,7 @@ export function syncApply(bank: BankRepository, store: PlaidRepository) {
               removed: true,
               merchant: null,
               description: 'Provider removed transaction',
-              reviewStatus: ['reconciled', 'needs_review'].includes(old.reviewStatus)
+              reviewStatus: ['reconciled', 'needs_review', 'ignored'].includes(old.reviewStatus)
                 ? 'needs_review'
                 : old.reviewStatus,
               revision: old.revision + 1,

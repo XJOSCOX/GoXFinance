@@ -15,7 +15,7 @@ function BreakdownFields() {
 export function DebtReviewFields({ data }: { data: BankReviewOptions }) {
   const linked = data.payments.find((p) => p.id === data.existingLink?.id),
     [debt, setDebt] = useState(linked?.debtId ?? ''),
-    [payment, setPayment] = useState(linked?.id ?? '')
+    [payment, setPayment] = useState(linked?.paymentStatus === 'completed' ? linked.id : '')
   return (
     <>
       <FormField label="Debt">
@@ -62,7 +62,8 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
       .find((p) => p.id === data.existingLink?.id || p.debtPaymentId === data.existingLink?.id),
     [billId, setBill] = useState(linked?.billId ?? ''),
     [periodId, setPeriod] = useState(linked?.periodId ?? ''),
-    [payment, setPayment] = useState(linked?.id ?? ''),
+    [payment, setPayment] = useState(linked?.status === 'completed' ? linked.id : ''),
+    [existingDebt, setExistingDebt] = useState(''),
     [confirm, setConfirm] = useState(false),
     bill = data.bills.find((b) => b.id === billId),
     period = bill?.periods.find((p) => p.id === periodId)
@@ -78,6 +79,7 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
               setBill(e.target.value)
               setPeriod('')
               setPayment('')
+              setExistingDebt('')
             }}
           >
             <option value="">Choose bill</option>
@@ -96,6 +98,7 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
             onChange={(e) => {
               setPeriod(e.target.value)
               setPayment('')
+              setExistingDebt('')
             }}
           >
             <option value="">Choose period</option>
@@ -115,7 +118,14 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
         </p>
       )}
       <FormField label="Payment">
-        <Select name="paymentId" value={payment} onChange={(e) => setPayment(e.target.value)}>
+        <Select
+          name="paymentId"
+          value={payment}
+          onChange={(e) => {
+            setPayment(e.target.value)
+            setExistingDebt('')
+          }}
+        >
           <option value="">Record one completed payment</option>
           {bill?.payments
             .filter((p) => p.periodId === periodId && p.status === 'completed')
@@ -126,6 +136,29 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
             ))}
         </Select>
       </FormField>
+      {!payment && period?.linkedDebtId && (
+        <FormField label="Existing debt payment">
+          <Select
+            name="existingDebtPaymentId"
+            value={existingDebt}
+            onChange={(e) => setExistingDebt(e.target.value)}
+          >
+            <option value="">Record a new payment</option>
+            {data.payments
+              .filter(
+                (p) =>
+                  p.debtId === period.linkedDebtId &&
+                  p.paymentStatus === 'completed' &&
+                  !data.bills.some((b) => b.payments.some((bp) => bp.debtPaymentId === p.id)),
+              )
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  Link {formatMoney(p.amountCents)} · {p.paymentDate}
+                </option>
+              ))}
+          </Select>
+        </FormField>
+      )}
       {!payment && (
         <>
           <label className="flex items-center gap-2 text-sm">
@@ -146,7 +179,7 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
               required
             />
           )}
-          <BreakdownFields />
+          {!existingDebt && <BreakdownFields />}
         </>
       )}
       <p className="text-xs text-slate-400">

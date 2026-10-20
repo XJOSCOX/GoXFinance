@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
 import type { PlaidLinkSession } from '@goxfinance/shared'
 import { Modal } from '../../../components/ui/Modal'
@@ -17,8 +17,11 @@ export function PlaidLinkDialog({
 }) {
   const [busy, setBusy] = useState(false),
     [failure, setFailure] = useState('')
+  const saving = useRef(false)
   const onSuccess = useCallback(
     async (publicToken: string | null) => {
+      if (saving.current) return
+      saving.current = true
       setBusy(true)
       setFailure('')
       try {
@@ -34,6 +37,7 @@ export function PlaidLinkDialog({
       } catch (e) {
         setFailure(errorMessage(e))
       } finally {
+        saving.current = false
         setBusy(false)
       }
     },
@@ -43,7 +47,7 @@ export function PlaidLinkDialog({
     token: session.linkToken,
     onSuccess,
     onExit: () => {
-      setBusy(false)
+      if (!saving.current) setBusy(false)
     },
   })
   return (

@@ -33,7 +33,7 @@ export interface PlaidGateway {
   exchange(publicToken: string): Promise<{ token: string; itemId: string }>
   accounts(
     accessToken: string,
-  ): Promise<{ accounts: ProviderAccount[]; institutionId: string | null }>
+  ): Promise<{ accounts: ProviderAccount[]; institutionId: string | null; institution?: string }>
   sync(accessToken: string, cursor: string | null): Promise<SyncPage>
   remove(accessToken: string): Promise<void>
 }
@@ -98,7 +98,18 @@ export function sandboxGateway(clientId: string, secret: string): PlaidGateway {
     },
     async accounts(accessToken) {
       const r = await call(() => api.accountsGet({ access_token: accessToken }))
+      const institution = r.item.institution_id
+        ? (
+            await call(() =>
+              api.institutionsGetById({
+                institution_id: r.item.institution_id!,
+                country_codes: [CountryCode.Us],
+              }),
+            )
+          ).institution.name
+        : 'Plaid Sandbox institution'
       return {
+        institution,
         institutionId: r.item.institution_id ?? null,
         accounts: r.accounts.map((a) => ({
           id: a.account_id,

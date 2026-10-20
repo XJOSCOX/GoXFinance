@@ -3,26 +3,21 @@ import { PlaidApi, Products } from 'plaid'
 import { sandboxGateway, safeProviderError } from './plaid.gateway'
 afterEach(() => vi.restoreAllMocks())
 it('uses official SDK Link/exchange/accounts/sync/removal only, with Transactions and no optional products', async () => {
-  const link = vi
-      .spyOn(PlaidApi.prototype, 'linkTokenCreate')
-      .mockResolvedValue({
-        data: { link_token: 'fictional-link', expiration: '2026-10-21T00:00:00Z' },
-      } as never),
-    exchange = vi
-      .spyOn(PlaidApi.prototype, 'itemPublicTokenExchange')
-      .mockResolvedValue({
-        data: { access_token: 'fictional-permanent', item_id: 'fictional-item' },
-      } as never),
-    accounts = vi
-      .spyOn(PlaidApi.prototype, 'accountsGet')
-      .mockResolvedValue({
-        data: { item: { institution_id: 'fictional-bank' }, accounts: [] },
-      } as never),
-    sync = vi
-      .spyOn(PlaidApi.prototype, 'transactionsSync')
-      .mockResolvedValue({
-        data: { added: [], modified: [], removed: [], next_cursor: 'next', has_more: false },
-      } as never),
+  const link = vi.spyOn(PlaidApi.prototype, 'linkTokenCreate').mockResolvedValue({
+      data: { link_token: 'fictional-link', expiration: '2026-10-21T00:00:00Z' },
+    } as never),
+    exchange = vi.spyOn(PlaidApi.prototype, 'itemPublicTokenExchange').mockResolvedValue({
+      data: { access_token: 'fictional-permanent', item_id: 'fictional-item' },
+    } as never),
+    accounts = vi.spyOn(PlaidApi.prototype, 'accountsGet').mockResolvedValue({
+      data: { item: { institution_id: 'fictional-bank' }, accounts: [] },
+    } as never),
+    institution = vi
+      .spyOn(PlaidApi.prototype, 'institutionsGetById')
+      .mockResolvedValue({ data: { institution: { name: 'Fictional institution' } } } as never),
+    sync = vi.spyOn(PlaidApi.prototype, 'transactionsSync').mockResolvedValue({
+      data: { added: [], modified: [], removed: [], next_cursor: 'next', has_more: false },
+    } as never),
     remove = vi.spyOn(PlaidApi.prototype, 'itemRemove').mockResolvedValue({ data: {} } as never),
     balance = vi.spyOn(PlaidApi.prototype, 'accountsBalanceGet'),
     refresh = vi.spyOn(PlaidApi.prototype, 'transactionsRefresh'),
@@ -40,7 +35,13 @@ it('uses official SDK Link/exchange/accounts/sync/removal only, with Transaction
     token: 'fictional-permanent',
     itemId: 'fictional-item',
   })
-  await gateway.accounts('fictional-permanent')
+  expect(await gateway.accounts('fictional-permanent')).toMatchObject({
+    institution: 'Fictional institution',
+  })
+  expect(institution).toHaveBeenCalledWith({
+    institution_id: 'fictional-bank',
+    country_codes: ['US'],
+  })
   await gateway.sync('fictional-permanent', 'previous')
   await gateway.remove('fictional-permanent')
   expect(exchange).toHaveBeenCalledWith({ public_token: 'fictional-public' })

@@ -107,12 +107,13 @@ export function plaidSyncService(
           throw new FinancialError('Sync preview expired or was not found. Preview again.', 409)
         if (c.revision !== p.revision || c.status === 'disabled' || !ctx.self)
           throw new FinancialError('Connection changed. Preview again.', 409)
-        apply.accounts(home, id, user.id, ctx.self.id, p.metadata.accounts)
+        apply.accounts(home, id, user.id, ctx.self.id, p.metadata.accounts, p.metadata.institution)
         const counts = apply.transactions(home, id, p.data.pages, user.id),
           now = new Date().toISOString()
         store.patchConnection(home, id, {
           cursor: p.data.cursor,
           institutionId: p.metadata.institutionId,
+          ...(p.metadata.institution ? { institution: p.metadata.institution.slice(0, 160) } : {}),
           status: 'active',
           errorCode: null,
           lastSyncAt: now,

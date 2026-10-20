@@ -93,6 +93,7 @@ export const billPaymentInputSchema = billPaymentFieldsSchema
     'Principal, interest, and fees cannot exceed the payment',
   )
   .safeExtend({
+    existingDebtPaymentId: z.uuid().nullable().optional(),
     billAmountConfirmation: z
       .object({
         amountCents: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
@@ -111,7 +112,7 @@ export const billPaymentEditSchema = billPaymentFieldsSchema.omit({ idempotencyK
 export type BillPaymentInput = z.input<typeof billPaymentInputSchema>
 export type BillPaymentValues = Omit<
   z.output<typeof billPaymentInputSchema>,
-  'billAmountConfirmation'
+  'billAmountConfirmation' | 'existingDebtPaymentId'
 >
 export type BillPayment = Omit<BillPaymentValues, 'idempotencyKey'> & {
   refunds?: { id: string; amountCents: number; date: string; status: string }[]

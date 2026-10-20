@@ -195,11 +195,13 @@ export function activityTables(s: ReportSources, f: ReportFilters, today: string
             null,
             today,
             s.refunds.filter((r) => inRange(r.date, f.from, f.to)),
-          ).map((row) => ({
-            month,
-            category: s.categories.find((c) => c.id === row.categoryId)?.name ?? 'Uncategorized',
-            actualCents: row.actualCents,
-          })),
+          )
+            .filter((row) => !f.categoryId || row.categoryId === f.categoryId)
+            .map((row) => ({
+              month,
+              category: s.categories.find((c) => c.id === row.categoryId)?.name ?? 'Uncategorized',
+              actualCents: row.actualCents,
+            })),
         ),
       ),
     ],
@@ -209,6 +211,12 @@ export function activityTables(s: ReportSources, f: ReportFilters, today: string
         'Explicit reversals of earlier purchases or payments. Refunds reduce net cash paid/spending; they are not income.',
         s.refunds
           .filter((r) => inRange(r.date, f.from, f.to))
+          .filter(
+            (r) =>
+              !f.categoryId ||
+              r.allocations.some((a) => a.categoryId === f.categoryId) ||
+              (r.debtPaymentId && payments.some((p) => p.id === r.debtPaymentId)),
+          )
           .map((r) => ({
             id: r.id,
             date: r.date,
