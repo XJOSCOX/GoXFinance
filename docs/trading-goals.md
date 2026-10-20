@@ -108,3 +108,10 @@ When P&L already includes trading fees, record fee-adjusted profit and loss and 
 ## Combine display and funded payout separation
 
 Trading Combine accounts show a distinct evaluation panel: saved base profit target, consistency target, contract limits and recorded net results (or No results entered). They do not show the funded-account five-winning-day widget. Combine accounts are excluded from the combined funded payout estimate, and their individual payout estimate is unavailable even if a payout share was mistakenly saved. The evaluation panel does not claim passing, compute an official adjusted consistency target, or enforce trailing drawdown. Account plan rules remain editable database records; no account-specific presets or financial records are seeded into source.
+
+
+## Confirmed Combine-to-XFA promotion
+
+Promote to XFA creates a new linked account after explicit confirmation that Topstep passed the Combine and activated the XFA. The original Combine remains the same account and is marked passed. All its evaluation results, balance, fees, rules, copy-group membership, goals, payouts and audits stay on the original UUID. The XFA keeps the household owner, nominal tier, timezone and session boundary; its actual reported balance, activation date, risk limits, new identifier and payout rules must be entered or remain unknown. No income or payment is generated.
+
+Migration 0022 adds a separate promotion-link table with household-scoped foreign keys and unique source, target and submission constraints. Creation, the source status update, linking and audit writes are one immediate transaction. Idempotent retries return the original link; stale revisions, duplicate promotions, unauthorized ownership and cross-household access fail. Ordinary stage edits cannot turn a Combine into a funded account, and linked records cannot be permanently deleted. Hide/restore remains available for presentation while history is preserved. Ownership of linked accounts and the original passed status remain protected.

@@ -25,6 +25,7 @@ import { AccountRulesForm } from '../components/AccountRulesForm'
 import { EditRuleForm } from '../components/EditRuleForm'
 import { CombinedPayoutProgress } from '../components/CombinedPayoutProgress'
 import { ResultRemovalDialog } from '../components/ResultRemovalDialog'
+import { CombinePromotionForm } from '../components/CombinePromotionForm'
 import { ResultForm } from '../components/ResultForm'
 import { DailyResultsForm } from '../components/DailyResultsForm'
 import { PayoutForm } from '../components/PayoutForm'
@@ -51,6 +52,7 @@ export function TradingPage() {
     [tab, setTab] = useState('accounts'),
     [editor, setEditor] = useState<Editor | null>(null),
     [audit, setAudit] = useState('')
+  const [promotion, setPromotion] = useState<TradingAccount | null>(null)
   const [resultRemoval, setResultRemoval] = useState<TradingResult | null>(null)
   const [showDeleted, setShowDeleted] = useState(false)
   const [removal, setRemoval] = useState<TradingAccount | null>(null)
@@ -200,6 +202,7 @@ export function TradingPage() {
                 payouts={data.payouts}
                 members={members}
                 onEdit={(record) => setEditor({ kind: 'accounts', record })}
+                onPromote={setPromotion}
                 onDuplicate={(template) => setEditor({ kind: 'accounts', template })}
                 onRemove={setRemoval}
                 onAudit={setAudit}
@@ -222,6 +225,17 @@ export function TradingPage() {
             />
           )}
         </>
+      )}
+      {promotion && (
+        <CombinePromotionForm
+          account={promotion}
+          close={() => setPromotion(null)}
+          save={async (body) => {
+            await saveTrading(home, `accounts/${promotion.id}/promote`, body)
+            await refresh()
+            notify('success', 'Combine history preserved and linked XFA created')
+          }}
+        />
       )}
       {editor?.kind === 'accounts' && (
         <AccountForm

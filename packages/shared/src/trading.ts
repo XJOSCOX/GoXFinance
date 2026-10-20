@@ -150,6 +150,8 @@ export type TradingAccount = Omit<TradingAccountInput, 'ruleSnapshot'> & {
   createdAt: string
   updatedAt: string
   canManage: boolean
+  sourceCombineAccountId?: string | null
+  promotedToAccountId?: string | null
   incomeSourceId: string | null
   deletedAt: string | null
   ruleSnapshots: (z.infer<typeof tradingRuleSchema> & { id: string; createdAt: string })[]

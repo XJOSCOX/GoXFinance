@@ -300,3 +300,26 @@ export const tradingPayoutBatches = sqliteTable(
   },
   (t) => [uniqueIndex('payout_batch_submission').on(t.householdId, t.idempotencyKey)],
 )
+
+export const tradingAccountPromotions = sqliteTable(
+  'trading_account_promotions',
+  {
+    ...owner(),
+    sourceAccountId: text('source_account_id').notNull(),
+    targetAccountId: text('target_account_id').notNull(),
+  },
+  (t) => [
+    uniqueIndex('trading_promotion_source').on(t.householdId, t.sourceAccountId),
+    uniqueIndex('trading_promotion_target').on(t.householdId, t.targetAccountId),
+    uniqueIndex('trading_promotion_submission').on(t.householdId, t.idempotencyKey),
+    foreignKey({
+      columns: [t.sourceAccountId, t.householdId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.householdId],
+    }),
+    foreignKey({
+      columns: [t.targetAccountId, t.householdId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.householdId],
+    }),
+    check('trading_promotion_distinct', sql`${t.sourceAccountId} <> ${t.targetAccountId}`),
+  ],
+)

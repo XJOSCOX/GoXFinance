@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq, asc } from 'drizzle-orm'
 import {
   tradingAccounts,
+  tradingAccountPromotions,
   tradingResults,
   tradingPayouts,
   tradingAudit,
@@ -16,6 +17,16 @@ export function tradingRepository(db: DatabaseConnection) {
   return {
     atomic<T>(work: () => T) {
       return db.transaction(work, { behavior: 'immediate' })
+    },
+    promotions(home: string) {
+      return db
+        .select()
+        .from(tradingAccountPromotions)
+        .where(eq(tradingAccountPromotions.householdId, home))
+        .all()
+    },
+    addPromotion(values: typeof tradingAccountPromotions.$inferInsert) {
+      db.insert(tradingAccountPromotions).values(values).run()
     },
     accounts(home: string) {
       return db.select().from(tradingAccounts).where(eq(tradingAccounts.householdId, home)).all()
@@ -68,6 +79,7 @@ export function tradingRepository(db: DatabaseConnection) {
     },
     hasAccountHistory(home: string, id: string) {
       return !!(
+        this.promotions(home).some((p) => p.sourceAccountId === id || p.targetAccountId === id) ||
         db
           .select()
           .from(tradingResults)

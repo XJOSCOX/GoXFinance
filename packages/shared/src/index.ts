@@ -32,3 +32,5 @@ export * from './goal-calculations'
 export * from './goal-weekly-summary'
 
 export * from './trading-overview'
+
+export * from './trading-promotion'

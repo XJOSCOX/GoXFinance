@@ -135,12 +135,22 @@ export function AccountForm({
           </Select>
         </FormField>
         <FormField label="Account stage">
-          <Select value={stage} onChange={(e) => setStage(e.target.value as typeof stage)}>
+          <Select
+            value={stage}
+            disabled={account?.stage === 'combine'}
+            onChange={(e) => setStage(e.target.value as typeof stage)}
+          >
             <option value="combine">Trading Combine</option>
             <option value="xfa">XFA</option>
             <option value="lfa">LFA</option>
           </Select>
         </FormField>
+        {account?.stage === 'combine' && (
+          <p className="text-xs text-slate-500 sm:col-span-2">
+            Use Promote to XFA on the account card after provider confirmation to keep evaluation
+            history separate.
+          </p>
+        )}
         {stage === 'xfa' && (
           <FormField label="XFA path">
             <Select

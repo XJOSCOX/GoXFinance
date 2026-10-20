@@ -41,6 +41,12 @@ export function registerTradingRoutes(
     const p = params.parse(r.params)
     return { record: trading.saveAccount(user(r), p.householdId, r.body, p.id) }
   })
+  app.post(base + '/accounts/:id/promote', (r, reply) => {
+    const p = params.parse(r.params)
+    return reply
+      .code(201)
+      .send({ promotion: trading.promoteCombine(user(r), p.householdId, p.id!, r.body) })
+  })
   app.delete(base + '/accounts/:id', (r) => {
     const p = params.parse(r.params)
     return { record: trading.setAccountDeleted(user(r), p.householdId, p.id!, r.body, true) }

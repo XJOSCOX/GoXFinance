@@ -23,6 +23,7 @@ export function TradingAccounts({
   onAudit,
   onEditRule,
   onEditAll,
+  onPromote,
 }: {
   accounts: TradingAccount[]
   results: TradingResult[]
@@ -33,6 +34,7 @@ export function TradingAccounts({
   onRemove: (a: TradingAccount) => void
   onAudit: (id: string) => void
   onEditRule: (account: TradingAccount, rule: TradingAccount['ruleSnapshots'][number]) => void
+  onPromote?: (account: TradingAccount) => void
   onEditAll: (accounts: TradingAccount[]) => void
 }) {
   const renderAccount = (account: TradingAccount) => {
@@ -49,6 +51,20 @@ export function TradingAccounts({
               {account.stage === 'combine' ? 'Trading Combine' : account.stage.toUpperCase()} /{' '}
               {account.xfaPath.replaceAll('_', ' ')} / {account.status}
             </p>
+            {account.sourceCombineAccountId && (
+              <p className="mt-1 text-xs text-slate-500">
+                From Combine:{' '}
+                {accounts.find((a) => a.id === account.sourceCombineAccountId)?.nickname ??
+                  'Historical Combine'}
+              </p>
+            )}
+            {account.promotedToAccountId && (
+              <p className="mt-1 text-xs text-slate-500">
+                Linked XFA:{' '}
+                {accounts.find((a) => a.id === account.promotedToAccountId)?.nickname ??
+                  'Historical XFA'}
+              </p>
+            )}
             <p className="mt-1 text-xs text-slate-500">
               {members.find((m) => m.id === account.responsibleMemberId)?.fullName}
               {account.maskedExternalId
@@ -57,6 +73,16 @@ export function TradingAccounts({
             </p>
           </div>
           <div className="flex flex-wrap items-start gap-1">
+            {onPromote &&
+              account.canManage &&
+              !account.deletedAt &&
+              account.stage === 'combine' &&
+              ['active', 'passed'].includes(account.status) &&
+              !account.promotedToAccountId && (
+                <Button size="small" onClick={() => onPromote(account)}>
+                  Promote to XFA
+                </Button>
+              )}
             {account.canManage && !account.deletedAt && (
               <Button size="small" onClick={() => onDuplicate(account)}>
                 Duplicate

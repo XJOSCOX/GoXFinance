@@ -16,6 +16,7 @@ import { checkRevision, type TradingPermissions } from './trading.permissions'
 import type { TradingRepository } from './trading.repository'
 import { createAccounts } from './account-batch.service'
 import { updateAccountRules, correctAccountRule } from './account-rules.service'
+import { promoteCombine } from './combine-promotion.service'
 import { saveTradingBatch } from './trading-batch'
 export function tradingService(store: TradingRepository, permissions: TradingPermissions) {
   function account(user: PublicUser, home: string, id: string) {
@@ -28,9 +29,14 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
     user: PublicUser,
     home: string,
     row: ReturnType<typeof account>,
+    promotions = store.promotions(home),
   ): TradingAccount {
     return {
       ...row,
+      sourceCombineAccountId:
+        promotions.find((p) => p.targetAccountId === row.id)?.sourceAccountId ?? null,
+      promotedToAccountId:
+        promotions.find((p) => p.sourceAccountId === row.id)?.targetAccountId ?? null,
       canManage: permissions.canManage(user, home, row.responsibleMemberId),
       ruleSnapshots: store
         .rules(home, row.id)
@@ -83,7 +89,8 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
     },
     accounts(user: PublicUser, home: string) {
       permissions.context(user, home)
-      return store.accounts(home).map((r) => accountView(user, home, r))
+      const promotions = store.promotions(home)
+      return store.accounts(home).map((r) => accountView(user, home, r, promotions))
     },
     setAccountDeleted(user: PublicUser, home: string, id: string, body: unknown, deleted: boolean) {
       return store.atomic(() => {
@@ -195,6 +202,19 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           if (replay(home, user.id, previous, values)) return accountView(user, home, previous!)
         }
         if (old) {
+          if (old.stage !== 'combine' && values.stage === 'combine')
+            throw new FinancialError('Funded accounts cannot be changed back to a Combine', 409)
+          if (old.stage === 'combine' && values.stage !== 'combine')
+            throw new FinancialError('Use Promote to XFA to preserve Combine history', 409)
+          const linked = store
+            .promotions(home)
+            .find((p) => p.sourceAccountId === old.id || p.targetAccountId === old.id)
+          if (
+            linked &&
+            (old.responsibleMemberId !== values.responsibleMemberId ||
+              (linked.sourceAccountId === old.id && values.status !== 'passed'))
+          )
+            throw new FinancialError('Keep the linked owner and passed Combine history intact', 409)
           checkRevision(old.revision, 'revision' in parsed ? parsed.revision : 0)
           if (
             old.responsibleMemberId !== values.responsibleMemberId &&
@@ -260,6 +280,11 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         )
         return accountView(user, home, account(user, home, row.id))
       })
+    },
+    promoteCombine(user: PublicUser, home: string, id: string, body: unknown) {
+      return promoteCombine(store, permissions, user, home, id, body, (entry) =>
+        this.saveAccount(user, home, entry),
+      )
     },
     saveResult(user: PublicUser, home: string, body: unknown, id?: string) {
       return store.atomic(() => {
