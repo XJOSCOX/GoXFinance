@@ -1,3 +1,4 @@
+import { tradingResultDate } from '@goxfinance/shared'
 import { CopyGroupHistory } from './CopyGroupHistory'
 import { PayoutHistory } from './PayoutHistory'
 import type {
@@ -54,7 +55,7 @@ export function TradingHistory({
           </thead>
           <tbody>
             {[...data.results]
-              .sort((a, b) => b.sessionDate.localeCompare(a.sessionDate))
+              .sort((a, b) => tradingResultDate(b).localeCompare(tradingResultDate(a)))
               .map((r) => (
                 <tr key={r.id} className="border-t border-white/[.07]">
                   <td className="py-3 pr-3">
@@ -64,8 +65,11 @@ export function TradingHistory({
                     )}
                   </td>
                   <td className="pr-3">
-                    {r.sessionDate}
-                    <span className="block text-xs text-slate-500">{r.timezone}</span>
+                    {tradingResultDate(r)}
+                    <span className="block text-xs text-slate-500">
+                      {r.timezone}
+                      {r.reportedDate ? ' · Reported day' : ' · Session start'}
+                    </span>
                   </td>
                   <td
                     className={r.profitCents == null ? 'text-slate-500' : toneStyles.positive.text}

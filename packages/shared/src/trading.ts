@@ -73,6 +73,7 @@ export const tradingResultSchema = z
   .object({
     accountId: z.uuid(),
     sessionAt: z.iso.datetime(),
+    reportedDate: z.iso.date().nullable().optional(),
     grossCents: money,
     profitCents: positive.nullable().optional(),
     feesIncluded: z.boolean().optional(),

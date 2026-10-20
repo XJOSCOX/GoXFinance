@@ -85,3 +85,13 @@ it('preserves unknown start, tier and maximum loss without fabricating journal b
   ).toMatchObject({ rows: [], balanceCents: null, floorCents: null, reviewDate: null })
   expect(combineJournal({ ...account, maximumLossCents: null }, [], now).floorCents).toBeNull()
 })
+
+it('flags historical daily loss limits independently from the trailing floor and account status', () => {
+  const journal = combineJournal(
+    { ...account, dailyLossCents: 100000 },
+    [result('2026-10-10', -100001)],
+    now,
+  )
+  expect(journal.rows[0]).toMatchObject({ dailyLimitReached: true, reachedFloor: false })
+  expect(journal.recordedBreach).toBe(false)
+})

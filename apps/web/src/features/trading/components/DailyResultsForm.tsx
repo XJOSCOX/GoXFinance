@@ -8,6 +8,8 @@ import { FormField } from '../../../components/ui/FormField'
 import { Input } from '../../../components/ui'
 import { text, optionalText } from '../../../lib/financial-entry'
 import { AccountSelectionToolbar } from './AccountSelectionToolbar'
+import { DailyResultDateFields } from './DailyResultDateFields'
+import { dailyResultDate, reportedNetAmounts } from '../lib/daily-result-entry'
 
 export function DailyResultsForm({
   accounts,
@@ -21,6 +23,10 @@ export function DailyResultsForm({
   const [selected, setSelected] = useState<string[]>([])
   const [common, setCommon] = useState<ResultAmounts>(emptyAmounts)
   const [amounts, setAmounts] = useState<Record<string, ResultAmounts>>({})
+  const [reported, setReported] = useState(false),
+    [netOnly, setNetOnly] = useState(false)
+  const [commonNet, setCommonNet] = useState(''),
+    [nets, setNets] = useState<Record<string, string>>({})
   return (
     <FinancialEditor
       title="Record daily results"
@@ -31,8 +37,10 @@ export function DailyResultsForm({
         tradingResultBatchSchema.parse(
           selected.map((accountId) => ({
             accountId,
-            sessionAt: new Date(text(data, 'sessionAt')).toISOString(),
-            ...resultAmounts(amounts[accountId] ?? emptyAmounts),
+            ...dailyResultDate(data, reported),
+            ...(netOnly
+              ? reportedNetAmounts(nets[accountId] ?? '')
+              : resultAmounts(amounts[accountId] ?? emptyAmounts)),
             tradeCount:
               optionalText(data, 'trades:' + accountId) === null
                 ? null
@@ -47,22 +55,44 @@ export function DailyResultsForm({
         separately, including losses or zero. Existing manual or copied results for that session
         cannot be recorded again.
       </p>
-      <FormField label="Session timestamp (your device time)">
-        <Input name="sessionAt" type="datetime-local" required />
-      </FormField>
+      <DailyResultDateFields reported={reported} onChange={setReported} />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={netOnly} onChange={(e) => setNetOnly(e.target.checked)} />
+        Only fee-adjusted net result is known
+      </label>
+      {netOnly && (
+        <p className="text-xs text-slate-400">
+          Record the signed net result exactly as reported. Gross profit/loss breakdowns stay
+          unknown; no fees are deducted again.
+        </p>
+      )}
       <AccountSelectionToolbar accounts={accounts} selected={selected} onChange={setSelected} />
       <section className="space-y-3 rounded-xl border border-white/10 p-4">
         <h2 className="text-sm font-semibold">Enter once for selected accounts</h2>
-        <ProfitLossFields value={common} onChange={setCommon} required={false} label="Shared " />
+        {netOnly ? (
+          <FormField label="Shared net result ($, fees included)">
+            <Input
+              value={commonNet}
+              onChange={(e) => setCommonNet(e.target.value)}
+              inputMode="decimal"
+            />
+          </FormField>
+        ) : (
+          <ProfitLossFields value={common} onChange={setCommon} required={false} label="Shared " />
+        )}
         <Button
           type="button"
           disabled={!selected.length}
-          onClick={() =>
+          onClick={() => {
+            setNets((current) => ({
+              ...current,
+              ...Object.fromEntries(selected.map((id) => [id, commonNet])),
+            }))
             setAmounts((current) => ({
               ...current,
               ...Object.fromEntries(selected.map((id) => [id, { ...common }])),
             }))
-          }
+          }}
         >
           Apply to selected accounts
         </Button>
@@ -91,13 +121,26 @@ export function DailyResultsForm({
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <ProfitLossFields
-                    label={`${account.nickname} `}
-                    value={amounts[account.id] ?? emptyAmounts}
-                    onChange={(value) =>
-                      setAmounts((current) => ({ ...current, [account.id]: value }))
-                    }
-                  />
+                  {netOnly ? (
+                    <FormField label={`${account.nickname} net result ($, fees included)`}>
+                      <Input
+                        value={nets[account.id] ?? ''}
+                        onChange={(e) =>
+                          setNets((rows) => ({ ...rows, [account.id]: e.target.value }))
+                        }
+                        required
+                        inputMode="decimal"
+                      />
+                    </FormField>
+                  ) : (
+                    <ProfitLossFields
+                      label={`${account.nickname} `}
+                      value={amounts[account.id] ?? emptyAmounts}
+                      onChange={(value) =>
+                        setAmounts((current) => ({ ...current, [account.id]: value }))
+                      }
+                    />
+                  )}
                 </div>
                 <FormField label={`${account.nickname} number of trades (optional)`}>
                   <Input name={'trades:' + account.id} type="number" min="0" />

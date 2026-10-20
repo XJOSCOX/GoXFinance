@@ -1,0 +1,1 @@
+ALTER TABLE `trading_results` ADD `reported_date` text;

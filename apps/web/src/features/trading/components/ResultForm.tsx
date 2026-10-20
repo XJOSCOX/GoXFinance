@@ -10,6 +10,8 @@ import { resultAmounts, type ResultAmounts } from '../lib/result-amounts'
 import { moneyText } from '../../../lib/financial-entry'
 import { formatMoney } from '../../../lib/money'
 import { TradingAccountSelect } from './TradingAccountSelect'
+import { DailyResultDateFields } from './DailyResultDateFields'
+import { dailyResultDate } from '../lib/daily-result-entry'
 export function ResultForm({
   result,
   accounts,
@@ -23,6 +25,7 @@ export function ResultForm({
 }) {
   const [id, setId] = useState(result?.accountId ?? accounts[0]?.id ?? '')
   const [split, setSplit] = useState(!result || result.profitCents != null)
+  const [reported, setReported] = useState(!!result?.reportedDate)
   const [amounts, setAmounts] = useState<ResultAmounts>({
     profit: moneyText(result?.profitCents),
     loss: moneyText(result?.lossCents),
@@ -39,7 +42,7 @@ export function ResultForm({
       build={(data) =>
         tradingResultSchema.parse({
           accountId: id,
-          sessionAt: new Date(text(data, 'sessionAt')).toISOString(),
+          ...dailyResultDate(data, reported, result),
           ...(split
             ? resultAmounts(amounts)
             : {
@@ -47,6 +50,7 @@ export function ResultForm({
                 feesCents: readMoney(data, 'feesCents', true),
                 profitCents: null,
                 lossCents: null,
+                feesIncluded: result?.feesIncluded ?? false,
               }),
           tradeCount:
             optionalText(data, 'tradeCount') === null ? null : Number(text(data, 'tradeCount')),
@@ -68,23 +72,7 @@ export function ResultForm({
         One summary per account/session. Correct the existing record instead of adding another. Net
         P&amp;L equals gross realized P&amp;L minus fees. Losses and zero results are supported.
       </p>
-      <FormField label="Session timestamp (your device time)">
-        <Input
-          name="sessionAt"
-          type="datetime-local"
-          required
-          defaultValue={
-            result
-              ? new Date(
-                  new Date(result.sessionAt).getTime() -
-                    new Date(result.sessionAt).getTimezoneOffset() * 60000,
-                )
-                  .toISOString()
-                  .slice(0, 16)
-              : ''
-          }
-        />
-      </FormField>
+      <DailyResultDateFields reported={reported} onChange={setReported} result={result} />
       <p className="text-xs text-slate-400">
         Session grouping: {result?.timezone ?? account?.timezone}, starts at{' '}
         {result?.sessionStart ?? account?.sessionStart}. Dates identify the session's start date.

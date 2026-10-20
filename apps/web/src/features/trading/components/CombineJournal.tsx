@@ -56,7 +56,7 @@ export function CombineJournal({
           <table className="w-full text-left text-xs tabular-nums">
             <thead className="text-slate-400">
               <tr>
-                <th className="py-2 pr-3">Session start</th>
+                <th className="py-2 pr-3">Reported day / session start</th>
                 <th className="pr-3">Net</th>
                 <th className="pr-3">Balance</th>
                 <th className="pr-3">Loss floor</th>
@@ -65,8 +65,13 @@ export function CombineJournal({
             </thead>
             <tbody>
               {journal.rows.map((row) => (
-                <tr key={row.date} className="border-t border-white/5">
-                  <td className="py-2 pr-3">{row.date}</td>
+                <tr key={row.sessionDate} className="border-t border-white/5">
+                  <td className="py-2 pr-3">
+                    {row.date}
+                    <span className="block text-slate-500">
+                      {row.reported ? 'Reported day' : 'Session start'}
+                    </span>
+                  </td>
                   <td className="pr-3">{formatMoney(row.netCents)}</td>
                   <td className="pr-3">{formatMoney(row.balanceCents)}</td>
                   <td className="pr-3">{formatMoney(row.floorCents)}</td>
@@ -76,6 +81,11 @@ export function CombineJournal({
                       : row.completed
                         ? 'Recorded close'
                         : 'Provisional'}
+                    {row.dailyLimitReached && (
+                      <span className={`block ${toneStyles.warning.text}`}>
+                        Daily loss limit reached
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

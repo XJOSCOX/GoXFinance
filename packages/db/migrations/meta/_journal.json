@@ -169,6 +169,13 @@
       "when": 1792514597837,
       "tag": "0023_nasty_joshua_kane",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1792515729040,
+      "tag": "0024_flashy_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,19 @@ export function tradingSessionDate(timestamp: string, timezone: string, sessionS
     ? new Date(Date.parse(date + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10)
     : date
 }
+const nextDay = (date: string, days: number) =>
+  new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10)
+// Provider daily reports label the session by its closing day, not its start day.
+export function reportedTradingDate(timestamp: string, timezone: string, sessionStart: string) {
+  const start = tradingSessionDate(timestamp, timezone, sessionStart)
+  return sessionStart === '00:00' ? start : nextDay(start, 1)
+}
+export function reportedSessionStartDate(date: string, sessionStart: string) {
+  return sessionStart === '00:00' ? date : nextDay(date, -1)
+}
+export function tradingResultDate(row: { sessionDate: string; reportedDate?: string | null }) {
+  return row.reportedDate ?? row.sessionDate
+}
 export function tradingWeek(date: string) {
   const day = new Date(date + 'T00:00:00Z'),
     offset = (day.getUTCDay() + 6) % 7
@@ -29,12 +42,8 @@ export function tradingPerformance(
 ) {
   const buckets = new Map<string, TradingResult[]>()
   for (const result of results.filter((r) => accountIds.includes(r.accountId))) {
-    const key =
-      group === 'month'
-        ? result.sessionDate.slice(0, 7)
-        : group === 'week'
-          ? tradingWeek(result.sessionDate)
-          : result.sessionDate
+    const date = tradingResultDate(result)
+    const key = group === 'month' ? date.slice(0, 7) : group === 'week' ? tradingWeek(date) : date
     buckets.set(key, [...(buckets.get(key) ?? []), result])
   }
   return [...buckets]

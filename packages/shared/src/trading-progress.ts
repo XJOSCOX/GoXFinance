@@ -1,5 +1,5 @@
 import type { TradingAccount, TradingResult, TradingPayout } from './trading'
-import { tradingSessionDate } from './trading-calculations'
+import { tradingSessionDate, reportedTradingDate, tradingResultDate } from './trading-calculations'
 import { payoutSplitEstimate, ruleForPayout } from './trading-rules'
 import { sumCents } from './outflows'
 
@@ -11,24 +11,23 @@ export function tradingPayoutProgress(
 ) {
   const today = tradingSessionDate(now, account.timezone, account.sessionStart)
   const calendarDate = tradingSessionDate(now, account.timezone, '00:00')
+  const reportToday = reportedTradingDate(now, account.timezone, account.sessionStart)
   const rule = ruleForPayout(account.ruleSnapshots, calendarDate)
   const start = rule?.progressStartDate ?? account.activationDate ?? rule?.effectiveDate ?? null
   const sessions = new Map<string, number>()
   const seen = new Set<string>()
   for (const result of results) {
+    const date = tradingResultDate(result)
     if (
       result.accountId !== account.id ||
       seen.has(result.id) ||
       !start ||
-      result.sessionDate < start ||
-      result.sessionDate > today
+      date < start ||
+      date > (result.reportedDate ? reportToday : today)
     )
       continue
     seen.add(result.id)
-    sessions.set(
-      result.sessionDate,
-      sumCents([sessions.get(result.sessionDate) ?? 0, result.netCents]),
-    )
+    sessions.set(date, sumCents([sessions.get(date) ?? 0, result.netCents]))
   }
   const threshold = rule?.minimumWinningDayCents ?? null,
     target = rule?.minimumDays ?? null

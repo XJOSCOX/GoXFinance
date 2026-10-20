@@ -83,6 +83,7 @@ export const tradingResults = sqliteTable(
     ...owner(),
     accountId: text('account_id').notNull(),
     sessionAt: text('session_at').notNull(),
+    reportedDate: text('reported_date'),
     sessionDate: text('session_date').notNull(),
     timezone: text('timezone').notNull(),
     sessionStart: text('session_start').notNull(),

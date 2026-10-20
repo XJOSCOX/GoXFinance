@@ -1,25 +1,29 @@
 import type { TradingAccount, TradingResult } from './trading'
-import { tradingSessionDate } from './trading-calculations'
+import { tradingSessionDate, reportedTradingDate, tradingResultDate } from './trading-calculations'
 import { sumCents } from './outflows'
 
 // A reconstructed journal, not a provider balance feed. Intraday lows are unknown.
 export function combineJournal(account: TradingAccount, results: TradingResult[], now: string) {
   const today = tradingSessionDate(now, account.timezone, account.sessionStart)
+  const reportedToday = reportedTradingDate(now, account.timezone, account.sessionStart)
   const start = account.activationDate
   const startingBalanceCents = account.tierCents
   const loss = account.maximumLossCents
   const sessions = new Map<string, number>()
   const seen = new Set<string>()
+  const reportedDays = new Map<string, string>()
   for (const row of results) {
+    const date = tradingResultDate(row)
     if (
       row.accountId !== account.id ||
       seen.has(row.id) ||
       !start ||
-      row.sessionDate < start ||
-      row.sessionDate > today
+      date < start ||
+      date > (row.reportedDate ? reportedToday : today)
     )
       continue
     seen.add(row.id)
+    if (row.reportedDate) reportedDays.set(row.sessionDate, date)
     sessions.set(row.sessionDate, sumCents([sessions.get(row.sessionDate) ?? 0, row.netCents]))
   }
   let balance = start ? startingBalanceCents : null
@@ -31,12 +35,13 @@ export function combineJournal(account: TradingAccount, results: TradingResult[]
   let breached = false
   const rows = [...sessions]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, netCents]) => {
+    .map(([sessionDate, netCents]) => {
+      const date = reportedDays.get(sessionDate) ?? sessionDate
       const previousFloorCents = floor
       balance = balance == null ? null : sumCents([balance, netCents])
       const reachedFloor = balance != null && floor != null && balance <= floor
       breached ||= reachedFloor
-      const completed = date < today
+      const completed = sessionDate < today
       if (
         completed &&
         balance != null &&
@@ -49,12 +54,15 @@ export function combineJournal(account: TradingAccount, results: TradingResult[]
       }
       return {
         date,
+        sessionDate,
+        reported: reportedDays.has(sessionDate),
         netCents,
         balanceCents: balance,
         previousFloorCents,
         floorCents: floor,
         completed,
         reachedFloor,
+        dailyLimitReached: account.dailyLossCents != null && netCents <= -account.dailyLossCents,
       }
     })
   const review = start ? new Date(`${start}T00:00:00Z`) : null

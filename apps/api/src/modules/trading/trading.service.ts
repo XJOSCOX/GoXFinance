@@ -5,6 +5,8 @@ import {
   tradingResultBatchSchema,
   tradingResultSchema,
   tradingSessionDate,
+  reportedTradingDate,
+  reportedSessionStartDate,
   createTradingSchema,
   editTradingSchema,
   type PublicUser,
@@ -313,18 +315,27 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
         }
         const timezone = old?.timezone ?? parent.timezone,
           sessionStart = old?.sessionStart ?? parent.sessionStart
-        const sessionDate = tradingSessionDate(values.sessionAt, timezone, sessionStart)
+        const reportedDate = values.reportedDate ?? null
+        const sessionDate = reportedDate
+          ? reportedSessionStartDate(reportedDate, sessionStart)
+          : tradingSessionDate(values.sessionAt, timezone, sessionStart)
+        const sessionKey = sessionDate
+        if (
+          reportedDate &&
+          reportedDate > reportedTradingDate(new Date().toISOString(), timezone, sessionStart)
+        )
+          throw new FinancialError('Future reported trading days cannot be recorded', 400)
         if (Date.parse(values.sessionAt) > Date.now())
           throw new FinancialError('Future realized results cannot be recorded', 400)
         if (
           store
             .results(home)
             .some(
-              (r) => r.id !== id && r.accountId === parent.id && r.sessionDate === sessionDate,
+              (r) => r.id !== id && r.accountId === parent.id && r.sessionDate === sessionKey,
             ) ||
           store
             .copyResults(home)
-            .some((r) => r.row.accountId === parent.id && r.row.sessionDate === sessionDate)
+            .some((r) => r.row.accountId === parent.id && r.row.sessionDate === sessionKey)
         )
           throw new FinancialError(
             'This session already has results. Correct its existing summary or copied events.',
@@ -334,6 +345,7 @@ export function tradingService(store: TradingRepository, permissions: TradingPer
           row = {
             ...old,
             ...values,
+            reportedDate,
             profitCents: values.profitCents ?? null,
             feesIncluded: values.feesIncluded ?? false,
             lossCents: values.lossCents ?? null,

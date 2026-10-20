@@ -7,6 +7,7 @@ import {
 import { sumCents } from './outflows'
 import { tradingPayoutProgress } from './trading-progress'
 import { combineJournal } from './combine-journal'
+import { tradingResultDate } from './trading-calculations'
 
 // Identity and record IDs differ between copied accounts; their financial state must match.
 export function groupMatchingTradingAccounts(
@@ -33,8 +34,8 @@ export function groupMatchingTradingAccounts(
     for (const r of new Map(
       results.filter((r) => r.accountId === account.id).map((r) => [r.id, r]),
     ).values()) {
-      const day = sessions.get(r.sessionDate) ?? { gross: 0, fees: 0, net: 0 }
-      sessions.set(r.sessionDate, {
+      const day = sessions.get(tradingResultDate(r)) ?? { gross: 0, fees: 0, net: 0 }
+      sessions.set(tradingResultDate(r), {
         gross: sumCents([day.gross, r.grossCents]),
         fees: sumCents([day.fees, r.feesCents]),
         net: sumCents([day.net, r.netCents]),
