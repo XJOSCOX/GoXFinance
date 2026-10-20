@@ -45,3 +45,5 @@ Monthly budgets live in `modules/budgets` (routes, service, repository) and `fea
 Debt Planning separates payoff calculations and Zod contracts in packages/shared, household-scoped service/repository/routes in modules/debt-planning, and feature UI in features/debt-planning. Migration 0026 adds settlement schedules with authoritative debt-payment links and immutable scenario snapshots. See docs/debt-planning.md.
 
 Cash Flow Forecasting separates inflow scheduling, obligation deduplication and daily cash calculations in packages/shared. The forecasts API snapshots sources/results behind household authorization and stale-source checks. Immutable scenarios/audit use additive migration 0027. See docs/forecasts.md.
+
+Assets separates profiles, member/debt links, append-only valuations, audit and immutable net-worth captures through migration 0028. Net worth reuses debt grouping/balance history and explicitly marks legacy historical association limits. Topstep balances are never asset inputs. See docs/assets.md.

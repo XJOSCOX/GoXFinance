@@ -1,3 +1,6 @@
+import { assetRepository } from './modules/assets/asset.repository'
+import { assetService } from './modules/assets/asset.service'
+import { registerAssetRoutes } from './modules/assets/asset.routes'
 import { forecastRepository } from './modules/forecasts/forecast.repository'
 import { forecastService } from './modules/forecasts/forecast.service'
 import { registerForecastRoutes } from './modules/forecasts/forecast.routes'
@@ -217,6 +220,13 @@ export async function buildApp(options: AppOptions) {
         .offers(home)
         .map((o) => ({ ...o, canManage: false })),
     })),
+  )
+  registerAssetRoutes(
+    app,
+    auth,
+    assetService(assetRepository(db), tradeAccess, debts, (home) =>
+      overviewRepository(db).balances(home),
+    ),
   )
   registerIncomeRoutes(app, auth, income)
   registerExpenseRoutes(app, auth, expenses)

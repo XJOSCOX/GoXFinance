@@ -43,6 +43,7 @@ export function WorkspaceSidebar({
     { href: `/households/${household.id}/expenses`, label: 'Expenses', icon: ShoppingBag },
     { href: `/households/${household.id}/trading`, label: 'Trading', icon: TrendingUp },
     { href: `/households/${household.id}/budgets`, label: 'Budgets', icon: PieChart },
+    { href: `/households/${household.id}/assets`, label: 'Assets & net worth', icon: Home },
     { href: `/households/${household.id}/goals`, label: 'Goals', icon: Target },
   ]
   return (
