@@ -149,3 +149,18 @@ it('edits rule versions without changing past payout estimates, including correc
     ruleForPayout([rule, { ...replacement, effectiveDate: '2026-11-01' }], '2026-10-19')?.id,
   ).toBe('rule')
 })
+
+it('excludes Combine evaluations from funded payout estimates without changing funded results', () => {
+  const combine = { ...account, id: 'combine', stage: 'combine' as const }
+  const funded = { ...account, stage: 'xfa' as const }
+  const results = [
+    result('funded', '2026-10-10', 10000),
+    { ...result('combine-result', '2026-10-10', 300000), accountId: combine.id },
+  ]
+  expect(tradingPayoutProgress(combine, results, [], now).estimate).toBeNull()
+  expect(combinedTradingProgress([funded, combine], results, [], now)).toMatchObject({
+    accountCount: 1,
+    estimatedAccountCount: 1,
+    estimatedTraderCents: 9000,
+  })
+})

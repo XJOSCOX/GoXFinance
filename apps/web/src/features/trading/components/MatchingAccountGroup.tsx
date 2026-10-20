@@ -28,9 +28,7 @@ export function MatchingAccountGroup({
     <Card className="min-w-0 p-5 lg:col-span-2">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold">
-            {accounts.map((a) => a.nickname).join(' · ')}
-          </h2>
+          <h2 className="font-semibold">{accounts.map((a) => a.nickname).join(' · ')}</h2>
         </div>
         {first.canManage && !first.deletedAt && (
           <Button size="small" onClick={() => onEditAll(accounts)}>
@@ -53,10 +51,12 @@ export function MatchingAccountGroup({
             {formatMoney(first.maximumLossCents)} / {formatMoney(first.dailyLossCents)}
           </dd>
         </div>
-        <div>
-          <dt className="text-xs text-slate-500">Combined payout estimate</dt>
-          <dd className="mt-1 font-semibold">{formatMoney(total.estimatedTraderCents)}</dd>
-        </div>
+        {first.stage !== 'combine' && (
+          <div>
+            <dt className="text-xs text-slate-500">Combined payout estimate</dt>
+            <dd className="mt-1 font-semibold">{formatMoney(total.estimatedTraderCents)}</dd>
+          </div>
+        )}
       </dl>
       <AccountPayoutProgress account={first} results={results} payouts={payouts} perAccount />
       <details className="mt-4 border-t border-white/10 pt-3">

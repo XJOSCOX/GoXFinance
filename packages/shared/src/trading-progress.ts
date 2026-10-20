@@ -51,7 +51,10 @@ export function tradingPayoutProgress(
     Math.max(0, netCents - reservedCents),
     rule?.maximumPayoutCents ?? Number.MAX_SAFE_INTEGER,
   )
-  const estimate = rule && start ? payoutSplitEstimate(basisCents, rule.profitShareBps) : null
+  const estimate =
+    account.stage !== 'combine' && rule && start
+      ? payoutSplitEstimate(basisCents, rule.profitShareBps)
+      : null
   return {
     rule,
     start,
@@ -77,7 +80,9 @@ export function combinedTradingProgress(
 ) {
   const active = [
     ...new Map(
-      accounts.filter((a) => !a.deletedAt && a.status === 'active').map((a) => [a.id, a]),
+      accounts
+        .filter((a) => a.stage !== 'combine' && !a.deletedAt && a.status === 'active')
+        .map((a) => [a.id, a]),
     ).values(),
   ]
   const rows = active.map((a) => tradingPayoutProgress(a, results, payouts, now))

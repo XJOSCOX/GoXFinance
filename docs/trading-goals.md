@@ -103,3 +103,8 @@ Payout records are not inputs to this calculation. Confirmed payout deposits rem
 Results now provides Edit result on authorized copied entries, opening their existing event with its historical account membership. Each account can switch from signed gross mode to entered profit and loss. Revisions, ownership checks and the existing atomic event audit apply; result identifiers and payout records are preserved. Migration 0021 only adds nullable copied profit/loss and a fees-included flag (false for existing records). No historical amounts or breakdowns are inferred.
 
 When P&L already includes trading fees, record fee-adjusted profit and loss and select that option. Additional fee deductions must be zero, enforced by shared API validation. The fee flag persists in SQLite and history says Included in P&L, rather than asserting the provider charged no fees. Optional additional fees apply only to amounts entered before fees. The provider profit split is applied only by existing advisory payout calculations, never again to recorded P&L or household income.
+
+
+## Combine display and funded payout separation
+
+Trading Combine accounts show a distinct evaluation panel: saved base profit target, consistency target, contract limits and recorded net results (or No results entered). They do not show the funded-account five-winning-day widget. Combine accounts are excluded from the combined funded payout estimate, and their individual payout estimate is unavailable even if a payout share was mistakenly saved. The evaluation panel does not claim passing, compute an official adjusted consistency target, or enforce trailing drawdown. Account plan rules remain editable database records; no account-specific presets or financial records are seeded into source.

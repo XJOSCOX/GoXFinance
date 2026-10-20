@@ -4,6 +4,7 @@ import {
   type TradingResult,
   type TradingPayout,
 } from '@goxfinance/shared'
+import { CombineEvaluationProgress } from './CombineEvaluationProgress'
 import { formatMoney } from '../../../lib/money'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { toneStyles, amountTone } from '../../../components/ui/semantic-tones'
@@ -19,6 +20,8 @@ export function AccountPayoutProgress({
   payouts: TradingPayout[]
   perAccount?: boolean
 }) {
+  if (account.stage === 'combine')
+    return <CombineEvaluationProgress account={account} results={results} perAccount={perAccount} />
   const progress = tradingPayoutProgress(account, results, payouts, new Date().toISOString())
   return (
     <section className="mt-4 space-y-3 rounded-xl border border-white/10 bg-black/10 p-4">
