@@ -22,6 +22,7 @@ export const debtPayments = sqliteTable('debt_payments', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 }, table => [
+  uniqueIndex('debt_payment_home_id').on(table.id,table.householdId),
   uniqueIndex('debt_payments_id_household_debt_unique').on(table.id, table.householdId, table.debtId),
   uniqueIndex('debt_payments_idempotency_unique').on(table.householdId, table.debtId, table.idempotencyKey),
   index('debt_payments_debt_date_idx').on(table.householdId, table.debtId, table.paymentDate),

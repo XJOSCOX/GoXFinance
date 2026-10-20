@@ -154,6 +154,7 @@ export const billPayments = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => [
+    uniqueIndex('bill_payment_home_id').on(table.id,table.householdId),
     uniqueIndex('bill_payment_key').on(table.householdId, table.idempotencyKey),
     uniqueIndex('bill_payment_debt_link').on(table.debtPaymentId),
     index('bill_payment_period').on(table.householdId, table.billId, table.periodId),

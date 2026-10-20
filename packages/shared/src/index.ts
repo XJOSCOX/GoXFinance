@@ -48,3 +48,5 @@ export * from './assets'
 export * from './net-worth'
 
 export * from './reports'
+
+export * from './banking'
