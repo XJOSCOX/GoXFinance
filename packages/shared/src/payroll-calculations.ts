@@ -68,7 +68,9 @@ export function payrollReconciliation(s: PayrollStatement) {
       issues.push(`Missing current-period ${name} components; unknown is not zero.`)
     else if (
       total !== null &&
-      BigInt(payrollSum(lines.map((l) => l.currentCents!))) !== BigInt(total)
+      BigInt(payrollSum(lines.map((l) => l.currentCents!))) *
+        (name === 'deductions' && s.deductionSign === 'negative' ? -1n : 1n) !==
+        BigInt(total)
     )
       issues.push(`Current-period ${name} lines differ from the statement total.`)
   }
@@ -141,6 +143,7 @@ export function payrollForecast(
       const peers = samples
         .map((s) => ({
           gross: s.statement.grossCents!,
+          sign: s.statement.deductionSign === 'negative' ? -1 : 1,
           lines: s.statement.lines.filter((l) => l.side === 'deduction' && l.code === rule.code),
         }))
         .filter((s) => s.lines.length && s.lines.every((l) => l.currentCents !== null))
@@ -148,7 +151,14 @@ export function payrollForecast(
         .slice(0, 5)
       sampleCount = peers.length
       if (sampleCount) {
-        const observed = peers.map((s) => payrollSum(s.lines.map((l) => l.currentCents!)))
+        if (
+          gross.grossCents < Math.min(...peers.map((p) => p.gross)) ||
+          gross.grossCents > Math.max(...peers.map((p) => p.gross))
+        )
+          warnings.push(
+            `${rule.label}: reported gross is outside the selected historical sample range.`,
+          )
+        const observed = peers.map((s) => payrollSum(s.lines.map((l) => l.currentCents!)) * s.sign)
         amountCents = payrollRound(
           observed.reduce((n, v) => n + BigInt(v), 0n),
           BigInt(sampleCount),
@@ -218,7 +228,8 @@ export function payrollComparison(
     actualDed = (codes: string[]) => {
       const lines = actual.lines.filter((l) => l.side === 'deduction' && codes.includes(l.code))
       return lines.length && lines.every((l) => l.currentCents !== null)
-        ? payrollSum(lines.map((l) => l.currentCents!))
+        ? payrollSum(lines.map((l) => l.currentCents!)) *
+            (actual.deductionSign === 'negative' ? -1 : 1)
         : null
     },
     predDed = (codes: string[]) => {
@@ -242,6 +253,24 @@ export function payrollComparison(
     deductions: {
       predicted: predicted.netCents === null ? null : predicted.grossCents - predicted.netCents,
       actual: actual.deductionsCents,
+    },
+    otherDeductions: {
+      predicted: predDed([
+        'roth',
+        'traditional',
+        'insurance',
+        'disability',
+        'pretax_benefit',
+        'other_deduction',
+      ]),
+      actual: actualDed([
+        'roth',
+        'traditional',
+        'insurance',
+        'disability',
+        'pretax_benefit',
+        'other_deduction',
+      ]),
     },
     net: { predicted: predicted.netCents, actual: actual.netCents },
     errorCents,

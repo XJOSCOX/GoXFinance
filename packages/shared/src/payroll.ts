@@ -121,6 +121,7 @@ export const payrollLineSchema = z
   .strict()
 export const payrollStatementSchema = z
   .object({
+    deductionSign: z.enum(['positive', 'negative']).optional(),
     employer: text.nullable(),
     assignment: text.nullable(),
     periodStart: z.iso.date().nullable(),

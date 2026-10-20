@@ -1,0 +1,35 @@
+import { payrollProfileSchema, weeklyHoursSchema } from './payroll'
+const source = '11111111-1111-4111-8111-111111111111'
+export const profile = payrollProfileSchema.parse({
+  sourceId: source,
+  employer: 'Fictional Payroll',
+  assignment: null,
+  regularRateCents: 2500,
+  overtimeRateCents: 3750,
+  regularThresholdHundredths: 4000,
+  timezone: 'America/Chicago',
+  workweekStartDay: 1,
+  hoursDay: 0,
+  processingDay: 1,
+  statementDay: 3,
+  depositDay: 4,
+  rules: [],
+})
+export const hours = weeklyHoursSchema.parse({
+  sourceId: source,
+  workweekStart: '2026-10-05',
+  workweekEnd: '2026-10-11',
+  expectedPayDate: '2026-10-16',
+  regularHundredths: 3125,
+  overtimeHundredths: 250,
+  ptoHundredths: 800,
+  holidayHundredths: 0,
+  otherPaidHundredths: 0,
+  unpaidHundredths: null,
+  regularRateCents: 2500,
+  overtimeRateCents: 3750,
+  bonusCents: 0,
+  adjustmentCents: 0,
+  otherEarningsCents: 0,
+  notes: null,
+})

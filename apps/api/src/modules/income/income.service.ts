@@ -8,6 +8,7 @@ import {
   type PublicUser,
   type IncomeSource,
   type IncomeTransaction,
+  type IncomeTransactionInput,
 } from '@goxfinance/shared'
 import { FinancialError } from '../households/financial-access'
 import type { IncomeRepository, SourceRow, TransactionRow } from './income.repository'
@@ -19,6 +20,10 @@ export function incomeService(
   store: IncomeRepository,
   permissions: IncomePermissions,
   linkedGuard: (home: string, id: string) => void = () => {},
+  payrollHooks?: {
+    validate: (home: string, id: string, values: IncomeTransactionInput) => void
+    after: (user: PublicUser, home: string, row: IncomeTransaction) => void
+  },
 ) {
   const sourceView = (user: PublicUser, home: string, row: SourceRow): IncomeSource => ({
     ...row,
@@ -195,10 +200,12 @@ export function incomeService(
       id: string,
       body: unknown,
       fromTrading = false,
+      fromPayroll = false,
     ) {
       const { values, revision, reason } = editIncomeTransactionSchema.parse(body)
       return store.atomic(() => {
         const old = transaction(user, home, id)
+        if (!fromPayroll) payrollHooks?.validate(home, id, values)
         if (!fromTrading) linkedGuard(home, id)
         permissions.manage(user, home, old.responsibleMemberId, true)
         stale(old.revision, revision)
@@ -219,7 +226,9 @@ export function incomeService(
           row,
           reason,
         )
-        return transactionView(user, home, row)
+        const saved = transactionView(user, home, row)
+        if (!fromPayroll) payrollHooks?.after(user, home, saved)
+        return saved
       })
     },
   }

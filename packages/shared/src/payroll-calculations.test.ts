@@ -6,41 +6,8 @@ import {
   payrollReconciliation,
 } from './payroll-calculations'
 import { payrollWorkweek, payrollMilestones } from './payroll-schedule'
-import { payrollProfileSchema, weeklyHoursSchema, type PayrollStatement } from './payroll'
-const source = '11111111-1111-4111-8111-111111111111'
-export const profile = payrollProfileSchema.parse({
-  sourceId: source,
-  employer: 'Fictional Payroll',
-  assignment: null,
-  regularRateCents: 2500,
-  overtimeRateCents: 3750,
-  regularThresholdHundredths: 4000,
-  timezone: 'America/Chicago',
-  workweekStartDay: 1,
-  hoursDay: 0,
-  processingDay: 1,
-  statementDay: 3,
-  depositDay: 4,
-  rules: [],
-})
-export const hours = weeklyHoursSchema.parse({
-  sourceId: source,
-  workweekStart: '2026-10-05',
-  workweekEnd: '2026-10-11',
-  expectedPayDate: '2026-10-16',
-  regularHundredths: 3125,
-  overtimeHundredths: 250,
-  ptoHundredths: 800,
-  holidayHundredths: 0,
-  otherPaidHundredths: 0,
-  unpaidHundredths: null,
-  regularRateCents: 2500,
-  overtimeRateCents: 3750,
-  bonusCents: 0,
-  adjustmentCents: 0,
-  otherEarningsCents: 0,
-  notes: null,
-})
+import { payrollProfileSchema, type PayrollStatement } from './payroll'
+import { profile, hours } from './payroll.fixture'
 it('uses exact fractional hours; PTO is paid but never automatically worked overtime', () => {
   expect(payrollGross(hours)).toMatchObject({
     grossCents: 107500,
@@ -169,7 +136,7 @@ it('does not include employer taxes or YTD amounts in current reconciliation', (
       statementReceivedAt: '2026-10-15T00:00:00Z',
       forecasts: [
         {
-          id: source,
+          id: profile.sourceId,
           createdAt: '2026-10-16T00:00:00Z',
           modelVersion: 1,
           eligibleForAccuracy: false,

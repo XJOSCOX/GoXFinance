@@ -1,4 +1,8 @@
 import { importRepository } from './modules/banking/imports/import.repository'
+import { payrollRepository } from './modules/payroll/payroll.repository'
+import { payrollService } from './modules/payroll/payroll.service'
+import { payrollIncomeHooks } from './modules/payroll/payroll-income-hooks'
+import { registerPayrollRoutes } from './modules/payroll/payroll.routes'
 import { reviewRepository } from './modules/banking/reconciliation/review.repository'
 import { reviewContext } from './modules/banking/reconciliation/review-context'
 import { reviewExecutor } from './modules/banking/reconciliation/review-execute'
@@ -111,7 +115,11 @@ export async function buildApp(options: AppOptions) {
   app.addHook('onClose', async () => {
     sqlite.close()
   })
-  await app.register(cors, { origin: options.frontendOrigin, credentials: true })
+  await app.register(cors, {
+    origin: options.frontendOrigin,
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  })
   await app.register(cookie)
   await app.register(rateLimit, { global: false })
   app.addHook('onSend', async (_request, reply, payload) => {
@@ -166,9 +174,11 @@ export async function buildApp(options: AppOptions) {
   const tradeStore = tradingRepository(db)
   const tradeAccess = tradingPermissions(financialAccess(householdStore, memberStore))
   const trading = tradingService(tradeStore, tradeAccess)
+  const payrollStore = payrollRepository(db),
+    incomeAccess = incomePermissions(financialAccess(householdStore, memberStore))
   const income = incomeService(
     incomeRepository(db),
-    incomePermissions(financialAccess(householdStore, memberStore)),
+    incomeAccess,
     (home, id) => {
       if (
         tradeStore
@@ -180,7 +190,9 @@ export async function buildApp(options: AppOptions) {
           409,
         )
     },
+    payrollIncomeHooks(payrollStore),
   )
+  registerPayrollRoutes(app, auth, payrollService(payrollStore, income, incomeAccess))
   const payouts = payoutService(tradeStore, trading, tradeAccess, income)
   const copier = copyService(copyRepository(db), tradeStore, trading, tradeAccess)
   registerTradingRoutes(
