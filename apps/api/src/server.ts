@@ -2,7 +2,7 @@ import { buildApp } from './app'
 import { config } from './config/env'
 import { acquireDatabaseLease } from './db/runtime-lease'
 import { restoreQueuedSnapshot } from './db/sqlite-backups'
-import { promptPassphrase } from './db/encryption/passphrase-prompt'
+import { startupPassphrase } from './db/encryption/startup-passphrase'
 import { plaintext, type DatabaseSecurity } from './db/encryption/sqlite-engine'
 
 let release: (() => void) | undefined
@@ -40,10 +40,7 @@ if (process.send) {
   })
 }
 try {
-  key =
-    config.databaseEncryption === 'encrypted'
-      ? await promptPassphrase('Unlock GoXFinance database')
-      : undefined
+  key = config.databaseEncryption === 'encrypted' ? await startupPassphrase() : undefined
   const databaseSecurity: DatabaseSecurity = key ? { mode: 'encrypted', key } : plaintext
   release = acquireDatabaseLease(config.databasePath)
   await restoreQueuedSnapshot(config.databasePath, databaseSecurity)

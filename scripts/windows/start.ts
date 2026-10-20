@@ -76,7 +76,9 @@ try {
   }
   if (!apiBusy) {
     console.info(
-      'Enter your database passphrase below. Input is hidden and is never saved by the launcher.',
+      process.env.DATABASE_PASSPHRASE
+        ? 'Unlocking the encrypted API with the configured environment passphrase.'
+        : 'Enter your database passphrase below. Input is hidden and is never saved by the launcher.',
     )
     const started = startApi(root)
     api = started.child

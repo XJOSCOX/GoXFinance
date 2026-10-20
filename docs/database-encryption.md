@@ -27,11 +27,11 @@ Frontend components, design, financial records, permissions, UUIDs, cents, and m
 
 Encrypted startup requires an existing nonempty encrypted file and a valid passphrase. Missing/wrong keys, plaintext files in encrypted mode, unsupported encryption configuration, damaged pages, and integrity failures stop startup. There is no automatic creation, reset, deletion, plaintext retry, or password-reset recovery. First-run encrypted creation uses an exclusive destination reservation; existing files are never truncated.
 
-Native errors are replaced with generic messages without causes because filenames and bound conversion URIs can contain sensitive material. ORM SQL logging remains disabled. Keys never enter HTTP responses, React code, browser storage, environment files, argv, or database rows. Terminal input is not echoed. Buffers owned by the application are cleared after use/connection close. JavaScript strings/native allocations cannot be guaranteed erased; conversion URI strings are short-lived and never logged. The engine's memory-security flag is enabled and SQLite temporary storage uses memory. Full memory-locking/anti-swap guarantees are not claimed.
+Native errors are replaced with generic messages without causes because filenames and bound conversion URIs can contain sensitive material. ORM SQL logging remains disabled. Keys never enter HTTP responses, React code, browser storage, argv, or database rows. API startup optionally accepts `DATABASE_PASSPHRASE` from the backend environment/ignored `.env`; this convenience stores the secret in plaintext when used in a file. Terminal input is not echoed. Buffers owned by the application are cleared after use/connection close. JavaScript strings/native allocations cannot be guaranteed erased; conversion URI strings are short-lived and never logged. The engine's memory-security flag is enabled and SQLite temporary storage uses memory. Full memory-locking/anti-swap guarantees are not claimed.
 
 ## Key management and recovery
 
-The implemented mode uses **manual local unlocking**, not stored keys. Choose a unique, high-entropy database passphrase of 16–1024 UTF-8 bytes. The application login password is independent; changing it does not rotate the database key. A database file carries its random KDF salt, not the passphrase. Each new encrypted copy gets its own salt.
+The default mode uses **manual local unlocking**. Optional environment-based unlocking is described below. Choose a unique, high-entropy database passphrase of 16–1024 UTF-8 bytes. The application login password is independent; changing it does not rotate the database key. A database file carries its random KDF salt, not the passphrase. Each new encrypted copy gets its own salt.
 
 Record the database passphrase in a trusted offline password manager or other separately secured recovery record **before migration/cutover**. Verify that record by reentering it to open a disposable backup copy. A backup requires its matching database passphrase. There is no separate generated backup key, key export, hidden reset key, or recovery bypass. **Losing every copy of the passphrase means losing access to the encrypted database and backups.** Preserve the original recovery copies until cleanup is explicitly authorized.
 
@@ -108,7 +108,7 @@ npm --script-shell=cmd.exe run build
 node apps/api/dist/server.js
 ```
 
-Enter the passphrase locally. In a second terminal run `npm --script-shell=cmd.exe run dev:web` for the local frontend. For API source development, `node --import tsx apps/api/src/server.ts` also prompts. Encrypted mode deliberately fails without a TTY; the combined `npm run dev`/watcher pipeline is not the supported manual-unlock launcher. Legacy plaintext development commands remain unchanged. There is no browser unlock form or UI redesign.
+Enter the passphrase locally. In a second terminal run `npm --script-shell=cmd.exe run dev:web` for the local frontend. For API source development, `node --import tsx apps/api/src/server.ts` also prompts. When the optional environment passphrase is absent, encrypted mode fails without a TTY; the combined `npm run dev`/watcher pipeline is not the supported manual-unlock launcher. Legacy plaintext development commands remain unchanged. There is no browser unlock form or UI redesign.
 
 Verify login, records, financial totals, and recovery again before considering the cutover complete. Ordinary process restart preserves valid sessions. Do not revert to a stale plaintext file after new encrypted writes without a deliberate data-reconciliation plan.
 
@@ -144,3 +144,12 @@ The UI and business modules do not accept or reveal database keys. Authenticatio
 All tests use fictional disposable databases. No destructive test points at the normal database. Review the test results and remaining deployment actions in the completion summary before authorizing live conversion.
 
 Final verification on 2026-10-19: **179 tests in 45 files passed**; lint, standalone TypeScript checks, and both production builds passed. Production dependency audit reported zero known vulnerabilities. Existing nonblocking Vite bundle-size and third-party annotation advisories remain. The multi-copy key-rotation test has a targeted 15-second allowance for repeated password derivations under parallel test load; production cryptographic settings were not weakened to shorten tests.
+
+
+## Optional automatic unlock from `.env`
+
+Set `DATABASE_PASSPHRASE` in the ignored repository-root `.env` to the **existing** database passphrase. Use quotes for values containing spaces or `#`; dotenv quoting applies, so preserve the exact value. Leave it blank or remove it to keep the hidden local terminal prompt. Do not put a real passphrase in `.env.example`, source code, command arguments, chat, or a `VITE_` variable. The Windows launcher and direct API startup both support this setting; encrypted mode, database file selection and restore authorization remain unchanged. Offline conversion/recovery CLI commands still prompt independently.
+
+This is a convenience tradeoff: `.env` is plaintext. Anyone who obtains it together with the database or an encrypted backup can unlock those files. Keep it private on the local machine and exclude it from shared backups. Keep a separately secured recovery record; deleting or losing `.env` does not change the key. Removing the value restores interactive unlocking, and editing it does not rotate the database key.
+
+The backend consumes the exact UTF-8 value, enforces the existing 16�1024-byte limits, removes it from the API process environment after reading, and keeps it out of public configuration objects and responses. Incorrect/nonempty invalid values fail closed without plaintext fallback or a second prompt. JavaScript strings, the launcher environment and on-disk `.env` cannot be securely erased by clearing the API's Buffer. These limitations are not a replacement for Windows account and file protections.

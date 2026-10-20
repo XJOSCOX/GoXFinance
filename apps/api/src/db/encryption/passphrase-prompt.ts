@@ -1,4 +1,4 @@
-/** Local terminal only. Never accept a database key in argv, .env, HTTP, or browser storage. */
+/** Local terminal only. This prompt does not read argv, HTTP or browser storage. Optional environment unlock is handled separately at API startup. */
 export async function promptPassphrase(prompt: string): Promise<Buffer> {
   const input = process.stdin,
     output = process.stderr
