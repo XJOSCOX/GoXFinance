@@ -5,17 +5,37 @@ import { Select, FormField } from '../../../components/ui/FormField'
 import { formatMoney } from '../../../lib/money'
 export function TradingPerformance({ data }: { data: TradingData }) {
   const [selected, setSelected] = useState<string[] | null>(null),
+    [stage, setStage] = useState(
+      data.accounts.some((a) => a.stage === 'combine') ? 'combine' : 'funded',
+    ),
     [group, setGroup] = useState(''),
     [period, setPeriod] = useState<'day' | 'week' | 'month'>('day')
-  const ids = selected ?? data.accounts.map((a) => a.id),
+  const accounts = data.accounts.filter((a) =>
+    stage === 'combine' ? a.stage === 'combine' : ['xfa', 'lfa'].includes(a.stage),
+  )
+  const ids = accounts.filter((a) => selected === null || selected.includes(a.id)).map((a) => a.id),
     events = new Set(data.events.filter((e) => e.groupId === group).map((e) => e.id)),
-    results = group ? data.results.filter((r) => events.has(r.copyEventId ?? '')) : data.results,
+    results = [...new Map(data.results.map((r) => [r.id, r])).values()].filter(
+      (r) => !group || events.has(r.copyEventId ?? ''),
+    ),
     rows = tradingPerformance(results, ids, period)
   return (
     <Card className="min-w-0 p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="font-semibold">Recorded performance</h2>
         <div className="flex flex-wrap gap-3">
+          <FormField label="Account stage">
+            <Select
+              value={stage}
+              onChange={(e) => {
+                setStage(e.target.value)
+                setSelected(null)
+              }}
+            >
+              <option value="combine">Combine · simulated</option>
+              <option value="funded">Funded · XFA / LFA</option>
+            </Select>
+          </FormField>
           <FormField label="Copy group">
             <Select value={group} onChange={(e) => setGroup(e.target.value)}>
               <option value="">All recorded results</option>
@@ -36,7 +56,7 @@ export function TradingPerformance({ data }: { data: TradingData }) {
         </div>
       </div>
       <div className="my-4 flex flex-wrap gap-3">
-        {data.accounts.map((a) => (
+        {accounts.map((a) => (
           <label key={a.id} className="flex items-center gap-2 text-xs">
             <input
               type="checkbox"
@@ -50,9 +70,11 @@ export function TradingPerformance({ data }: { data: TradingData }) {
         ))}
       </div>
       <p className="mb-3 text-xs text-slate-500">
-        Only actual recorded net P&amp;L. Group views use historical copied-event membership.
-        Session dates use each account's saved timezone and boundary; nominal balances and payouts
-        are excluded.
+        {stage === 'combine'
+          ? 'Simulated Combine results only.'
+          : 'Funded-account results only; not deposited cash.'}{' '}
+        Group views use historical copied-event membership. Reported dates or legacy session dates
+        use each account's saved timezone and boundary; nominal balances and payouts are excluded.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -86,7 +108,7 @@ export function TradingPerformance({ data }: { data: TradingData }) {
         )}
       </div>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        {data.accounts
+        {accounts
           .filter((a) => ids.includes(a.id))
           .map((a) => (
             <p
@@ -96,7 +118,7 @@ export function TradingPerformance({ data }: { data: TradingData }) {
               <span>{a.nickname}</span>
               <span>
                 {formatMoney(
-                  sumCents(tradingPerformance(results, [a.id], period).map(r=>r.netCents)),
+                  sumCents(tradingPerformance(results, [a.id], period).map((r) => r.netCents)),
                 )}
               </span>
             </p>

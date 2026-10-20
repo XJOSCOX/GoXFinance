@@ -15,9 +15,21 @@ export function TradingJournalCalendar({ data }: { data: TradingData }) {
           (g) => g.status === 'active' && data.accounts.some((a) => a.id === g.leadAccountId),
         )?.leadAccountId ??
         data.accounts[0]?.id ??
-        'all',
+        'combine',
     )
-  const accounts = account === 'all' ? data.accounts : data.accounts.filter((a) => a.id === account)
+  const accounts = data.accounts.filter((a) =>
+    account === 'combine'
+      ? a.stage === 'combine'
+      : account === 'funded'
+        ? ['xfa', 'lfa'].includes(a.stage)
+        : a.id === account,
+  )
+  const scopeLabel =
+    account === 'combine'
+      ? 'all Combine accounts'
+      : account === 'funded'
+        ? 'all funded accounts'
+        : accounts[0]?.nickname
   const calendar = tradingCalendar(
     data.results,
     accounts.map((a) => a.id),
@@ -42,7 +54,13 @@ export function TradingJournalCalendar({ data }: { data: TradingData }) {
           </div>
           <FormField label="Journal account">
             <Select value={account} onChange={(e) => setAccount(e.target.value)}>
-              <option value="all">All accounts ({data.accounts.length})</option>
+              <option value="combine">
+                All Combine accounts ({data.accounts.filter((a) => a.stage === 'combine').length})
+              </option>
+              <option value="funded">
+                All funded accounts (
+                {data.accounts.filter((a) => ['xfa', 'lfa'].includes(a.stage)).length})
+              </option>
               {data.accounts.map((a) => (
                 <option value={a.id} key={a.id}>
                   {a.nickname}
@@ -91,8 +109,7 @@ export function TradingJournalCalendar({ data }: { data: TradingData }) {
         >
           <table className="w-full min-w-[760px] table-fixed text-sm">
             <caption className="sr-only">
-              {month} daily net results and weekly totals for{' '}
-              {account === 'all' ? 'all accounts' : accounts[0]?.nickname}
+              {month} daily net results and weekly totals for {scopeLabel}
             </caption>
             <thead className="bg-white/[.025] text-xs text-slate-400">
               <tr>

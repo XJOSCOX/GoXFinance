@@ -15,9 +15,14 @@ function show(data: TradingData | null, error = '') {
 }
 it('shows combined performance separately from payout deposits', () => {
   show({
-    accounts: [{}, {}, {}],
+    accounts: [1, 2, 3].map((id) => ({
+      id: String(id),
+      nickname: `Account ${id}`,
+      stage: id === 3 ? 'xfa' : 'combine',
+    })),
     results: [1, 2, 3].map((id) => ({
       id: String(id),
+      accountId: String(id),
       sessionDate: '2026-10-19',
       profitCents: 35000,
       lossCents: 10000,
@@ -28,8 +33,14 @@ it('shows combined performance separately from payout deposits', () => {
     payouts: [{ status: 'paid', receivedCents: 999999 }],
   } as TradingData)
   const region = within(screen.getByRole('region', { name: 'Trading performance' }))
-  for (const amount of ['$1,050.00', '$300.00', '$7.50', '$742.50'])
-    expect(region.getByText(amount)).toBeTruthy()
+  const combine = within(region.getByRole('region', { name: 'Combine P&L' }))
+  const funded = within(region.getByRole('region', { name: 'Funded account P&L' }))
+  for (const amount of ['$700.00', '$200.00', '$5.00', '$495.00'])
+    expect(combine.getByText(amount)).toBeTruthy()
+  for (const amount of ['$350.00', '$100.00', '$2.50'])
+    expect(funded.getByText(amount)).toBeTruthy()
+  expect(funded.getAllByText('$247.50')).toHaveLength(2)
+  expect(region.queryByText('$742.50')).toBeNull()
   expect(region.queryByText('$9,999.99')).toBeNull()
   expect(region.getByText(/3 accounts/)).toBeTruthy()
   expect(region.getByText(/Not payout income or available cash/)).toBeTruthy()
@@ -37,7 +48,7 @@ it('shows combined performance separately from payout deposits', () => {
 it('reports an empty month without inventing transactions', () => {
   show({ accounts: [], results: [], payouts: [] } as unknown as TradingData)
   expect(screen.getByText('No results recorded for this month.')).toBeTruthy()
-  expect(screen.getAllByText('$0.00')).toHaveLength(4)
+  expect(screen.getAllByText('$0.00')).toHaveLength(8)
 })
 it('shows loading and errors without misleading zero totals', () => {
   show(null, 'Request failed')

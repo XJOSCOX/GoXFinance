@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  sumCents,
   type TradingAccount,
   type TradingResult,
   type TradingPayout,
@@ -10,11 +9,8 @@ import {
 } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { Button, Card } from '../../../components/ui'
-import { amountTone } from '../../../components/ui/semantic-tones'
-import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { FinancialAudit } from '../../../components/financial/FinancialAudit'
 import { useNotify } from '../../../components/ui/useNotify'
-import { formatMoney } from '../../../lib/money'
 import { useHousehold } from '../../households/hooks/useHousehold'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useTrading } from '../hooks/useTrading'
@@ -36,6 +32,7 @@ import { TradingAccounts } from '../components/TradingAccounts'
 import { TradingPerformance } from '../components/TradingPerformance'
 import { TradingHistory } from '../components/TradingHistory'
 import { TradingJournalCalendar } from '../components/TradingJournalCalendar'
+import { TradingSummary } from '../components/TradingSummary'
 type Editor =
   | { kind: 'accounts'; record?: TradingAccount; template?: TradingAccount }
   | { kind: 'results'; record?: TradingResult }
@@ -107,39 +104,7 @@ export function TradingPage() {
       {!data && !error && <p role="status">Loading trading records...</p>}
       {data && (
         <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <SummaryStat
-              compact
-              label="Trading P&L · not cash"
-              tone={amountTone(sumCents(data.results.map((r) => r.netCents)))}
-              amount={formatMoney(sumCents(data.results.map((r) => r.netCents)))}
-              detail="Includes simulated Combine results; not deposited income"
-            />
-            <SummaryStat
-              compact
-              label="Payouts requested / approved"
-              tone="warning"
-              amount={formatMoney(
-                sumCents(
-                  data.payouts
-                    .filter((p) => ['requested', 'approved'].includes(p.status))
-                    .map((p) => p.requestedCents),
-                ),
-              )}
-              detail="Outstanding requests; not income"
-            />
-            <SummaryStat
-              compact
-              label="Payout deposits received"
-              tone="positive"
-              amount={formatMoney(
-                sumCents(
-                  data.payouts.filter((p) => p.status === 'paid').map((p) => p.receivedCents ?? 0),
-                ),
-              )}
-              detail="Linked deposits counted once in Income"
-            />
-          </div>
+          <TradingSummary data={data} />
           <div className="mb-4 flex flex-wrap gap-2">
             {['accounts', 'journal', 'performance', 'results', 'groups', 'payouts'].map((value) => (
               <Button

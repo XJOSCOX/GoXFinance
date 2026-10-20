@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
-import type { TradingResult } from './trading'
-import { tradingOverviewTotals } from './trading-overview'
+import type { TradingResult, TradingAccount } from './trading'
+import { tradingOverviewTotals, tradingStageTotals } from './trading-overview'
 const row = (
   id: string,
   profit: number | null,
@@ -69,4 +69,55 @@ it('shows zero for an empty reporting month', () => {
     feesCents: 0,
     netCents: 0,
   })
+})
+
+it('separates simulated and funded totals, accounts, negative results, and duplicate IDs', () => {
+  const accounts = [
+    { id: 'a', nickname: 'Leader', stage: 'combine' },
+    { id: 'b', nickname: 'Follower', stage: 'combine' },
+    { id: 'c', nickname: 'XFA', stage: 'xfa' },
+    { id: 'd', nickname: 'Live', stage: 'lfa' },
+  ] as TradingAccount[]
+  const rows = accounts.map((a, i) => ({
+    ...row(a.id, i === 1 ? null : 10000, i === 1 ? null : 0, i === 1 ? -5000 : 10000),
+    accountId: a.id,
+  }))
+  const report = tradingStageTotals(
+    [...accounts, accounts[0]],
+    [...rows, rows[0], { ...row('unknown', 10000, 0, 10000), accountId: 'missing' }],
+  )
+  expect(report.combine).toMatchObject({
+    netCents: 4500,
+    feesCents: 500,
+    missingBreakdownCount: 1,
+    resultCount: 2,
+  })
+  expect(report.combine.accounts.map((a) => a.netCents)).toEqual([9750, -5250])
+  expect(report.funded).toMatchObject({ netCents: 19500, feesCents: 500, resultCount: 2 })
+  expect(report.funded.accounts.map((a) => a.id)).toEqual(['c', 'd'])
+  expect(report.unclassifiedCount).toBe(1)
+})
+it('uses reported month and never account tiers or balances for stage P&L', () => {
+  const accounts = [
+    {
+      id: 'a',
+      nickname: 'Combine',
+      stage: 'combine',
+      tierCents: 5000000,
+      reportedBalanceCents: 5000000,
+    },
+  ] as TradingAccount[]
+  const result = {
+    ...row('result', null, null, 15000, '2026-09-30'),
+    accountId: 'a',
+    reportedDate: '2026-10-01',
+  }
+  expect(tradingStageTotals(accounts, [result], '2026-10').combine).toMatchObject({
+    netCents: 14750,
+    profitCents: null,
+    lossCents: null,
+  })
+  expect(tradingStageTotals(accounts, [result], '2026-09').combine.netCents).toBe(0)
+  expect(tradingStageTotals(accounts, []).combine.netCents).toBe(0)
+  expect(tradingStageTotals(accounts, [result]).funded.accounts).toEqual([])
 })

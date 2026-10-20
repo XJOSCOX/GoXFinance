@@ -9,10 +9,12 @@ it('switches all accounts and individual accounts, changes months, and labels si
     accounts: [
       { id: 'a', nickname: 'Example Leader', stage: 'combine' },
       { id: 'b', nickname: 'Example Follower', stage: 'combine' },
+      { id: 'c', nickname: 'Funded example', stage: 'xfa' },
     ],
     results: [
       { id: '1', accountId: 'a', sessionDate: '2026-10-09', netCents: 10000, tradeCount: 2 },
       { id: '2', accountId: 'b', sessionDate: '2026-10-09', netCents: 10000, tradeCount: 2 },
+      { id: '3', accountId: 'c', sessionDate: '2026-10-09', netCents: -5000, tradeCount: 1 },
     ],
     events: [],
     groups: [{ id: 'group', status: 'active', leadAccountId: 'b' }],
@@ -22,9 +24,12 @@ it('switches all accounts and individual accounts, changes months, and labels si
   render(<TradingJournalCalendar data={data} />)
   fireEvent.change(screen.getByLabelText('Journal month'), { target: { value: '2026-10' } })
   expect((screen.getByLabelText('Journal account') as HTMLSelectElement).value).toBe('b')
-  fireEvent.change(screen.getByLabelText('Journal account'), { target: { value: 'all' } })
+  fireEvent.change(screen.getByLabelText('Journal account'), { target: { value: 'combine' } })
   expect(screen.getAllByText('$200.00').length).toBeGreaterThan(0)
   expect(screen.getByText(/not household cash or received income/)).toBeTruthy()
+  fireEvent.change(screen.getByLabelText('Journal account'), { target: { value: 'funded' } })
+  expect(screen.getAllByText('-$50.00').length).toBeGreaterThan(0)
+  expect(screen.queryByText('$200.00')).toBeNull()
   fireEvent.change(screen.getByLabelText('Journal account'), { target: { value: 'a' } })
   expect(screen.queryByText('$200.00')).toBeNull()
   expect(screen.getAllByText('$100.00').length).toBeGreaterThan(0)
