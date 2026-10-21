@@ -5,7 +5,6 @@ import {
   type PayrollWeek,
   type IncomeTransaction,
 } from '@goxfinance/shared'
-import { IncomePaycheckStats } from './IncomePaycheckStats'
 import { LatestPaycheck } from './LatestPaycheck'
 import { IncomeYtd } from './IncomeYtd'
 import { paycheckOverview } from './paycheck-overview'
@@ -104,15 +103,16 @@ export function IncomeOverview({
             error={payrollError}
             upload={uploadEstimate}
           />
-          <IncomePaycheckStats data={data} today={today} />
         </div>
-        <IncomeYtd
-          weeks={visibleWeeks}
-          sources={data.sources.filter((s) => sourceIds.has(s.id))}
-          year={month.slice(0, 4)}
-          loading={payrollLoading}
-          error={payrollError}
-        />
+        <div className="min-w-0 border-t border-white/10 pt-4 2xl:border-t-0 2xl:border-l 2xl:pt-0 2xl:pl-4">
+          <IncomeYtd
+            weeks={visibleWeeks}
+            sources={data.sources.filter((s) => sourceIds.has(s.id))}
+            year={month.slice(0, 4)}
+            loading={payrollLoading}
+            error={payrollError}
+          />
+        </div>
       </div>
       <details className="rounded-xl border border-white/8 px-5 py-3 text-sm">
         <summary className="cursor-pointer text-slate-400">Expected income & data coverage</summary>

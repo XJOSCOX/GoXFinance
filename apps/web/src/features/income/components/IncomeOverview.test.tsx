@@ -67,7 +67,7 @@ it('shows a future forecast for an employer with no paycheck yet and keeps it ou
   expect(totals.getByText('$0.00')).toBeTruthy()
   expect(totals.queryByText('$964.17')).toBeNull()
 })
-it('shows one weekly paycheck, no fabricated average, and explains a different reporting month', () => {
+it('shows recent paychecks without recorded-paycheck statistics and explains a different reporting month', () => {
   const changeMonth = vi.fn()
   render(
     <IncomeOverview
@@ -78,8 +78,8 @@ it('shows one weekly paycheck, no fabricated average, and explains a different r
       changeMonth={changeMonth}
     />,
   )
-  expect(screen.getByText('Recorded paychecks')).toBeTruthy()
-  expect(screen.getByText('Add another confirmed paycheck to calculate an average.')).toBeTruthy()
+  expect(screen.queryByText('Recorded paychecks')).toBeNull()
+  expect(screen.queryByText('Add another confirmed paycheck to calculate an average.')).toBeNull()
   expect(screen.queryByText('Confirmed income averages')).toBeNull()
   expect(screen.queryByText('$84.70')).toBeNull()
   expect(screen.queryByText('$211.74')).toBeNull()
@@ -90,29 +90,4 @@ it('shows one weekly paycheck, no fabricated average, and explains a different r
   expect(screen.getByText('Year to date')).toBeTruthy()
   expect(screen.getByRole('region', { name: 'Monthly income summary' })).toBeTruthy()
   expect(screen.getByText('Recent paychecks')).toBeTruthy()
-})
-it('shows a per-paycheck average only after two recorded checks', () => {
-  render(
-    <IncomeOverview
-      data={{
-        ...data,
-        transactions: [
-          ...data.transactions,
-          {
-            ...data.transactions[0],
-            id: 'second',
-            actualNetCents: 60000,
-            depositDate: '2026-10-15',
-          },
-        ],
-      }}
-      members={[]}
-      month="2026-10"
-      today="2026-10-20"
-      changeMonth={() => {}}
-    />,
-  )
-  expect(screen.getByText('Average net per paycheck')).toBeTruthy()
-  expect(screen.getByText('$511.74')).toBeTruthy()
-  expect(screen.queryByText('Add another confirmed paycheck to calculate an average.')).toBeNull()
 })
