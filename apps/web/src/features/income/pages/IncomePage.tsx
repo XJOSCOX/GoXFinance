@@ -1,3 +1,4 @@
+import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { localBillDate, type IncomeSource, type IncomeTransaction } from '@goxfinance/shared'
@@ -64,6 +65,16 @@ export function IncomePage() {
   useEffect(() => {
     if (home && selected?.id !== householdId) select(householdId)
   }, [home, selected?.id, householdId, select])
+  useRequestedRecord(data.transactions, setViewPaycheck)
+  useRequestedRecord(data.sources, setDetails, 'source')
+  useRequestedRecord(
+    payroll.weeks,
+    (week) => {
+      setPayrollSource(week.sourceId)
+      setTab('payroll')
+    },
+    'payroll',
+  )
   async function persist(work: () => Promise<unknown>, message: string) {
     try {
       await work()

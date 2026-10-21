@@ -1,3 +1,4 @@
+import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { useCategories } from '../../categories/hooks/useCategories'
 import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
 import { useEffect, useMemo, useState } from 'react'
@@ -43,6 +44,7 @@ export function DebtsPage() {
   const [error, setError] = useState('')
   const [formDebt, setFormDebt] = useState<Debt | null | undefined>(undefined)
   const [detail, setDetail] = useState<Debt | null>(null)
+  useRequestedRecord(debts, setDetail)
   const [recordPayment, setRecordPayment] = useState(false)
   const [archiveTarget, setArchiveTarget] = useState<Debt | null>(null)
   const [busy, setBusy] = useState(false)

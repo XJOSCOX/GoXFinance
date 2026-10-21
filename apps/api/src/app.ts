@@ -236,24 +236,43 @@ export async function buildApp(options: AppOptions) {
   registerForecastRoutes(
     app,
     auth,
-    forecastService(forecastRepository(db), tradeAccess, (user, home) => ({
-      refunds: overviewRepository(db).refunds(home),
-      bills: bills.list(user, home),
-      debts: debts.list(user, home).debts,
-      payments: overviewRepository(db).payments(home),
-      income: income.list(user, home),
-      expenses: expenses.list(user, home).expenses,
-      categories: categoryService(
-        categoryRepository(db),
-        financialAccess(householdStore, memberStore),
-      ).list(user, home).categories,
-      budgets: budgetRepository(db)
-        .all(home)
-        .map((b) => ({ ...b, status: b.status as 'active' | 'archived', canManage: false })),
-      offers: planningRepository(db)
-        .offers(home)
-        .map((o) => ({ ...o, canManage: false })),
-    })),
+    forecastService(forecastRepository(db), tradeAccess, (user, home) => {
+      const ctx = incomeAccess.context(user, home)
+      const raw = {
+        refunds: overviewRepository(db).refunds(home),
+        bills: bills.list(user, home),
+        debts: debts.list(user, home).debts,
+        payments: overviewRepository(db).payments(home),
+        income: income.list(user, home),
+        expenses: expenses.list(user, home).expenses,
+        categories: categoryService(
+          categoryRepository(db),
+          financialAccess(householdStore, memberStore),
+        ).list(user, home).categories,
+        budgets: budgetRepository(db)
+          .all(home)
+          .map((b) => ({ ...b, status: b.status as 'active' | 'archived', canManage: false })),
+        offers: planningRepository(db)
+          .offers(home)
+          .map((o) => ({ ...o, canManage: false })),
+      }
+      const ids = new Set(
+        raw.income.sources
+          .filter((s) => ctx.role === 'owner' || s.responsibleMemberId === ctx.self?.id)
+          .map((s) => s.id),
+      )
+      return {
+        ...raw,
+        income: {
+          ...raw.income,
+          sources: raw.income.sources.filter((s) => ids.has(s.id)),
+          transactions: raw.income.transactions.filter((t) => ids.has(t.sourceId)),
+        },
+        payroll: payrollStore.weeks(home).filter((w) => ids.has(w.sourceId)),
+        cashAccounts: banks.list(user, home).accounts,
+        privacyLimited: ids.size < raw.income.sources.length,
+      }
+    }),
   )
   registerAssetRoutes(
     app,

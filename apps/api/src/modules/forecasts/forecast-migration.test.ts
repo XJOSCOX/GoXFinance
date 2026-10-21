@@ -28,9 +28,14 @@ afterEach(() => {
   for (const key of keys.splice(0)) key.fill(0)
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true })
 })
-it.each([false, true])(
-  'adds forecast tables without changing existing rows and verifies safety backup; encrypted=%s',
-  (encrypted) => {
+it.each([
+  [false, 27],
+  [true, 27],
+  [false, 33],
+  [true, 33],
+] as const)(
+  'adds forecast tables without changing existing rows and verifies safety backup; encrypted=%s prior=%s',
+  (encrypted, priorVersion) => {
     const folder = mkdtempSync(join(tmpdir(), 'gox-planning-migration-'))
     folders.push(folder)
     const key = randomBytes(32)
@@ -41,7 +46,7 @@ it.each([false, true])(
       source = resolve('packages/db/migrations')
     mkdirSync(join(prior, 'meta'), { recursive: true })
     const journal = JSON.parse(readFileSync(join(source, 'meta/_journal.json'), 'utf8')),
-      entries = journal.entries.slice(0, 27)
+      entries = journal.entries.slice(0, priorVersion)
     writeFileSync(join(prior, 'meta/_journal.json'), JSON.stringify({ ...journal, entries }))
     for (const entry of entries)
       copyFileSync(join(source, entry.tag + '.sql'), join(prior, entry.tag + '.sql'))
@@ -84,6 +89,19 @@ it.each([false, true])(
         'at_least',
         'active',
       )
+      if (priorVersion === 33)
+        db.prepare(
+          'INSERT INTO forecast_scenarios(id,household_id,created_by_user_id,input_json,sources_json,report_json,idempotency_key,created_at) VALUES(?,?,?,?,?,?,?,?)',
+        ).run(
+          randomUUID(),
+          home,
+          user,
+          JSON.stringify({ name: 'Fictional legacy scenario' }),
+          '{}',
+          '{}',
+          randomUUID(),
+          now,
+        )
       for (const { name } of db
         .prepare(
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name!='__drizzle_migrations'",
@@ -99,7 +117,9 @@ it.each([false, true])(
         expect(
           next.sqlite.prepare('SELECT * FROM "' + name.replaceAll('"', '""') + '"').all(),
         ).toEqual(rows)
-      for (const name of ['forecast_scenarios', 'forecast_audit'])
+      for (const name of priorVersion === 33
+        ? ['forecast_settings_versions']
+        : ['forecast_scenarios', 'forecast_audit', 'forecast_settings_versions'])
         expect(next.sqlite.prepare('SELECT * FROM ' + name).all()).toEqual([])
       expect(next.sqlite.pragma('foreign_key_check')).toEqual([])
       expect(next.sqlite.pragma('integrity_check', { simple: true })).toBe('ok')

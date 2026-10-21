@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import {
+  smartOptionsSchema,
+  type ForecastSettingsVersion,
+  type ForecastRisk,
+} from './smart-forecast-settings'
 import type { BillView } from './bills'
 import type { Debt } from './debts'
 import type { DebtPayment } from './debt-payments'
@@ -9,6 +14,7 @@ import type { SettlementOffer } from './debt-planning'
 const cents = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
 export const forecastInputSchema = z
   .object({
+    smart: smartOptionsSchema.optional(),
     name: z.string().trim().min(1).max(160),
     startDate: z.iso.date().refine((v) => v.slice(0, 4) >= '1900' && v.slice(0, 4) <= '9998'),
     endDate: z.iso.date().refine((v) => v.slice(0, 4) >= '1900' && v.slice(0, 4) <= '9998'),
@@ -70,11 +76,19 @@ export const forecastInputSchema = z
   .strict()
   .superRefine((v, ctx) => {
     const days = (Date.parse(v.endDate) - Date.parse(v.startDate)) / 86400000
+    if (v.smart?.opening && v.smart.opening.effectiveDate > v.startDate)
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Opening cash must be effective on or before the forecast start date.',
+      })
     if (days < 0 || days > 365)
       ctx.addIssue({ code: 'custom', message: 'Choose a forecast range of 1–366 days' })
   })
 export type ForecastInput = z.infer<typeof forecastInputSchema>
 export type ForecastSources = {
+  payroll?: import('./payroll').PayrollWeek[]
+  cashAccounts?: import('./banking').BankAccount[]
+  privacyLimited?: boolean
   refunds?: import('./bank-review').FinancialRefund[]
   bills: BillView[]
   debts: Debt[]
@@ -104,10 +118,51 @@ export type ForecastEvent = {
     | 'scenario'
     | 'uncertain_payout'
   estimated: boolean
+  classification?:
+    | 'confirmed_cash'
+    | 'documented_payroll'
+    | 'payroll_forecast'
+    | 'assumed_income'
+    | 'scheduled_obligation'
+    | 'estimated_obligation'
+    | 'unknown'
+  reference?: {
+    type:
+      | 'income'
+      | 'payroll'
+      | 'bill'
+      | 'debt'
+      | 'debt_payment'
+      | 'bill_payment'
+      | 'expense'
+      | 'refund'
+      | 'scenario'
+    id: string
+    parentId?: string
+  }
+  basis?: string
+  originalDate?: string | null
+  confidence?: 'confirmed' | 'high' | 'medium' | 'low' | 'unknown' | 'estimated'
+  workPeriod?: { start: string; end: string }
+  sourceId?: string
+  modelVersion?: number
+  sampleCount?: number
   grossCents?: number | null
   spendingCents?: number
 }
 export type ForecastReport = {
+  smart?: {
+    openingRequired: boolean
+    openingEffectiveAt: string | null
+    bufferCents: number
+    daysBelowBuffer: number
+    risks: ForecastRisk[]
+    nextPaycheck: ForecastEvent | null
+    billsBeforePaydayCents: number
+    unknownBeforePayday: boolean
+    availableAfterObligationsCents: number | null
+    health: 'needs_information' | 'potential_shortfall' | 'below_buffer' | 'within_plan'
+  }
   events: ForecastEvent[]
   warnings: string[]
   days: {
@@ -115,6 +170,13 @@ export type ForecastReport = {
     netChangeCents: number
     cashCents: number | null
     knownSubtotalCents: number | null
+    openingCents?: number | null
+    confirmedInCents?: number
+    expectedInCents?: number
+    scheduledOutCents?: number
+    estimatedOutCents?: number
+    allowanceCents?: number
+    daysUntilPaycheck?: number | null
   }[]
   incomeCents: number
   outflowCents: number
@@ -126,6 +188,7 @@ export type ForecastReport = {
   incomplete: boolean
 }
 export type ForecastData = {
+  settings?: ForecastSettingsVersion | null
   sources: ForecastSources
   fingerprint: string
   canSave: boolean

@@ -68,3 +68,6 @@ export * from './payroll-ytd-totals'
 
 export * from './payroll-learning'
 export * from './payroll-backtest'
+
+export * from './smart-forecast-settings'
+export * from './smart-forecast'

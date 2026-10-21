@@ -1,7 +1,13 @@
 import type { ForecastReport } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
-export function ForecastResults({ report }: { report: ForecastReport }) {
+export function ForecastResults({
+  report,
+  showChart = true,
+}: {
+  report: ForecastReport
+  showChart?: boolean
+}) {
   const values = report.days.map((d) => d.cashCents ?? d.netChangeCents),
     min = Math.min(0, ...values),
     max = Math.max(1, ...values),
@@ -26,40 +32,42 @@ export function ForecastResults({ report }: { report: ForecastReport }) {
           </Card>
         ))}
       </div>
-      <Card className="p-4">
-        <h2 className="font-semibold">
-          {report.endingCents === null
-            ? 'Known projected net change'
-            : 'Projected daily cash position'}
-        </h2>
-        <p className="mt-1 text-xs text-slate-400">
-          {report.incomplete
-            ? 'Incomplete: missing amounts are excluded from known subtotals. '
-            : ''}
-          Estimates, not a bank balance. Lowest complete projected cash:{' '}
-          {formatMoney(report.lowestCents)}
-        </p>
-        <svg
-          viewBox="0 0 600 170"
-          role="img"
-          aria-label="Daily forecast trend; exact amounts are in the timeline"
-          className="mt-3 w-full"
-        >
-          <line
-            x1="10"
-            y1={150 - ((0 - min) / (max - min)) * 130}
-            x2="590"
-            y2={150 - ((0 - min) / (max - min)) * 130}
-            stroke="#64748b"
-            strokeDasharray="4 4"
-          />
-          <polyline points={points} fill="none" stroke="#93c5fd" strokeWidth="2" />
-        </svg>
-        <div className="flex justify-between text-xs text-slate-400">
-          <span>{report.days[0]?.date}</span>
-          <span>{report.days.at(-1)?.date}</span>
-        </div>
-      </Card>
+      {showChart && (
+        <Card className="p-4">
+          <h2 className="font-semibold">
+            {report.endingCents === null
+              ? 'Known projected net change'
+              : 'Projected daily cash position'}
+          </h2>
+          <p className="mt-1 text-xs text-slate-400">
+            {report.incomplete
+              ? 'Incomplete: missing amounts are excluded from known subtotals. '
+              : ''}
+            Estimates, not a bank balance. Lowest complete projected cash:{' '}
+            {formatMoney(report.lowestCents)}
+          </p>
+          <svg
+            viewBox="0 0 600 170"
+            role="img"
+            aria-label="Daily forecast trend; exact amounts are in the timeline"
+            className="mt-3 w-full"
+          >
+            <line
+              x1="10"
+              y1={150 - ((0 - min) / (max - min)) * 130}
+              x2="590"
+              y2={150 - ((0 - min) / (max - min)) * 130}
+              stroke="#64748b"
+              strokeDasharray="4 4"
+            />
+            <polyline points={points} fill="none" stroke="#93c5fd" strokeWidth="2" />
+          </svg>
+          <div className="flex justify-between text-xs text-slate-400">
+            <span>{report.days[0]?.date}</span>
+            <span>{report.days.at(-1)?.date}</span>
+          </div>
+        </Card>
+      )}
       {report.warnings.length > 0 && (
         <Card className="space-y-1 p-4">
           <h2 className="font-semibold text-amber-200">Missing information</h2>

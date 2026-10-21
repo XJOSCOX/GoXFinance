@@ -15,12 +15,14 @@ export function OverviewContent({
   goalSummary,
   budgetSummary,
   tradingSummary,
+  cashFlowSummary,
 }: {
   data: HouseholdOverview
   home: string
   budgetSummary?: ReactNode
   goalSummary?: ReactNode
   tradingSummary?: ReactNode
+  cashFlowSummary?: ReactNode
 }) {
   return (
     <div className="space-y-3">
@@ -97,6 +99,7 @@ export function OverviewContent({
           </dl>
         </section>
       </div>
+      {cashFlowSummary}
       <div className="grid items-start gap-3 lg:grid-cols-2">
         <div className="space-y-3">
           <OverviewBills data={data} home={home} />

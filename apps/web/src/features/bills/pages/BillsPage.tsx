@@ -1,3 +1,4 @@
+import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { useCategories } from '../../categories/hooks/useCategories'
 import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
 import { useEffect, useState } from 'react'
@@ -49,6 +50,7 @@ export function BillsPage() {
   useEffect(() => {
     if (household && selected?.id !== householdId) select(householdId)
   }, [household, householdId, selected?.id, select])
+  useRequestedRecord(bills, (bill) => setDetailId(bill.id))
   async function act(bill: BillView, action: BillAction, reason?: string) {
     if (bill.requiresApproval) {
       const explanation = reason ?? prompt('Reason for Owner approval')

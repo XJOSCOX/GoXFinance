@@ -11,6 +11,7 @@ export function forecastObligations(
   warnings: string[],
 ) {
   const inside = (d: string) => d >= v.startDate && d <= v.endDate
+  const plannedDate = (date: string) => (v.smart && date < v.startDate ? v.startDate : date)
   const debtGroups = debtObligationGroups(s.debts),
     groupId = (id: string) => debtGroups.find((g) => g.some((d) => d.id === id))?.[0].id ?? id
   const commitments = new Map<
@@ -44,20 +45,36 @@ export function forecastObligations(
     if (
       (['scheduled', 'pending'].includes(p.paymentStatus) ||
         (p.paymentStatus === 'completed' && p.paymentDate > today)) &&
-      inside(p.paymentDate)
+      inside(plannedDate(p.paymentDate))
     ) {
       add({
         id: 'planned-debt:' + p.id,
-        date: p.paymentDate,
+        date: plannedDate(p.paymentDate),
+        originalDate: p.paymentDate,
         name: 'Debt payment (' + p.paymentStatus + ')',
         amountCents: p.paymentMethod === 'credit_card' ? 0 : p.amountCents,
         direction: 'out',
         kind: p.paymentStatus === 'pending' ? 'pending' : 'scheduled',
         estimated: true,
       })
-      credit(p.debtId, p.paymentDate, p.amountCents)
+      if (v.smart && p.paymentDate < v.startDate)
+        warnings.push(
+          'Outstanding debt payment has a past recorded date; its projected timing requires confirmation.',
+        )
+      credit(p.debtId, plannedDate(p.paymentDate), p.amountCents)
     }
   }
+  if (v.smart)
+    for (const group of debtGroups) {
+      const d = representativeDebtBalance(group)
+      const pastDue = Math.max(...group.map((r) => r.pastDueAmountCents ?? 0))
+      if (pastDue > 0 && d.currentBalanceCents !== 0) {
+        requireDebt(d.id, v.startDate, pastDue, d.accountNickname || d.creditorName)
+        warnings.push(
+          `Past-due debt amount may overlap the current contractual minimum: ${d.creditorName}. The larger monthly requirement is used; confirm the actual amount and timing.`,
+        )
+      }
+    }
   for (const month of months)
     for (const group of debtGroups) {
       const d = representativeDebtBalance(group)
@@ -73,12 +90,51 @@ export function forecastObligations(
           Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0),
         ).getUTCDate(),
         date = month + '-' + String(Math.min(day, last)).padStart(2, '0')
-      if (!inside(date) || (d.nextDueDate && date < d.nextDueDate)) continue
+      if (
+        (!v.smart && !inside(date)) ||
+        date > v.endDate ||
+        (d.nextDueDate && date < d.nextDueDate)
+      )
+        continue
       const amount = group.some((r) => r.minimumPaymentCents !== null)
         ? Math.max(...group.map((r) => r.minimumPaymentCents ?? 0))
         : null
-      requireDebt(d.id, date, amount, d.accountNickname || d.creditorName)
+      requireDebt(
+        d.id,
+        plannedDate(date),
+        v.smart && date < v.startDate && d.pastDueAmountCents != null
+          ? Math.max(amount ?? 0, d.pastDueAmountCents)
+          : amount,
+        d.accountNickname || d.creditorName,
+      )
     }
+  // A payment date is independent of its bill's due date (including early payments).
+  if (v.smart)
+    for (const bill of s.bills)
+      for (const pay of bill.payments) {
+        if (
+          pay.debtPaymentId ||
+          !(
+            ['pending', 'scheduled'].includes(pay.status) ||
+            (pay.status === 'completed' && pay.paymentDate > today)
+          ) ||
+          !inside(plannedDate(pay.paymentDate))
+        )
+          continue
+        add({
+          id: 'planned-bill:' + pay.id,
+          date: plannedDate(pay.paymentDate),
+          originalDate: pay.paymentDate,
+          name: bill.name + ' (' + pay.status + ')',
+          amountCents: pay.method === 'credit_card' ? 0 : pay.amountCents,
+          spendingCents: pay.amountCents,
+          direction: 'out',
+          kind: pay.status === 'pending' ? 'pending' : 'scheduled',
+          estimated: true,
+        })
+        if (pay.paymentDate < v.startDate)
+          warnings.push(`Outstanding payment timing requires confirmation: ${bill.name}`)
+      }
   const linkedBills = new Map<
     string,
     { debtId: string; date: string; amount: number | null; name: string }
@@ -136,21 +192,25 @@ export function forecastObligations(
       const future = bill.payments.filter(
         (pay) =>
           pay.periodId === p?.id &&
-          ['scheduled', 'pending'].includes(pay.status) &&
-          inside(pay.paymentDate) &&
+          (['scheduled', 'pending'].includes(pay.status) ||
+            (v.smart && pay.status === 'completed' && pay.paymentDate > today)) &&
+          inside(plannedDate(pay.paymentDate)) &&
           !pay.debtPaymentId,
       )
       for (const pay of future)
         add({
           id: 'planned-bill:' + pay.id,
-          date: pay.paymentDate,
+          date: plannedDate(pay.paymentDate),
+          originalDate: pay.paymentDate,
           name: row.name + ' (' + pay.status + ')',
           amountCents: pay.method === 'credit_card' ? 0 : pay.amountCents,
           spendingCents: pay.amountCents,
           direction: 'out',
-          kind: pay.status as 'scheduled' | 'pending',
+          kind: pay.status === 'pending' ? 'pending' : 'scheduled',
           estimated: true,
         })
+      if (v.smart && future.some((pay) => pay.paymentDate < v.startDate))
+        warnings.push(`Outstanding payment timing requires confirmation: ${row.name}`)
       const covered = sumCents([
         p?.paidCents ?? 0,
         p?.creditCents ?? 0,
@@ -161,6 +221,7 @@ export function forecastObligations(
         add({
           id: 'obligation:' + bill.id + ':' + row.dueDate,
           date,
+          originalDate: row.dueDate,
           name: row.name + (row.dueDate < date ? ' (overdue)' : ''),
           amountCents: remaining,
           spendingCents: remaining ?? 0,

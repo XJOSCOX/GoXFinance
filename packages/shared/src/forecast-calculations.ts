@@ -1,3 +1,6 @@
+import { smartForecastInflows } from './smart-forecast-inflows'
+import { prepareSmartEvent, traceForecastEvent } from './smart-forecast-events'
+import { enrichSmartForecast } from './smart-forecast-report'
 import { forecastInflows } from './forecast-inflows'
 import { forecastObligations } from './forecast-obligations'
 import { cashOutflows, sumCents } from './outflows'
@@ -9,7 +12,9 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
     warnings: string[] = [],
     seen = new Set<string>(),
     inside = (d: string) => d >= v.startDate && d <= v.endDate
-  const add = (e: ForecastEvent) => {
+  const add = (raw: ForecastEvent) => {
+    const e = v.smart ? prepareSmartEvent(traceForecastEvent(raw, s), v, warnings) : raw
+    if (!e) return
     if (inside(e.date) && !seen.has(e.id)) {
       seen.add(e.id)
       events.push(e)
@@ -56,7 +61,15 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
                 : 'bill',
         estimated: false,
       })
-  forecastInflows(s, v, today, add, warnings)
+  if (v.smart) {
+    if (!v.smart.opening)
+      warnings.push('Opening cash balance required for a complete cash projection.')
+    if (s.privacyLimited)
+      warnings.push(
+        'This projection covers only financial sources you are permitted to view. Household totals may be incomplete.',
+      )
+    smartForecastInflows(s, v, today, add, warnings)
+  } else forecastInflows(s, v, today, add, warnings)
   for (const e of s.expenses.filter((e) => !e.voided && e.transactionDate > today))
     add({
       id: 'future-expense:' + e.id,
@@ -123,7 +136,8 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
       change,
       ...on.map((e) => (e.direction === 'in' ? 1 : -1) * (e.amountCents ?? 0)),
     ])
-    const subtotal = v.startingCents === null ? null : sumCents([v.startingCents, change]),
+    const starting = v.smart ? (v.smart.opening?.amountCents ?? null) : v.startingCents
+    const subtotal = starting === null ? null : sumCents([starting, change]),
       cash = incomplete ? null : subtotal
     days.push({ date, netChangeCents: change, cashCents: cash, knownSubtotalCents: subtotal })
     if (subtotal !== null && subtotal < 0)
@@ -143,7 +157,7 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
         .filter((e) => e.direction === 'out' || e.kind === 'refund')
         .map((e) => (e.kind === 'refund' ? -1 : 1) * (e.amountCents ?? 0)),
     )
-  return {
+  const result: ForecastReport = {
     spendingCents: sumCents(events.map((e) => e.spendingCents ?? 0)),
     events,
     warnings: [...new Set(warnings)],
@@ -153,10 +167,14 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
     netChangeCents: sumCents([incomeCents, -outflowCents]),
     endingCents: days.at(-1)?.cashCents ?? null,
     lowestCents:
-      incomplete || v.startingCents === null
+      incomplete || (v.smart ? !v.smart.opening : v.startingCents === null)
         ? null
-        : Math.min(v.startingCents, ...days.map((d) => d.cashCents!)),
+        : Math.min(
+            v.smart ? v.smart.opening!.amountCents : v.startingCents!,
+            ...days.map((d) => d.cashCents!),
+          ),
     shortfalls,
     incomplete,
   }
+  return v.smart ? enrichSmartForecast(result, v) : result
 }

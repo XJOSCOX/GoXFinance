@@ -1,4 +1,5 @@
 import { OverviewBudgets } from '../components/OverviewBudgets'
+import { OverviewCashFlow } from '../components/OverviewCashFlow'
 import { OverviewBanking } from '../components/OverviewBanking'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -70,6 +71,7 @@ export function DashboardPage() {
       ) : data && selected ? (
         <>
           <OverviewContent
+            cashFlowSummary={<OverviewCashFlow key={selected.id} home={selected.id} />}
             data={data}
             home={selected.id}
             tradingSummary={<OverviewTrading key={selected.id} home={selected.id} month={month} />}

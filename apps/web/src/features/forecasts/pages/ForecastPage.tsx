@@ -5,15 +5,19 @@ import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { Button, Card } from '../../../components/ui'
 import { apiRequest, errorMessage } from '../../../lib/api'
 import { useNotify } from '../../../components/ui/useNotify'
+import { SmartTimeline } from '../components/SmartTimeline'
+import { SmartEvents } from '../components/SmartEvents'
+import { SmartForecastDashboard } from '../components/SmartForecastDashboard'
 import { ForecastForm } from '../components/ForecastForm'
 import { ForecastResults } from '../components/ForecastResults'
 import { formatMoney } from '../../../lib/money'
 export function ForecastPage() {
   const { householdId: home = '' } = useParams(),
-    [data, setData] = useState<ForecastData | null>(null),
+    [loaded, setData] = useState<(ForecastData & { home: string }) | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0),
+    [view, setView] = useState('smart'),
     [history, setHistory] = useState(''),
     key = useRef(crypto.randomUUID()),
     notify = useNotify(),
@@ -35,21 +39,26 @@ export function ForecastPage() {
     }))
   useEffect(() => {
     let active = true
-    setData(null)
     void apiRequest<ForecastData>(`households/${home}/forecasts`)
       .then((v) => {
         if (active) {
-          setData(v)
+          setData({ ...v, home })
           setError('')
         }
       })
       .catch((e) => {
         if (active) setError(errorMessage(e))
       })
+    const timer = setInterval(() => setReload((value) => value + 1), 30_000)
+    const focus = () => setReload((value) => value + 1)
+    window.addEventListener('focus', focus)
     return () => {
       active = false
+      clearInterval(timer)
+      window.removeEventListener('focus', focus)
     }
   }, [home, reload])
+  const data = loaded?.home === home ? loaded : null
   let report: ReturnType<typeof forecast> | undefined,
     calculationError = ''
   try {
@@ -76,7 +85,31 @@ export function ForecastPage() {
         </p>
       )}
       {!data && !error && <p role="status">Loading forecast sources…</p>}
-      {data && (
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Forecast mode">
+        <Button
+          aria-pressed={view === 'smart'}
+          variant={view === 'smart' ? 'primary' : 'ghost'}
+          onClick={() => setView('smart')}
+        >
+          Smart forecast
+        </Button>
+        <Button
+          aria-pressed={view === 'custom'}
+          variant={view === 'custom' ? 'primary' : 'ghost'}
+          onClick={() => setView('custom')}
+        >
+          Custom scenarios & snapshots
+        </Button>
+      </div>
+      {data && view === 'smart' && (
+        <SmartForecastDashboard
+          key={home}
+          home={home}
+          data={data}
+          refresh={() => setReload((value) => value + 1)}
+        />
+      )}
+      {data && view === 'custom' && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => setHistory('')}>Live forecast</Button>
@@ -134,7 +167,13 @@ export function ForecastPage() {
               </div>
             </Card>
           )}
-          {report && <ForecastResults report={report} />}
+          {report && <ForecastResults report={report} showChart={!report.smart} />}
+          {history && report?.smart && (
+            <>
+              <SmartTimeline report={report} />
+              <SmartEvents home={home} report={report} />
+            </>
+          )}
           {!history && data.canSave && (
             <Button
               disabled={busy || !!calculationError}

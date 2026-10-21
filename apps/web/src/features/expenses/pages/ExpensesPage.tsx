@@ -1,3 +1,4 @@
+import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -47,6 +48,7 @@ export function ExpensesPage() {
   useEffect(() => {
     if (home && selected?.id !== householdId) select(householdId)
   }, [home, householdId, selected?.id, select])
+  useRequestedRecord(expenses, setDetail)
   const filtered = expenses
     .filter(
       (item) =>
