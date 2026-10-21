@@ -1,17 +1,21 @@
 import { formatMoney as money } from '../../../lib/money'
-import { CreditCard, MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 import {
   debtTypeLabels,
   paymentStatusLabels,
   type Debt,
+  type FinancialCategory,
   type HouseholdMember,
 } from '@goxfinance/shared'
 import { Button } from '../../../components/ui'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { InfoHint } from '../../../components/ui/InfoHint'
+import { categoryAppearance } from '../../categories/category-appearance'
 import { Link } from 'react-router-dom'
 
 export function DebtAccountCard({
   debt,
+  category,
   members,
   canEdit,
   canArchive,
@@ -22,6 +26,7 @@ export function DebtAccountCard({
   requestMode = false,
 }: {
   debt: Debt
+  category?: FinancialCategory
   members: HouseholdMember[]
   canEdit: boolean
   canArchive: boolean
@@ -34,46 +39,68 @@ export function DebtAccountCard({
   const people = debt.memberAssignments.map(
     (item) => members.find((member) => member.id === item.memberId)?.fullName ?? 'Member',
   )
+  const { Icon, color } = categoryAppearance(category?.name ?? 'Debt', category?.icon)
   return (
     <article
       aria-label={debt.creditorName}
-      className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-4 border-b border-white/[.07] px-4 py-5 last:border-b-0 sm:px-6 lg:grid-cols-12 lg:gap-4"
+      className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-2 border-b border-white/[.07] px-3 py-3 last:border-b-0 sm:px-4 lg:grid-cols-12 lg:gap-4"
     >
       <div className="col-span-2 flex min-w-0 items-center gap-3 lg:col-span-4">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#aab9a9]/[.12] bg-[#aab9a9]/[.05] text-[#b2c1b1]">
-          <CreditCard size={18} strokeWidth={1.5} />
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+          style={{ color, backgroundColor: `${color}12` }}
+          aria-hidden="true"
+        >
+          <Icon size={16} strokeWidth={1.6} />
         </span>
         <div className="min-w-0">
-          <h3 className="break-words text-sm font-semibold text-[#eef0eb]">{debt.creditorName}</h3>
-          <p className="mt-1 break-words text-xs text-slate-500">
-            {debt.accountNickname || debtTypeLabels[debt.accountType]}
+          <h3>
+            <button
+              type="button"
+              onClick={onView}
+              aria-label={'View ' + debt.creditorName}
+              className="text-left text-sm font-semibold text-[#eef0eb] hover:underline focus-visible:outline focus-visible:outline-[#a9b8a9] break-words"
+            >
+              {debt.creditorName}
+            </button>
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            {category?.name ?? debtTypeLabels[debt.accountType]}
+            <span className="lg:hidden">{people.length ? ` · ${people.join(' · ')}` : ''}</span>
           </p>
+          <div className="mt-1 lg:hidden">
+            <StatusBadge
+              status={debt.paymentStatus}
+              label={paymentStatusLabels[debt.paymentStatus]}
+            />
+            {debt.isArchived && <span className="ml-2 text-[10px] text-slate-500">Archived</span>}
+          </div>
         </div>
       </div>
-      <div className="min-w-0 lg:col-span-2">
+      <div className="hidden min-w-0 lg:col-span-2 lg:block">
         <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500 lg:hidden">
           Responsible
         </p>
         <p className="break-words text-xs leading-5 text-slate-400">{people.join(' · ')}</p>
         {people.length > 1 && <p className="text-[10px] text-slate-500">Shared account</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 lg:col-span-2">
+      <div className="hidden flex-wrap items-center gap-1.5 lg:col-span-2 lg:flex">
         <StatusBadge status={debt.paymentStatus} label={paymentStatusLabels[debt.paymentStatus]} />
         {debt.isArchived && <span className="text-[10px] text-slate-500">Archived</span>}
       </div>
-      <div className="min-w-0 lg:col-span-2 lg:text-right">
+      <div className="flex min-w-0 items-center gap-1 lg:col-span-2 lg:justify-end">
         <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500 lg:hidden">
           Balance
         </p>
-        <p className="break-words text-lg font-semibold tabular-nums tracking-tight">
+        <p className="break-words text-base font-semibold tabular-nums tracking-tight">
           {money(debt.currentBalanceCents)}
         </p>
-        <StatusBadge status={debt.confidence} className="mt-1 text-[10px]" />
+        <InfoHint
+          label={'Balance details for ' + debt.creditorName}
+          text={`${debt.confidence} balance. ${debt.accountNickname ? debt.accountNickname + '. ' : ''}${debtTypeLabels[debt.accountType]}. Responsible: ${people.join(' · ') || 'Not assigned'}.`}
+        />
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1 lg:col-span-2">
-        <Button size="small" onClick={onView} aria-label={'View ' + debt.creditorName}>
-          View
-        </Button>
         {onRecordPayment && (
           <Button size="small" onClick={onRecordPayment}>
             Record payment

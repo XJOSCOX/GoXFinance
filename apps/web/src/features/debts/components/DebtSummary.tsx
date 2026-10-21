@@ -49,7 +49,7 @@ export function DebtSummary({ summary }: { summary: Summary }) {
         <div
           key={label}
           className={
-            'min-w-0 px-4 py-5 sm:px-6 ' +
+            'min-w-0 px-4 py-3 sm:px-4 ' +
             (index > 1 ? 'border-t border-white/[.07] lg:border-t-0 ' : '') +
             (index % 2 ? 'border-l border-white/[.07] ' : '') +
             (index === 2 ? 'lg:border-l lg:border-white/[.07]' : '')
@@ -64,7 +64,7 @@ export function DebtSummary({ summary }: { summary: Summary }) {
             <p className="text-xs">{label}</p>
           </div>
           <p
-            className={`mt-3 break-words text-xl font-semibold tabular-nums tracking-tight sm:text-2xl ${toneStyles[tone as SemanticTone].text}`}
+            className={`mt-2 break-words text-xl font-semibold tabular-nums tracking-tight ${toneStyles[tone as SemanticTone].text}`}
           >
             {value}
           </p>

@@ -1,6 +1,7 @@
 import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { useCategories } from '../../categories/hooks/useCategories'
-import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
+import { CategoryManager } from '../../categories/components/CategoryManager'
+import { ActionMenu } from '../../../components/ui/ActionMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
@@ -54,6 +55,7 @@ export function DebtsPage() {
   const { query, member: memberFilter, type: typeFilter, status: statusFilter, sort } = filters
   const { categories, refresh: refreshCategories } = useCategories(householdId)
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [manageCategories, setManageCategories] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [requestRefresh, setRequestRefresh] = useState(0)
   useEffect(() => {
@@ -219,30 +221,25 @@ export function DebtsPage() {
               Manage your household accounts and balances.
             </p>
           </div>
-          {!loading && !error && summary.accountCount > 0 && canWrite && (
-            <Button variant="primary" className="gap-2" onClick={() => setFormDebt(null)}>
-              <Plus size={15} />
-              Add debt
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!loading && !error && summary.accountCount > 0 && canWrite && (
+              <Button variant="primary" className="gap-2" onClick={() => setFormDebt(null)}>
+                <Plus size={15} /> Add debt
+              </Button>
+            )}
+            <ActionMenu
+              label="Debt actions"
+              items={[{ label: 'Manage categories', onSelect: () => setManageCategories(true) }]}
+            />
+          </div>
         </header>
-        <div className="flex flex-wrap gap-2">
-          <select
-            aria-label="Filter debt category"
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            className="rounded-lg border border-white/10 bg-[#151716] px-3 py-2 text-sm"
-          >
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-                {category.archived ? ' (archived)' : ''}
-              </option>
-            ))}
-          </select>
-          <ManageCategoriesButton home={householdId} onChanged={refreshCategories} />
-        </div>
+        {manageCategories && (
+          <CategoryManager
+            home={householdId}
+            onClose={() => setManageCategories(false)}
+            onChanged={refreshCategories}
+          />
+        )}
         {household.role === 'owner' && (
           <DebtChangeRequestsPanel
             householdId={householdId}
@@ -288,8 +285,11 @@ export function DebtsPage() {
         ) : (
           <>
             {summary.accountCount > 0 && <DebtSummary summary={summary} />}
-            <Card>
+            <div>
               <DebtFilters
+                categories={categories}
+                category={categoryFilter}
+                onCategoryChange={setCategoryFilter}
                 value={filters}
                 onChange={setFilters}
                 members={members}
@@ -298,7 +298,7 @@ export function DebtsPage() {
                 archivedCount={archivedCount}
                 count={visible.length}
               />
-            </Card>
+            </div>
             {visible.length ? (
               <DebtAccountGroups
                 groups={groups}
@@ -306,6 +306,7 @@ export function DebtsPage() {
                 renderAccount={(debt) => (
                   <DebtAccountCard
                     key={debt.id}
+                    category={categories.find((category) => category.id === debt.categoryId)}
                     debt={debt}
                     members={members}
                     canEdit={!debt.isArchived && canManage(debt)}
@@ -340,7 +341,10 @@ export function DebtsPage() {
                 <Button
                   variant="ghost"
                   className="mt-4"
-                  onClick={() => setFilters(emptyDebtFilters)}
+                  onClick={() => {
+                    setFilters(emptyDebtFilters)
+                    setCategoryFilter('')
+                  }}
                 >
                   Clear filters
                 </Button>
