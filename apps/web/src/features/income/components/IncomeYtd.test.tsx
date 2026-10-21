@@ -38,7 +38,7 @@ it('shows the latest dated YTD component instead of adding consecutive statement
   expect(screen.getAllByText('Federal income tax')).toHaveLength(1)
 })
 
-it('filters YTD by employer and year without adding separate employer records together', () => {
+it('combines employers by default and supports individual employer and year filters', () => {
   const weeks = [
     {
       sourceId: 'hire',
@@ -135,7 +135,9 @@ it('filters YTD by employer and year without adding separate employer records to
     />,
   )
   const select = screen.getByLabelText('YTD employer') as HTMLSelectElement
-  expect(select.value).toBe('hire')
+  expect(select.value).toBe('all')
+  expect(screen.getByText('$130.00')).toBeTruthy()
+  fireEvent.change(select, { target: { value: 'hire' } })
   expect(screen.getByText('$100.00')).toBeTruthy()
   expect(screen.queryByText('$30.00')).toBeNull()
   fireEvent.change(select, { target: { value: 'military' } })
@@ -144,9 +146,9 @@ it('filters YTD by employer and year without adding separate employer records to
   expect(screen.queryByText('$100.00')).toBeNull()
   expect(screen.queryByText('$8,000.00')).toBeNull()
   fireEvent.change(select, { target: { value: 'all' } })
-  expect(screen.getAllByText('Federal income tax')).toHaveLength(2)
-  expect(screen.getByText('$100.00')).toBeTruthy()
-  expect(screen.getByText('$30.00')).toBeTruthy()
-  expect(screen.queryByText('$130.00')).toBeNull()
+  expect(screen.getAllByText('Federal income tax')).toHaveLength(1)
+  expect(screen.queryByText('$100.00')).toBeNull()
+  expect(screen.queryByText('$30.00')).toBeNull()
+  expect(screen.getByText('$130.00')).toBeTruthy()
   expect(screen.queryByText('$99,999.00')).toBeNull()
 })

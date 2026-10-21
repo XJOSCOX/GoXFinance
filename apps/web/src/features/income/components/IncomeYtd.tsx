@@ -1,4 +1,9 @@
-import { payrollTaxReport, type PayrollWeek, type IncomeSource } from '@goxfinance/shared'
+import {
+  payrollTaxReport,
+  combinedPayrollYtd,
+  type PayrollWeek,
+  type IncomeSource,
+} from '@goxfinance/shared'
 import { incomeDisplayDate } from './income-display'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
@@ -21,12 +26,13 @@ export function IncomeYtd({
   const allowed = new Set(sources.map((s) => s.id)),
     report = payrollTaxReport(weeks.filter((w) => allowed.has(w.sourceId))),
     yearRows = report.latestYtd.filter((r) => r.year === year),
-    latestSource = [...yearRows].sort((a, b) => b.payDate.localeCompare(a.payDate))[0]?.sourceId,
-    selected =
-      selection === 'all' || sources.some((s) => s.id === selection)
-        ? selection!
-        : (latestSource ?? sources[0]?.id ?? 'all'),
-    visible = yearRows.filter((r) => selected === 'all' || r.sourceId === selected),
+    selected = selection === 'all' || sources.some((s) => s.id === selection) ? selection! : 'all',
+    visible =
+      selected === 'all'
+        ? combinedPayrollYtd(yearRows)
+        : yearRows
+            .filter((r) => r.sourceId === selected)
+            .map((r) => ({ ...r, employerCount: 1, missingCount: r.amountCents === null ? 1 : 0 })),
     rows = visible.filter((r) => r.side === 'deduction' && r.amountCents !== null),
     missing = visible.filter((r) => r.amountCents === null),
     earnings = visible.filter((r) => r.side === 'earnings' && r.amountCents !== null),
@@ -42,12 +48,19 @@ export function IncomeYtd({
             <dt className="text-slate-300">{r.label}</dt>
             <dd className="mt-1 text-[11px] text-slate-500">
               {selected === 'all'
-                ? (sources.find((s) => s.id === r.sourceId)?.name ?? 'Employer') + ' / '
+                ? `${r.employerCount} employer${r.employerCount === 1 ? '' : 's'} / `
                 : ''}
               {incomeDisplayDate(r.payDate, false)}
             </dd>
           </div>
-          <dd className="tabular-nums">{formatMoney(r.amountCents)}</dd>
+          <dd className="text-right tabular-nums">
+            {formatMoney(r.amountCents)}
+            {selected === 'all' && r.missingCount > 0 && r.amountCents !== null && (
+              <span className="block text-[11px] text-amber-200">
+                Reported subtotal · {r.missingCount} not reported
+              </span>
+            )}
+          </dd>
         </div>
       ))}
     </dl>
@@ -66,12 +79,12 @@ export function IncomeYtd({
               value={selected}
               onChange={(e) => setSelection(e.target.value)}
             >
+              <option value="all">All employers</option>
               {sources.map((source) => (
                 <option key={source.id} value={source.id}>
                   {source.name}
                 </option>
               ))}
-              <option value="all">All employers (separate records)</option>
             </Select>
           </FormField>
         </div>
@@ -116,8 +129,10 @@ export function IncomeYtd({
             </details>
           )}
           <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
-            Latest reported value for each employer and component. Signed amounts follow the
-            paystub; YTD is never added across paychecks.
+            {selected === 'all'
+              ? 'Combined latest YTD per employer. Deductions show amounts withheld; credits reduce them. Unknown amounts are excluded and flagged.'
+              : 'Latest reported value for this employer. Signed amounts follow the paystub.'}{' '}
+            YTD is never added across paychecks.
           </p>
         </>
       )}

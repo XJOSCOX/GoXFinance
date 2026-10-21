@@ -16,6 +16,7 @@ export function payrollTaxReport(weeks: PayrollWeek[]) {
         year: string
         payDate: string
         amountCents: number | null
+        normalizedCents: number | null
       }
     >()
   for (const w of rows) {
@@ -41,6 +42,12 @@ export function payrollTaxReport(weeks: PayrollWeek[]) {
         year,
         payDate: day,
         amountCents: l.ytdCents,
+        normalizedCents:
+          l.ytdCents === null
+            ? null
+            : l.side === 'deduction' && s.deductionSign === 'negative'
+              ? -l.ytdCents
+              : l.ytdCents,
       })
     }
   }

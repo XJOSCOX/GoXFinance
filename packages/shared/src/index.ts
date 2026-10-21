@@ -64,3 +64,4 @@ export * from './payroll-upload'
 export * from './payroll-periods'
 
 export * from './income-paycheck-statistics'
+export * from './payroll-ytd-totals'
