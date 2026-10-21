@@ -1,5 +1,6 @@
 import type { IncomeTransaction, IncomeSource } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
+import { incomeHistoryDate } from './income-history'
 import { formatMoney } from '../../../lib/money'
 export function IncomeHistory({
   transactions,
@@ -16,7 +17,11 @@ export function IncomeHistory({
     <div className="space-y-3">
       {transactions.length ? (
         [...transactions]
-          .sort((a, b) => b.payDate.localeCompare(a.payDate))
+          .sort(
+            (a, b) =>
+              incomeHistoryDate(b).localeCompare(incomeHistoryDate(a)) ||
+              b.payDate.localeCompare(a.payDate),
+          )
           .map((v) => (
             <Card key={v.id} className="p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">

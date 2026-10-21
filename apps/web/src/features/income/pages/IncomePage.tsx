@@ -15,6 +15,7 @@ import { saveSource, saveIncome, archiveSource } from '../api/incomeClient'
 import { IncomeOverview } from '../components/IncomeOverview'
 import { IncomeSources } from '../components/IncomeSources'
 import { IncomeHistory } from '../components/IncomeHistory'
+import { filterIncomeHistory, incomeHistoryDate } from '../components/income-history'
 import { IncomeDetails } from '../components/IncomeDetails'
 import { IncomeSourceForm } from '../components/IncomeSourceForm'
 import { IncomeTransactionForm } from '../components/IncomeTransactionForm'
@@ -33,6 +34,7 @@ export function IncomePage() {
     [payrollSource, setPayrollSource] = useState('')
   const [tab, setTab] = useState('overview'),
     [month, setMonth] = useState(localBillDate().slice(0, 7)),
+    [historyMonth, setHistoryMonth] = useState(''),
     [member, setMember] = useState(''),
     [query, setQuery] = useState(''),
     [status, setStatus] = useState('')
@@ -64,15 +66,15 @@ export function IncomePage() {
       (!member || v.responsibleMemberId === member) &&
       v.name.toLowerCase().includes(query.toLowerCase()),
   )
-  const transactions = data.transactions.filter(
-    (v) =>
-      (v.status === 'confirmed' ? (v.depositDate ?? v.payDate) : v.payDate).startsWith(month) &&
-      (!member || v.responsibleMemberId === member) &&
-      (!status || v.status === status) &&
-      (data.sources.find((s) => s.id === v.sourceId)?.name ?? '')
-        .toLowerCase()
-        .includes(query.toLowerCase()),
-  )
+  const transactions = filterIncomeHistory(data.transactions, data.sources, {
+    month: historyMonth,
+    member,
+    status,
+    query,
+  })
+  const historyMonths = [...new Set(data.transactions.map((t) => incomeHistoryDate(t).slice(0, 7)))]
+    .sort()
+    .reverse()
   const permittedMembers = data.members.filter(
     (v) =>
       (v.status === 'active' || v.id === source?.responsibleMemberId) &&
@@ -142,15 +144,32 @@ export function IncomePage() {
           </div>
           {tab !== 'payroll' && (
             <Card className="mb-5 grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4">
-              <FormField label="Reporting month">
-                <Input
-                  type="month"
-                  value={month}
-                  onChange={(e) => {
-                    if (e.target.value) setMonth(e.target.value)
-                  }}
-                />
-              </FormField>
+              {tab === 'history' ? (
+                <FormField label="Paycheck dates">
+                  <Select value={historyMonth} onChange={(e) => setHistoryMonth(e.target.value)}>
+                    <option value="">All dates</option>
+                    {historyMonths.map((m) => (
+                      <option key={m} value={m}>
+                        {new Date(m + '-01T12:00:00Z').toLocaleDateString('en-US', {
+                          month: 'long',
+                          year: 'numeric',
+                          timeZone: 'UTC',
+                        })}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              ) : (
+                <FormField label="Reporting month">
+                  <Input
+                    type="month"
+                    value={month}
+                    onChange={(e) => {
+                      if (e.target.value) setMonth(e.target.value)
+                    }}
+                  />
+                </FormField>
+              )}
               <FormField label="Earning member">
                 <Select value={member} onChange={(e) => setMember(e.target.value)}>
                   <option value="">All members</option>
@@ -222,12 +241,35 @@ export function IncomePage() {
               }}
             />
           ) : (
-            <IncomeHistory
-              transactions={transactions}
-              sources={data.sources}
-              edit={(v) => setPaycheck({ existing: v })}
-              details={setDetails}
-            />
+            <>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+                <p role="status">
+                  Showing {transactions.length} of {data.transactions.length} paychecks
+                  {transactions.length < data.transactions.length
+                    ? ` - ${data.transactions.length - transactions.length} hidden by filters`
+                    : ''}
+                </p>
+                {(historyMonth || member || query || status) && (
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setHistoryMonth('')
+                      setMember('')
+                      setQuery('')
+                      setStatus('')
+                    }}
+                  >
+                    Clear history filters
+                  </Button>
+                )}
+              </div>
+              <IncomeHistory
+                transactions={transactions}
+                sources={data.sources}
+                edit={(v) => setPaycheck({ existing: v })}
+                details={setDetails}
+              />
+            </>
           )}
         </>
       )}
