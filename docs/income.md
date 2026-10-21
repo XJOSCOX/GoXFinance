@@ -44,7 +44,7 @@ Paycheck history defaults to **All dates**, independent of the overview reportin
 
 ## Income workspace layout
 
-The overview uses one take-home summary strip, a compact period selector and collapsible member/source filters. The latest statement's earnings and deductions open by default; the four most recent non-cancelled paychecks are directly accessible below it, with YTD and recorded-paycheck statistics stacked alongside on larger screens.
+The overview uses one take-home summary strip, a compact period selector and collapsible member/source filters. The latest statement's earnings and deductions are collapsed by default; the four most recent non-cancelled paychecks are directly accessible below it, with YTD and recorded-paycheck statistics stacked alongside on larger screens.
 
 The primary action is Upload Paycheck. The adjacent action menu contains source creation and manual entry. Overview, Sources, Paychecks and Payroll use a slim tab bar. Source and paycheck actions use the shared keyboard-accessible menu, which closes on selection, Escape and outside clicks.
 

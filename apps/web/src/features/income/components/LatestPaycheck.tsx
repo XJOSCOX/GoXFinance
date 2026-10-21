@@ -112,7 +112,7 @@ export function LatestPaycheck({
           ].map((group) => {
             const lines = s.lines.filter((l) => l.side === group.side)
             return (
-              <details key={group.side} open className="bg-[#1b1d1c] p-5">
+              <details key={group.side} className="bg-[#1b1d1c] p-5">
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-slate-400">
                   {group.label}
                 </summary>
