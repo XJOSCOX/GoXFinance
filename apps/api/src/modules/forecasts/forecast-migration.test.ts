@@ -33,6 +33,8 @@ it.each([
   [true, 27],
   [false, 33],
   [true, 33],
+  [false, 34],
+  [true, 34],
 ] as const)(
   'adds forecast tables without changing existing rows and verifies safety backup; encrypted=%s prior=%s',
   (encrypted, priorVersion) => {
@@ -89,7 +91,7 @@ it.each([
         'at_least',
         'active',
       )
-      if (priorVersion === 33)
+      if (priorVersion >= 33)
         db.prepare(
           'INSERT INTO forecast_scenarios(id,household_id,created_by_user_id,input_json,sources_json,report_json,idempotency_key,created_at) VALUES(?,?,?,?,?,?,?,?)',
         ).run(
@@ -117,9 +119,11 @@ it.each([
         expect(
           next.sqlite.prepare('SELECT * FROM "' + name.replaceAll('"', '""') + '"').all(),
         ).toEqual(rows)
-      for (const name of priorVersion === 33
-        ? ['forecast_settings_versions']
-        : ['forecast_scenarios', 'forecast_audit', 'forecast_settings_versions'])
+      for (const name of priorVersion === 34
+        ? ['planner_records', 'planner_requests', 'planner_audit', 'planner_snapshots']
+        : priorVersion === 33
+          ? ['forecast_settings_versions']
+          : ['forecast_scenarios', 'forecast_audit', 'forecast_settings_versions'])
         expect(next.sqlite.prepare('SELECT * FROM ' + name).all()).toEqual([])
       expect(next.sqlite.pragma('foreign_key_check')).toEqual([])
       expect(next.sqlite.pragma('integrity_check', { simple: true })).toBe('ok')

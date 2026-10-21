@@ -12,6 +12,8 @@ export function forecastObligations(
 ) {
   const inside = (d: string) => d >= v.startDate && d <= v.endDate
   const plannedDate = (date: string) => (v.smart && date < v.startDate ? v.startDate : date)
+  const plannerCovered = (id: string, date: string) =>
+    (s.plannerCoveredDebts ?? []).some((c) => c.debtId === id && date >= c.start && date <= c.end)
   const debtGroups = debtObligationGroups(s.debts),
     groupId = (id: string) => debtGroups.find((g) => g.some((d) => d.id === id))?.[0].id ?? id
   const commitments = new Map<
@@ -68,7 +70,11 @@ export function forecastObligations(
     for (const group of debtGroups) {
       const d = representativeDebtBalance(group)
       const pastDue = Math.max(...group.map((r) => r.pastDueAmountCents ?? 0))
-      if (pastDue > 0 && d.currentBalanceCents !== 0) {
+      if (
+        pastDue > 0 &&
+        d.currentBalanceCents !== 0 &&
+        !group.some((d) => plannerCovered(d.id, v.startDate))
+      ) {
         requireDebt(d.id, v.startDate, pastDue, d.accountNickname || d.creditorName)
         warnings.push(
           `Past-due debt amount may overlap the current contractual minimum: ${d.creditorName}. The larger monthly requirement is used; confirm the actual amount and timing.`,
@@ -99,6 +105,7 @@ export function forecastObligations(
       const amount = group.some((r) => r.minimumPaymentCents !== null)
         ? Math.max(...group.map((r) => r.minimumPaymentCents ?? 0))
         : null
+      if (group.some((d) => plannerCovered(d.id, plannedDate(date)))) continue
       requireDebt(
         d.id,
         plannedDate(date),
@@ -163,7 +170,12 @@ export function forecastObligations(
       const p = bill.periods.find((p) => p.dueDate === row.dueDate),
         date = row.dueDate < v.startDate ? v.startDate : row.dueDate,
         link = p ? p.linkedDebtId : bill.linkedDebtId
-      if (!inside(date)) continue
+      if (
+        !inside(date) ||
+        (p && s.plannerSuppressedPeriods?.includes(p.id)) ||
+        (link && plannerCovered(link, date))
+      )
+        continue
       if (link) {
         if (row.amountCents === null) warnings.push(`Unknown linked bill amount: ${row.name}`)
         const earlier = bill.payments

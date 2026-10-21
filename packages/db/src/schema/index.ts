@@ -28,3 +28,5 @@ export * from './bank-accounts'
 export * from './bank-transactions'
 export * from './bank-reconciliation'
 export * from './payroll'
+
+export * from './smart-planner'

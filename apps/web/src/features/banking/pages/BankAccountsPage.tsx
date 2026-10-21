@@ -1,3 +1,4 @@
+import { AvailableBalanceForm } from '../../smart-planner/components/AvailableBalanceForm'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Landmark } from 'lucide-react'
@@ -21,6 +22,7 @@ function BankAccounts({ home }: { home: string }) {
     notify = useNotify(),
     [editor, setEditor] = useState<BankAccount | null | undefined>(),
     [balance, setBalance] = useState<BankAccount>(),
+    [available, setAvailable] = useState<BankAccount>(),
     [audit, setAudit] = useState(''),
     [hidden, setHidden] = useState(false)
   async function save(path: string, body: unknown, editing = false) {
@@ -122,6 +124,11 @@ function BankAccounts({ home }: { home: string }) {
                         <Button size="small" onClick={() => setBalance(a)}>
                           Record balance
                         </Button>
+                        {a.type !== 'credit_card' && a.currency === 'USD' && (
+                          <Button size="small" onClick={() => setAvailable(a)}>
+                            Update available balance
+                          </Button>
+                        )}
                       </>
                     )}
                     <Button size="small" onClick={() => setAudit(a.id)}>
@@ -160,6 +167,18 @@ function BankAccounts({ home }: { home: string }) {
               account={balance}
               close={() => setBalance(undefined)}
               save={(body) => save('/' + balance.id + '/balances', body)}
+            />
+          )}
+          {available && (
+            <AvailableBalanceForm
+              home={home}
+              accounts={data.accounts}
+              initialAccount={available.id}
+              close={() => setAvailable(undefined)}
+              saved={() => {
+                refresh()
+                notify('success', 'Available balance saved')
+              }}
             />
           )}
           {audit && (

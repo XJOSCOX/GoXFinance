@@ -5,6 +5,14 @@ export const forecastAddDays = (date: string, days: number) =>
   new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10)
 export function confirmedForecastActivity(s: ForecastSources, today: string) {
   return [
+    ...(s.planner?.records ?? []).flatMap((r) =>
+      r.values.kind === 'advance' &&
+      r.values.received &&
+      ['active', 'completed'].includes(r.values.status) &&
+      r.values.receivedDate <= today
+        ? [{ id: 'advance-receipt:' + r.id, date: r.values.receivedDate }]
+        : [],
+    ),
     ...cashOutflows(
       s.expenses,
       s.bills.flatMap((b) => b.payments),
@@ -98,7 +106,8 @@ export function prepareSmartEvent(
 ): ForecastEvent | null {
   const smart = v.smart!
   let event = { ...e }
-  const actual = !event.estimated && ['confirmed_cash'].includes(event.classification ?? '')
+  const actual =
+    !event.estimated && ['confirmed_cash', 'borrowed_cash'].includes(event.classification ?? '')
   if (actual && event.amountCents !== 0) {
     const opening = smart.opening
     if (opening) {

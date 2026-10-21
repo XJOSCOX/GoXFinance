@@ -29,6 +29,8 @@ export function forecastService(
   const permittedSnapshot = (json: string, data: ForecastSources) => {
     const old = JSON.parse(json) as ForecastSources
     return (
+      (old.planner?.goals ?? []).every((g) => data.planner?.goals?.some((n) => n.id === g.id)) &&
+      (old.planner?.records ?? []).every((r) => data.planner?.records.some((n) => n.id === r.id)) &&
       old.income.sources.every((src) => data.income.sources.some((s) => s.id === src.id)) &&
       (old.cashAccounts ?? []).every((a) => data.cashAccounts?.some((c) => c.id === a.id))
     )

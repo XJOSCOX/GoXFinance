@@ -1,4 +1,5 @@
 import {
+  CalendarClock,
   Wallet,
   Landmark,
   Inbox,
@@ -32,6 +33,7 @@ export function WorkspaceSidebar({
   const navigate = useNavigate()
   const { households, select } = useHousehold()
   const navigation = [
+    { href: `/households/${household.id}/planner`, label: 'Smart Planner', icon: CalendarClock },
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { href: `/households/${household.id}/bank-accounts`, label: 'Bank accounts', icon: Landmark },
     { href: `/households/${household.id}/transactions`, label: 'Transactions', icon: Inbox },
@@ -99,6 +101,7 @@ export function WorkspaceSidebar({
             {
               label: 'Plan & build',
               items: [
+                'Smart Planner',
                 'Budgets',
                 'Debts',
                 'Debt planning',

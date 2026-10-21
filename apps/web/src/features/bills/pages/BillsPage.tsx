@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { useCategories } from '../../categories/hooks/useCategories'
 import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
@@ -74,6 +75,12 @@ export function BillsPage() {
   )
   return (
     <WorkspaceLayout title="Bills">
+      <Link
+        to={`/households/${householdId}/planner`}
+        className="mb-4 inline-block rounded-lg border border-white/10 px-3 py-2 text-sm"
+      >
+        Smart Planner · payment priorities
+      </Link>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Bills</h1>

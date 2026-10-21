@@ -1,3 +1,4 @@
+import { SmartPlannerPage } from '../features/smart-planner/pages/SmartPlannerPage'
 import { ReportsPage } from '../features/reports/pages/ReportsPage'
 import { BankAccountsPage } from '../features/banking/pages/BankAccountsPage'
 import { BankInboxPage } from '../features/banking/pages/BankInboxPage'
@@ -183,6 +184,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <DebtPlanningPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/households/:householdId/planner"
+                element={
+                  <ProtectedRoute>
+                    <SmartPlannerPage />
                   </ProtectedRoute>
                 }
               />

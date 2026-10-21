@@ -15,6 +15,23 @@ const cents = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
 export const forecastInputSchema = z
   .object({
     smart: smartOptionsSchema.optional(),
+    planning: z
+      .object({
+        essentialReserveCents: cents.default(0),
+        utilityIncreaseCents: cents.default(0),
+        hypotheticalAdvance: z
+          .object({
+            amountCents: cents,
+            feesCents: cents,
+            receivedDate: z.iso.date(),
+            repaymentDate: z.iso.date(),
+          })
+          .strict()
+          .nullable()
+          .default(null),
+      })
+      .strict()
+      .optional(),
     name: z.string().trim().min(1).max(160),
     startDate: z.iso.date().refine((v) => v.slice(0, 4) >= '1900' && v.slice(0, 4) <= '9998'),
     endDate: z.iso.date().refine((v) => v.slice(0, 4) >= '1900' && v.slice(0, 4) <= '9998'),
@@ -75,6 +92,11 @@ export const forecastInputSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (
+      v.planning?.hypotheticalAdvance &&
+      v.planning.hypotheticalAdvance.repaymentDate < v.planning.hypotheticalAdvance.receivedDate
+    )
+      ctx.addIssue({ code: 'custom', message: 'Hypothetical repayment must follow receipt.' })
     const days = (Date.parse(v.endDate) - Date.parse(v.startDate)) / 86400000
     if (v.smart?.opening && v.smart.opening.effectiveDate > v.startDate)
       ctx.addIssue({
@@ -86,6 +108,9 @@ export const forecastInputSchema = z
   })
 export type ForecastInput = z.infer<typeof forecastInputSchema>
 export type ForecastSources = {
+  planner?: import('./planner').PlannerSources
+  plannerSuppressedPeriods?: string[]
+  plannerCoveredDebts?: { debtId: string; start: string; end: string }[]
   payroll?: import('./payroll').PayrollWeek[]
   cashAccounts?: import('./banking').BankAccount[]
   privacyLimited?: boolean
@@ -106,6 +131,10 @@ export type ForecastEvent = {
   amountCents: number | null
   direction: 'in' | 'out'
   kind:
+    | 'advance_receipt'
+    | 'advance_repayment'
+    | 'payroll_deduction'
+    | 'installment'
     | 'refund'
     | 'confirmed_income'
     | 'expected_income'
@@ -119,6 +148,7 @@ export type ForecastEvent = {
     | 'uncertain_payout'
   estimated: boolean
   classification?:
+    | 'borrowed_cash'
     | 'confirmed_cash'
     | 'documented_payroll'
     | 'payroll_forecast'
@@ -128,6 +158,7 @@ export type ForecastEvent = {
     | 'unknown'
   reference?: {
     type:
+      | 'planner'
       | 'income'
       | 'payroll'
       | 'bill'
@@ -151,6 +182,7 @@ export type ForecastEvent = {
   spendingCents?: number
 }
 export type ForecastReport = {
+  borrowedCents?: number
   smart?: {
     openingRequired: boolean
     openingEffectiveAt: string | null

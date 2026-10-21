@@ -1,3 +1,4 @@
+import { plannerCashFlow } from './planner-cash-flow'
 import { smartForecastInflows } from './smart-forecast-inflows'
 import { prepareSmartEvent, traceForecastEvent } from './smart-forecast-events'
 import { enrichSmartForecast } from './smart-forecast-report'
@@ -8,12 +9,16 @@ import type { ForecastInput, ForecastSources, ForecastEvent, ForecastReport } fr
 const addDays = (date: string, n: number) =>
   new Date(Date.parse(date + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10)
 export function forecast(s: ForecastSources, v: ForecastInput, today: string): ForecastReport {
+  const planning = v.smart && s.planner ? plannerCashFlow(s, v, today) : null
+  if (planning) s = planning.sources
   const events: ForecastEvent[] = [],
-    warnings: string[] = [],
+    warnings: string[] = planning?.warnings ?? [],
     seen = new Set<string>(),
     inside = (d: string) => d >= v.startDate && d <= v.endDate
   const add = (raw: ForecastEvent) => {
-    const e = v.smart ? prepareSmartEvent(traceForecastEvent(raw, s), v, warnings) : raw
+    const traced = v.smart ? traceForecastEvent(raw, s) : raw
+    const adjusted = planning ? planning.adjust(traced) : traced
+    const e = adjusted && v.smart ? prepareSmartEvent(adjusted, v, warnings) : adjusted
     if (!e) return
     if (inside(e.date) && !seen.has(e.id)) {
       seen.add(e.id)
@@ -21,6 +26,7 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
       if (e.amountCents === null) warnings.push(`Unknown amount: ${e.name} (${e.date})`)
     }
   }
+  for (const event of planning?.events ?? []) add(event)
   const months = [
     ...new Set(
       Array.from(
@@ -149,7 +155,7 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
   }
   const incomeCents = sumCents(
       events
-        .filter((e) => e.direction === 'in' && e.kind !== 'refund')
+        .filter((e) => e.direction === 'in' && !['refund', 'advance_receipt'].includes(e.kind))
         .map((e) => e.amountCents ?? 0),
     ),
     outflowCents = sumCents(
@@ -157,14 +163,18 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
         .filter((e) => e.direction === 'out' || e.kind === 'refund')
         .map((e) => (e.kind === 'refund' ? -1 : 1) * (e.amountCents ?? 0)),
     )
+  const borrowedCents = sumCents(
+    events.filter((e) => e.kind === 'advance_receipt').map((e) => e.amountCents ?? 0),
+  )
   const result: ForecastReport = {
+    ...(s.planner ? { borrowedCents } : {}),
     spendingCents: sumCents(events.map((e) => e.spendingCents ?? 0)),
     events,
     warnings: [...new Set(warnings)],
     days,
     incomeCents,
     outflowCents,
-    netChangeCents: sumCents([incomeCents, -outflowCents]),
+    netChangeCents: sumCents([incomeCents, borrowedCents, -outflowCents]),
     endingCents: days.at(-1)?.cashCents ?? null,
     lowestCents:
       incomplete || (v.smart ? !v.smart.opening : v.startingCents === null)

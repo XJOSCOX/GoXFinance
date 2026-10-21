@@ -66,6 +66,23 @@ export function validateOpeningCash(
         assetIds.add(a.assetId)
       }
     }
+    const selectedAccounts = opening.accounts.map((x) =>
+      eligible.find((a) => a.id === x.accountId)!,
+    )
+    const times = selectedAccounts.map((a) => Date.parse(a.balance!.observedAt))
+    if (times.length > 1 && Math.max(...times) - Math.min(...times) > 300000)
+      throw new FinancialError(
+        'Account balances have incompatible effective timestamps. Update them within five minutes of one another before combining cash.',
+        400,
+      )
+    const identities = selectedAccounts
+      .filter((a) => a.mask)
+      .map((a) => a.institution.toLowerCase() + ':' + a.mask)
+    if (new Set(identities).size !== identities.length)
+      throw new FinancialError(
+        'Selected accounts may represent the same institution account. Confirm nonoverlapping cash.',
+        400,
+      )
     if (selectedOpeningTotal(opening.accounts) !== opening.amountCents)
       throw new FinancialError('Opening cash must equal the selected available balances.', 400)
   }

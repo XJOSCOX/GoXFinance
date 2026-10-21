@@ -13,7 +13,15 @@ export function enrichSmartForecast(report: ForecastReport, v: ForecastInput): F
   const outBefore = report.events.filter(
       (e) =>
         e.direction === 'out' &&
-        ['bill', 'debt_repayment', 'pending', 'scheduled', 'settlement'].includes(e.kind) &&
+        [
+          'bill',
+          'debt_repayment',
+          'pending',
+          'scheduled',
+          'settlement',
+          'installment',
+          'advance_repayment',
+        ].includes(e.kind) &&
         (!next || e.date < next.date),
     ),
     before = sumCents(outBefore.map((e) => e.amountCents ?? 0)),

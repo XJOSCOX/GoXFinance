@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { forecast, localBillDate, type ForecastData, type ForecastInput } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { Button, Card } from '../../../components/ui'
@@ -72,6 +72,12 @@ export function ForecastPage() {
   return (
     <WorkspaceLayout title="Cash flow forecast">
       <header className="mb-4">
+        <Link
+          to={`/households/${home}/planner`}
+          className="float-right rounded-lg border border-white/10 px-3 py-2 text-sm"
+        >
+          Smart Planner
+        </Link>
         <h1 className="text-2xl font-semibold">Cash flow forecast</h1>
         <p className="mt-1 text-sm text-slate-400">
           Explore estimates without changing actual transactions. Starting cash is explicit, never

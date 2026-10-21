@@ -6,6 +6,8 @@ import { formatMoney } from '../../../lib/money'
 function sourceLink(home: string, event: ForecastEvent) {
   const ref = event.reference
   if (!ref || ref.type === 'scenario' || ref.type === 'refund') return null
+  if (ref.type === 'planner')
+    return `/households/${home}/planner?record=${encodeURIComponent(ref.id)}`
   const page = ['income', 'payroll'].includes(ref.type)
     ? 'income'
     : ['bill', 'bill_payment'].includes(ref.type)
