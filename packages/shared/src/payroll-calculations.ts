@@ -18,11 +18,30 @@ export function payrollSum(values: number[]) {
   )
 }
 export function payrollGross(h: WeeklyHoursInput) {
-  const regular = payrollRound(BigInt(h.regularHundredths) * BigInt(h.regularRateCents), 100n),
-    overtime = payrollRound(BigInt(h.overtimeHundredths) * BigInt(h.overtimeRateCents), 100n),
-    pto = payrollRound(BigInt(h.ptoHundredths) * BigInt(h.regularRateCents), 100n),
-    holiday = payrollRound(BigInt(h.holidayHundredths) * BigInt(h.regularRateCents), 100n),
-    other = payrollRound(BigInt(h.otherPaidHundredths) * BigInt(h.regularRateCents), 100n)
+  const required = (v: number | null) => {
+    if (v === null) throw new Error('A documented-only paycheck has no prior hours forecast')
+    return v
+  }
+  const regular = payrollRound(
+      BigInt(required(h.regularHundredths)) * BigInt(required(h.regularRateCents)),
+      100n,
+    ),
+    overtime = payrollRound(
+      BigInt(required(h.overtimeHundredths)) * BigInt(required(h.overtimeRateCents)),
+      100n,
+    ),
+    pto = payrollRound(
+      BigInt(required(h.ptoHundredths)) * BigInt(required(h.regularRateCents)),
+      100n,
+    ),
+    holiday = payrollRound(
+      BigInt(required(h.holidayHundredths)) * BigInt(required(h.regularRateCents)),
+      100n,
+    ),
+    other = payrollRound(
+      BigInt(required(h.otherPaidHundredths)) * BigInt(required(h.regularRateCents)),
+      100n,
+    )
   const earnings = [
     { code: 'regular', amountCents: regular },
     { code: 'overtime', amountCents: overtime },
@@ -38,13 +57,13 @@ export function payrollGross(h: WeeklyHoursInput) {
   return {
     grossCents,
     earnings,
-    workedHundredths: h.regularHundredths + h.overtimeHundredths,
+    workedHundredths: required(h.regularHundredths) + required(h.overtimeHundredths),
     paidHundredths:
-      h.regularHundredths +
-      h.overtimeHundredths +
-      h.ptoHundredths +
-      h.holidayHundredths +
-      h.otherPaidHundredths,
+      required(h.regularHundredths) +
+      required(h.overtimeHundredths) +
+      required(h.ptoHundredths) +
+      required(h.holidayHundredths) +
+      required(h.otherPaidHundredths),
   }
 }
 export function payrollReconciliation(s: PayrollStatement) {
@@ -76,6 +95,19 @@ export function payrollReconciliation(s: PayrollStatement) {
   }
   if (s.lines.some((l) => l.code === 'unknown' || l.treatment === 'unknown'))
     issues.push('Unrecognized classification or tax treatment requires review.')
+  for (const [label, reported, lines] of [
+    ['worked', s.reportedWorkedHundredths, earn.filter((l) => l.worked === true)],
+    ['paid', s.reportedPaidHundredths, earn.filter((l) => l.hoursHundredths !== null)],
+  ] as const) {
+    if (
+      reported !== null &&
+      reported !== undefined &&
+      lines.length &&
+      lines.every((l) => l.hoursHundredths !== null) &&
+      payrollSum(lines.map((l) => l.hoursHundredths!)) !== reported
+    )
+      issues.push(`Statement ${label} hours differ from extracted line hours.`)
+  }
   return issues
 }
 export function payrollForecast(

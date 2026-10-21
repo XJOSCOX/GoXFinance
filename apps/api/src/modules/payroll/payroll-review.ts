@@ -4,6 +4,7 @@ import {
   incomeTransactionSchema,
   payrollStatementSchema,
   payrollReconciliation,
+  payrollStatementHours,
   type IncomeTransactionInput,
   type IncomeSource,
   type PayrollWeek,
@@ -29,6 +30,7 @@ export function reviewPayroll(
   home: string,
   id: string,
   body: unknown,
+  upload?: { receivedAt: string; sourceConfirmed: boolean },
 ) {
   const { week, source, view } = access
   const p = z
@@ -47,8 +49,15 @@ export function reviewPayroll(
       s = source(user, home, w.sourceId, true),
       v = p.statement,
       issues = payrollReconciliation(v)
-    const expectedEmployer=JSON.parse(store.rawWeek(home,id)!.profileSnapshotJson).employer as string
-    if(!v.employer || v.employer.toLowerCase().trim()!==expectedEmployer.toLowerCase().trim())issues.push('Employer does not match the saved payroll profile. Confirm the source and acknowledge any legitimate name difference.')
+    const expectedEmployer = JSON.parse(store.rawWeek(home, id)!.profileSnapshotJson)
+      .employer as string
+    if (
+      !upload?.sourceConfirmed &&
+      (!v.employer || v.employer.toLowerCase().trim() !== expectedEmployer.toLowerCase().trim())
+    )
+      issues.push(
+        'Employer does not match the saved payroll profile. Confirm the source and acknowledge any legitimate name difference.',
+      )
     if (
       !v.periodStart ||
       !v.periodEnd ||
@@ -80,28 +89,23 @@ export function reviewPayroll(
           .transactions.find(
             (t) =>
               t.sourceId === s.id &&
-              t.workPeriodStart === v.periodStart &&
-              t.workPeriodEnd === v.periodEnd &&
+              ((t.workPeriodStart === v.periodStart && t.workPeriodEnd === v.periodEnd) ||
+                (!t.workPeriodStart && !t.workPeriodEnd && t.payDate === v.payDate)) &&
               t.status !== 'cancelled',
           )
+    const actualHours = payrollStatementHours(v),
+      regularHours = actualHours.regularHundredths ?? w.regularHundredths,
+      overtimeHours = actualHours.overtimeHundredths ?? w.overtimeHundredths
     const values: IncomeTransactionInput = incomeTransactionSchema.parse({
       sourceId: s.id,
       workPeriodStart: v.periodStart,
       workPeriodEnd: v.periodEnd,
-      regularHours: (
-        (v.lines.find((l) => l.side === 'earnings' && l.code === 'regular')?.hoursHundredths ??
-          w.regularHundredths) / 100
-      ).toFixed(2),
-      overtimeHours: (
-        (v.lines.find((l) => l.side === 'earnings' && l.code === 'overtime')?.hoursHundredths ??
-          w.overtimeHundredths) / 100
-      ).toFixed(2),
-      hourlyRateCents:
-        v.lines.find((l) => l.side === 'earnings' && l.code === 'regular')?.rateCents ??
-        w.regularRateCents,
+      regularHours: regularHours === null ? null : (regularHours / 100).toFixed(2),
+      overtimeHours: overtimeHours === null ? null : (overtimeHours / 100).toFixed(2),
+      hourlyRateCents: actualHours.regularRateCents ?? w.regularRateCents,
       overtimeMultiplier: old?.overtimeMultiplier ?? s.overtimeMultiplier,
-      expectedGrossCents: w.forecasts.at(-1)?.result.grossCents ?? null,
-      expectedNetCents: w.forecasts.at(-1)?.result.netCents ?? null,
+      expectedGrossCents: w.forecasts.at(-1)?.result.grossCents ?? old?.expectedGrossCents ?? null,
+      expectedNetCents: w.forecasts.at(-1)?.result.netCents ?? old?.expectedNetCents ?? null,
       actualGrossCents: v.grossCents,
       deductionsCents: v.deductionsCents,
       actualNetCents: old?.status === 'confirmed' ? old.actualNetCents : v.netCents,
@@ -126,6 +130,17 @@ export function reviewPayroll(
       now = new Date().toISOString(),
       statementId = randomUUID(),
       { lines, ...header } = v
+    const firstSeen = p.documentDigest
+      ? store
+          .history(home, s.id)
+          .filter(
+            (a) =>
+              a.action === 'upload_preview_received' &&
+              JSON.parse(a.afterJson).digest === p.documentDigest,
+          )
+          .map((a) => JSON.parse(a.afterJson).receivedAt as string)
+          .sort()[0]
+      : undefined
     store.insertStatement(
       {
         id: statementId,
@@ -152,7 +167,10 @@ export function reviewPayroll(
       incomeTransactionId: transaction.id,
       statementId,
       stage: transaction.status === 'confirmed' ? 'deposit_confirmed' : 'paystub_reviewed',
-      statementReceivedAt: w.statementReceivedAt ?? now,
+      statementReceivedAt:
+        [w.statementReceivedAt, upload?.receivedAt, firstSeen]
+          .filter((v): v is string => Boolean(v))
+          .sort()[0] ?? now,
       reviewedAt: now,
       revision: w.revision + 1,
       updatedAt: now,

@@ -1,4 +1,10 @@
-import { payrollMilestones, type PayrollWeek, type PayrollProfile } from '@goxfinance/shared'
+import {
+  payrollMilestones,
+  payrollStatementHours,
+  type PayrollWeek,
+  type PayrollProfile,
+  type IncomeTransaction,
+} from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function PayrollWeekCard({
@@ -10,6 +16,7 @@ export function PayrollWeekCard({
   confirm,
   pending,
   busy,
+  transaction,
 }: {
   week: PayrollWeek
   profile: PayrollProfile
@@ -19,9 +26,13 @@ export function PayrollWeekCard({
   confirm: () => void
   pending: () => void
   busy: boolean
+  transaction?: IncomeTransaction
 }) {
   const f = w.forecasts.at(-1),
-    milestones = payrollMilestones(w.workweekEnd, profile)
+    milestones = payrollMilestones(w.workweekEnd, profile),
+    actual = w.statement ? payrollStatementHours(w.statement) : null,
+    worked = actual?.workedHundredths ?? f?.result.workedHundredths,
+    paid = actual?.paidHundredths ?? f?.result.paidHundredths
   return (
     <Card className="p-4">
       <div className="flex flex-wrap justify-between gap-3">
@@ -35,10 +46,12 @@ export function PayrollWeekCard({
         </div>
         <div className="text-right">
           <p className="text-xs text-slate-400">
-            Estimated net · {f?.result.confidence ?? 'unknown'} confidence
+            {f
+              ? `Estimated net · ${f.result.confidence} confidence`
+              : 'Documented net · not deposit confirmation'}
           </p>
           <p className="text-xl font-semibold text-emerald-200">
-            {formatMoney(f?.result.netCents ?? null)}
+            {formatMoney(f ? f.result.netCents : (w.statement?.netCents ?? null))}
           </p>
         </div>
       </div>
@@ -46,15 +59,26 @@ export function PayrollWeekCard({
         <p>
           Worked{' '}
           <strong>
-            {(f?.result.workedHundredths ?? w.regularHundredths + w.overtimeHundredths) / 100} h
+            {worked === undefined || worked === null ? 'Unknown' : `${worked / 100} h`}
           </strong>{' '}
-          · Paid <strong>{(f?.result.paidHundredths ?? 0) / 100} h</strong>
+          · Paid{' '}
+          <strong>{paid === undefined || paid === null ? 'Unknown' : `${paid / 100} h`}</strong>
         </p>
         <p>
-          Forecast gross <strong>{formatMoney(f?.result.grossCents ?? null)}</strong>
+          {f ? 'Forecast gross' : 'Documented gross'}{' '}
+          <strong>
+            {formatMoney(f ? f.result.grossCents : (w.statement?.grossCents ?? null))}
+          </strong>
         </p>
         <p>
-          Documented net <strong>{formatMoney(w.statement?.netCents ?? null)}</strong>
+          {f ? 'Documented net' : 'Actual deposit'}{' '}
+          <strong>
+            {f
+              ? formatMoney(w.statement?.netCents ?? null)
+              : transaction?.status === 'confirmed'
+                ? formatMoney(transaction.actualNetCents)
+                : 'Not confirmed'}
+          </strong>
         </p>
       </div>
       {f?.result.range && (
@@ -72,6 +96,20 @@ export function PayrollWeekCard({
           Hours {milestones.hours} · Processing {milestones.processing} · Paystub{' '}
           {milestones.statement} · Usual deposit {milestones.deposit}. Exceptions use the expected
           date above.
+        </p>
+        {w.statement && (
+          <p className="mt-2 text-slate-400">
+            Statement pay date {w.statement.payDate} · Received{' '}
+            {w.statementReceivedAt ? new Date(w.statementReceivedAt).toLocaleString() : 'Unknown'}.{' '}
+            {w.statement.payDate !== w.expectedPayDate
+              ? 'Statement date differs from expected bank deposit.'
+              : ''}
+          </p>
+        )}
+        <p className="mt-2 text-slate-400">
+          Actual bank deposit{' '}
+          {transaction?.status === 'confirmed' ? transaction.depositDate : 'Not confirmed'}.{' '}
+          {!f ? 'No prior hours forecast was recorded.' : ''}
         </p>
         {f?.result.deductions.map((d) => (
           <div key={d.code} className="mt-2 flex justify-between gap-3">

@@ -1,4 +1,5 @@
 import { reviewPayroll } from './payroll-review'
+import { payrollUploadService } from './payroll-upload.service'
 import { recordPayrollForecast } from './payroll-forecast'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
@@ -46,7 +47,7 @@ export function payrollService(
     const s = source(user, home, w.sourceId)
     return { ...w, canManage: permissions.canManage(user, home, s.responsibleMemberId) }
   }
-  return {
+  const actions = {
     source,
     list(user: PublicUser, home: string) {
       const ctx = permissions.context(user, home),
@@ -90,6 +91,8 @@ export function payrollService(
         })
         .strict()
         .parse(body)
+      if (p.values.documentOnly)
+        throw new FinancialError('Upload documented hours through paycheck review', 400)
       return store.atomic(() => {
         source(user, home, p.values.sourceId, true)
         const old = id ? week(user, home, id, p.revision) : undefined
@@ -211,5 +214,7 @@ export function payrollService(
       return store.history(home, id)
     },
   }
+  const upload = payrollUploadService(store, income, actions)
+  return { ...actions, uploadPreview: upload.preview, uploadSave: upload.save }
 }
 export type PayrollService = ReturnType<typeof payrollService>

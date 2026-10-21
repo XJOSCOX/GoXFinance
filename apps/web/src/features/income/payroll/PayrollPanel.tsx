@@ -27,17 +27,19 @@ export function PayrollPanel({
   sources,
   transactions,
   changed,
+  preferredSourceId,
 }: {
   home: string
   sources: IncomeSource[]
   transactions: IncomeTransaction[]
   changed: () => void
+  preferredSourceId?: string
 }) {
   const notify = useNotify(),
     [data, setData] = useState<PayrollData>({ profiles: [], weeks: [], canManage: false }),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
-    [sourceId, setSourceId] = useState(''),
+    [sourceId, setSourceId] = useState(preferredSourceId ?? ''),
     [tab, setTab] = useState('weeks'),
     [settings, setSettings] = useState(false),
     [hours, setHours] = useState<PayrollWeek | null | undefined>(),
@@ -138,14 +140,15 @@ export function PayrollPanel({
             <>
               {!weeks.length && (
                 <Card className="p-5 text-sm text-slate-400">
-                  Report a workweek to save your first forecast, then upload or manually review its
-                  statement.
+                  Upload a paycheck from Income, or report hours to save a forecast before your
+                  statement arrives.
                 </Card>
               )}
               {weeks.map((w) => (
                 <PayrollWeekCard
                   key={w.id}
                   week={w}
+                  transaction={transactions.find((t) => t.id === w.incomeTransactionId)}
                   profile={profile}
                   busy={busy}
                   edit={() => setHours(w)}

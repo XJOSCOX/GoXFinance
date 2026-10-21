@@ -101,6 +101,30 @@ export function payrollRepository(db: DatabaseConnection) {
     profiles,
     weeks,
     statement,
+    aliases(home: string) {
+      return db
+        .select({ sourceId: s.payrollStatements.sourceId, header: s.payrollStatements.headerJson })
+        .from(s.payrollStatements)
+        .where(eq(s.payrollStatements.householdId, home))
+        .all()
+        .map((r) => ({
+          sourceId: r.sourceId,
+          ...(JSON.parse(r.header) as { employer: string | null; assignment: string | null }),
+        }))
+    },
+    importReplay(home: string, key: string) {
+      return db
+        .select()
+        .from(s.payrollAudit)
+        .where(
+          and(
+            eq(s.payrollAudit.householdId, home),
+            eq(s.payrollAudit.action, 'upload_import_saved'),
+          ),
+        )
+        .all()
+        .find((r) => JSON.parse(r.afterJson).idempotencyKey === key)
+    },
     atomic<T>(work: () => T) {
       return db.transaction(work, { behavior: 'immediate' })
     },

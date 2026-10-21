@@ -139,6 +139,14 @@ export function parsePayrollLayout(tokens: LayoutToken[]): {
             ? numeric[0]
             : undefined,
       ytdToken = ytdX !== null ? numeric.find((t) => t.x >= ytdX! - 8) : undefined
+    if (/^(total\s+)?worked hours\b/.test(low)) {
+      statement.reportedWorkedHundredths = money((currentToken ?? numeric[0])?.text)
+      continue
+    }
+    if (/^(total\s+)?paid hours\b/.test(low)) {
+      statement.reportedPaidHundredths = money((currentToken ?? numeric[0])?.text)
+      continue
+    }
     if (/^gross pay\b|^total gross\b/.test(low)) {
       statement.grossCents =
         money(currentToken?.text) ??

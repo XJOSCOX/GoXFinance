@@ -43,6 +43,22 @@ Startup creates and verifies the existing safety backup before pending migration
 
 ## Manual QA before stable release
 
+### Upload first
+
+Open Income → **Upload Paycheck**, select a PDF/PNG/JPG, and extract locally. No reported-hours record or dates are required before upload. A configured issuer, assignment or reviewed historical issuer alias can match a source; ambiguous matches require explicit selection. If the existing source has no payroll profile, confirm its suggested rates and weekly schedule once within the same review. No source is created silently.
+
+Review the compact earnings/tax/net summary; expand dates or line/YTD details for corrections. Missing dates/totals and uncertain classifications need review. **Save Paycheck** atomically creates or reuses a weekly record, appends a statement version, and creates/reuses one pending Income transaction. A distinct bank-deposit confirmation is still required. Document-only weeks have no invented prior forecast, and unavailable hours remain null. Changing actual statement amounts never replaces them with calculated earnings.
+
+The expected bank date comes from the payroll schedule, independently of the printed statement date. Existing expected-date exceptions and immutable forecasts remain intact. Preview receipts are scoped to the authenticated user/household, signed, and expire after 30 minutes or an API restart; upload again after expiry. Revision checks reject settings/weeks changed after extraction. Retrying the same confirmed submission key returns the same paycheck; a reused key with different contents is rejected. Duplicate document fingerprints direct users to the existing paycheck. New imports with the same period require a new review and create audited statement versions rather than a second week or ledger entry.
+
+This update needs no SQL migration: it uses the existing normalized tables and audit records, with backward-compatible nullable document-only hours in validated JSON snapshots. A preview persists only a fingerprint/first-seen receipt audit for authorized candidate sources, preserving the true forecast cutoff across cancelled or repeated previews. No week or Income transaction is created until confirmation. No original documents or raw text are retained.
+
+- Test upload without a week, automatic source matching, ambiguous source selection, and missing-date correction.
+- Confirm a Thursday expected bank date and Friday printed pay date remain distinct.
+- Confirm review does not increase confirmed cash; a repeated save must not create another Income transaction.
+- Import into a previously forecast week; verify forecasts stay unchanged and previously confirmed bank deposits remain untouched.
+- Retry after an API restart; the expired preview must request a new upload without losing persisted financial history.
+
 Use the isolated QA site at `http://localhost:1421` with synthetic or redacted documents. Do not import the private reference documents into a test fixture or commit any export.
 
 - Create a fictional employment source, confirm its payroll settings, report fractional/variable hours, PTO and overtime, and save/revise a draft.

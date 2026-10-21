@@ -82,14 +82,15 @@ export const weeklyHoursSchema = z
     workweekStart: z.iso.date(),
     workweekEnd: z.iso.date(),
     expectedPayDate: z.iso.date(),
-    regularHundredths: hours,
-    overtimeHundredths: hours,
-    ptoHundredths: hours,
-    holidayHundredths: hours,
-    otherPaidHundredths: hours,
+    documentOnly: z.boolean().optional(),
+    regularHundredths: hours.nullable(),
+    overtimeHundredths: hours.nullable(),
+    ptoHundredths: hours.nullable(),
+    holidayHundredths: hours.nullable(),
+    otherPaidHundredths: hours.nullable(),
     unpaidHundredths: hours.nullable(),
-    regularRateCents: money,
-    overtimeRateCents: money,
+    regularRateCents: money.nullable(),
+    overtimeRateCents: money.nullable(),
     bonusCents: cents,
     adjustmentCents: cents,
     otherEarningsCents: cents,
@@ -102,7 +103,20 @@ export const weeklyHoursSchema = z
         code: 'custom',
         message: 'A workweek must contain seven inclusive calendar dates',
       })
-    if (v.regularHundredths + v.overtimeHundredths > 16800)
+    if (
+      !v.documentOnly &&
+      [
+        v.regularHundredths,
+        v.overtimeHundredths,
+        v.ptoHundredths,
+        v.holidayHundredths,
+        v.otherPaidHundredths,
+        v.regularRateCents,
+        v.overtimeRateCents,
+      ].some((n) => n === null)
+    )
+      c.addIssue({ code: 'custom', message: 'Reported hours and rates must be entered explicitly' })
+    if ((v.regularHundredths ?? 0) + (v.overtimeHundredths ?? 0) > 16800)
       c.addIssue({ code: 'custom', message: 'Worked hours cannot exceed 168 per week' })
   })
 export const payrollLineSchema = z
@@ -132,6 +146,8 @@ export const payrollStatementSchema = z
     netCents: money.nullable(),
     lines: z.array(payrollLineSchema).max(150),
     acknowledgement: z.string().trim().max(2000).nullable(),
+    reportedWorkedHundredths: hours.nullable().optional(),
+    reportedPaidHundredths: hours.nullable().optional(),
   })
   .strict()
 export const payrollStages = [

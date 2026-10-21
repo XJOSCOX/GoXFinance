@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   bankDecimalCents,
   payrollStatementSchema,
@@ -8,28 +8,37 @@ import {
   type PayrollLine,
 } from '@goxfinance/shared'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
-import { AmountField, DateField } from '../../../components/financial/EntryFields'
+import { AmountField } from '../../../components/financial/EntryFields'
 import { Button, Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { formatMoney } from '../../../lib/money'
 import { PayrollLineFields } from './PayrollLineFields'
+import { PayrollReviewSummary } from './PayrollReviewSummary'
+import { PayrollStatementFields } from './PayrollStatementFields'
 export function PayrollReviewForm({
   week,
   initial,
   warnings,
   save,
   close,
+  children,
+  buildExtra,
+  onReviewChange,
 }: {
-  week: PayrollWeek
+  week?: PayrollWeek
   initial: PayrollStatement
   warnings: string[]
   save: (body: unknown) => Promise<void>
   close: () => void
+  children?: ReactNode
+  buildExtra?: (form: FormData) => unknown
+  onReviewChange?: (statement: PayrollStatement) => void
 }) {
   const [rows, setRows] = useState(
       initial.lines.map((line) => ({ key: crypto.randomUUID(), line })),
     ),
-    [issues, setIssues] = useState(payrollReconciliation(initial))
+    [issues, setIssues] = useState(payrollReconciliation(initial)),
+    [summary, setSummary] = useState(initial)
   const build = (f: FormData) => {
     const amount = (key: string) =>
       String(f.get(key) || '').trim() ? bankDecimalCents(String(f.get(key))) : null
@@ -62,25 +71,31 @@ export function PayrollReviewForm({
           confidence: f.get(prefix + 'confidence'),
         }
       }),
+      reportedWorkedHundredths: amount('reportedWorked'),
+      reportedPaidHundredths: amount('reportedPaid'),
     })
   }
   return (
     <FinancialEditor
-      title={week.statement ? 'Correct reviewed paystub' : 'Review extracted paystub'}
+      title={week?.statement ? 'Correct reviewed paystub' : 'Review paycheck'}
       reasonLabel="Review / correction note"
       record={week}
       close={close}
       save={save}
-      build={build}
-      submitLabel="Save reviewed statement (not received cash)"
+      build={(f) => (buildExtra ? { statement: build(f), extra: buildExtra(f) } : build(f))}
+      submitLabel={week ? 'Save reviewed statement (not received cash)' : 'Save Paycheck'}
     >
+      {children}
       <div
         className="space-y-4"
         onChange={(e) => {
           const form = e.currentTarget.closest('form')
           if (form)
             try {
-              setIssues(payrollReconciliation(build(new FormData(form))))
+              const value = build(new FormData(form))
+              setIssues(payrollReconciliation(value))
+              setSummary(value)
+              onReviewChange?.(value)
             } catch {
               setIssues(['Correct invalid amounts or dates before saving.'])
             }
@@ -99,96 +114,85 @@ export function PayrollReviewForm({
             {v}
           </p>
         ))}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Employer">
-            <Input name="employer" maxLength={160} defaultValue={initial.employer ?? ''} />
-          </FormField>
-          <FormField label="Assignment / client">
-            <Input name="assignment" maxLength={160} defaultValue={initial.assignment ?? ''} />
-          </FormField>
-          <DateField
-            label="Pay period begins"
-            name="periodStart"
-            value={initial.periodStart}
-            required
-          />
-          <DateField label="Pay period ends" name="periodEnd" value={initial.periodEnd} required />
-          <DateField label="Statement pay date" name="payDate" value={initial.payDate} required />
-          <AmountField
-            label="Statement gross ($)"
-            name="gross"
-            value={initial.grossCents}
-            required
-          />
-          <AmountField
-            label="Total employee deductions ($)"
-            name="deductions"
-            value={initial.deductionsCents}
-            required
-          />
-          <AmountField
-            label="Documented net pay ($)"
-            name="net"
-            value={initial.netCents}
-            required
-          />
-        </div>
-        <FormField label="How deductions are printed on this statement">
-          <Select name="deductionSign" defaultValue={initial.deductionSign ?? 'positive'}>
-            <option value="positive">Positive deduction amounts</option>
-            <option value="negative">Negative amounts that reduce pay</option>
-          </Select>
-        </FormField>
-        <p className="text-xs text-slate-400">
-          Extracted worked hours:{' '}
-          {initial.lines.some((l) => l.worked === true && l.hoursHundredths !== null)
-            ? initial.lines
-                .filter((l) => l.worked === true)
-                .reduce((n, l) => n + (l.hoursHundredths ?? 0), 0) / 100
-            : 'Unknown'}{' '}
-          · paid hours:{' '}
-          {initial.lines.some((l) => l.hoursHundredths !== null)
-            ? initial.lines
-                .filter((l) => l.side === 'earnings')
-                .reduce((n, l) => n + (l.hoursHundredths ?? 0), 0) / 100
-            : 'Unknown'}
-          . Verify line-level classifications below.
-        </p>
-        <h3 className="text-sm font-semibold">Exact payroll components</h3>
-        {rows.map(({ key, line }) => (
-          <PayrollLineFields
-            key={key}
-            line={line}
-            prefix={'line:' + key + ':'}
-            remove={() => setRows(rows.filter((r) => r.key !== key))}
-          />
-        ))}
-        <Button
-          type="button"
-          disabled={rows.length >= 150}
-          onClick={() =>
-            setRows([
-              ...rows,
-              {
-                key: crypto.randomUUID(),
-                line: {
-                  label: 'Other payroll component',
-                  side: 'deduction',
-                  code: 'unknown',
-                  treatment: 'unknown',
-                  currentCents: null,
-                  ytdCents: null,
-                  rateCents: null,
-                  hoursHundredths: null,
-                  worked: null,
-                  confidence: 'manual',
-                } satisfies PayrollLine,
-              },
-            ])
-          }
+        <PayrollReviewSummary statement={summary} />
+        <PayrollStatementFields initial={initial} />
+        <details
+          open={initial.lines.some(
+            (l) => l.code === 'unknown' || l.treatment === 'unknown' || l.confidence === 'low',
+          )}
         >
-          Add component
-        </Button>
+          <summary className="cursor-pointer text-sm font-medium">
+            Detailed lines, classifications & YTD
+          </summary>
+          <div className="my-3 grid gap-3 sm:grid-cols-2">
+            <AmountField
+              label="Printed worked hours (optional reconciliation check)"
+              name="reportedWorked"
+              value={initial.reportedWorkedHundredths}
+            />
+            <AmountField
+              label="Printed paid hours (optional reconciliation check)"
+              name="reportedPaid"
+              value={initial.reportedPaidHundredths}
+            />
+          </div>
+          <FormField label="How deductions are printed on this statement">
+            <Select name="deductionSign" defaultValue={initial.deductionSign ?? 'positive'}>
+              <option value="positive">Positive deduction amounts</option>
+              <option value="negative">Negative amounts that reduce pay</option>
+            </Select>
+          </FormField>
+          <p className="text-xs text-slate-400">
+            Extracted worked hours:{' '}
+            {initial.lines.some((l) => l.worked === true && l.hoursHundredths !== null)
+              ? initial.lines
+                  .filter((l) => l.worked === true)
+                  .reduce((n, l) => n + (l.hoursHundredths ?? 0), 0) / 100
+              : 'Unknown'}{' '}
+            · paid hours:{' '}
+            {initial.lines.some((l) => l.hoursHundredths !== null)
+              ? initial.lines
+                  .filter((l) => l.side === 'earnings')
+                  .reduce((n, l) => n + (l.hoursHundredths ?? 0), 0) / 100
+              : 'Unknown'}
+            . Verify line-level classifications below.
+          </p>
+          <h3 className="text-sm font-semibold">Exact payroll components</h3>
+          {rows.map(({ key, line }) => (
+            <PayrollLineFields
+              key={key}
+              line={line}
+              prefix={'line:' + key + ':'}
+              remove={() => setRows(rows.filter((r) => r.key !== key))}
+            />
+          ))}
+          <Button
+            type="button"
+            disabled={rows.length >= 150}
+            onClick={() =>
+              setRows([
+                ...rows,
+                {
+                  key: crypto.randomUUID(),
+                  line: {
+                    label: 'Other payroll component',
+                    side: 'deduction',
+                    code: 'unknown',
+                    treatment: 'unknown',
+                    currentCents: null,
+                    ytdCents: null,
+                    rateCents: null,
+                    hoursHundredths: null,
+                    worked: null,
+                    confidence: 'manual',
+                  } satisfies PayrollLine,
+                },
+              ])
+            }
+          >
+            Add component
+          </Button>
+        </details>
         {issues.length > 0 && (
           <div
             role="status"
@@ -199,18 +203,29 @@ export function PayrollReviewForm({
             ))}
           </div>
         )}
-        <FormField label="Discrepancy acknowledgement (required if issues remain)">
-          <Input
-            name="acknowledgement"
-            defaultValue={initial.acknowledgement ?? ''}
-            maxLength={2000}
-            placeholder="Explain the remaining discrepancy; missing tax amounts stay unknown"
-          />
-        </FormField>
-        <label className="flex gap-2 text-sm">
-          <input type="checkbox" required />I verified current amounts, YTD columns, dates and
-          classifications against my statement.
-        </label>
+        {issues.length > 0 ? (
+          <FormField label="Discrepancy acknowledgement (required if issues remain)">
+            <Input
+              name="acknowledgement"
+              defaultValue={initial.acknowledgement ?? ''}
+              maxLength={2000}
+              placeholder="Explain the remaining discrepancy; missing tax amounts stay unknown"
+            />
+          </FormField>
+        ) : (
+          <input type="hidden" name="acknowledgement" value={initial.acknowledgement ?? ''} />
+        )}
+        {week ? (
+          <label className="flex gap-2 text-sm">
+            <input type="checkbox" required />I verified current amounts, YTD columns, dates and
+            classifications against my statement.
+          </label>
+        ) : (
+          <p className="text-xs text-slate-400">
+            Save Paycheck confirms your review of these documented amounts. It does not confirm
+            money received.
+          </p>
+        )}
       </div>
     </FinancialEditor>
   )

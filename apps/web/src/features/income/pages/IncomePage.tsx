@@ -19,6 +19,7 @@ import { IncomeDetails } from '../components/IncomeDetails'
 import { IncomeSourceForm } from '../components/IncomeSourceForm'
 import { IncomeTransactionForm } from '../components/IncomeTransactionForm'
 import { PayrollPanel } from '../payroll/PayrollPanel'
+import { PayrollUploadFlow } from '../payroll/PayrollUploadFlow'
 export function IncomePage() {
   const { householdId = '' } = useParams(),
     { households, selected, select } = useHousehold(),
@@ -27,6 +28,9 @@ export function IncomePage() {
   const today = useIncomeToday()
   const home = households.find((v) => v.id === householdId),
     data = useIncome(householdId)
+  const [uploadPaycheck, setUploadPaycheck] = useState(false),
+    [payrollRefresh, setPayrollRefresh] = useState(0),
+    [payrollSource, setPayrollSource] = useState('')
   const [tab, setTab] = useState('overview'),
     [month, setMonth] = useState(localBillDate().slice(0, 7)),
     [member, setMember] = useState(''),
@@ -89,12 +93,18 @@ export function IncomePage() {
           </p>
         </div>
         {data.canCreate && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              disabled={data.loading}
+              onClick={() => setUploadPaycheck(true)}
+            >
+              Upload Paycheck
+            </Button>
             <Button disabled={data.loading} onClick={() => setSource(null)}>
               Add source
             </Button>
             <Button
-              variant="primary"
               disabled={data.loading || !editableSources.length}
               onClick={() => setPaycheck({})}
             >
@@ -178,6 +188,8 @@ export function IncomePage() {
           )}
           {tab === 'payroll' ? (
             <PayrollPanel
+              key={payrollRefresh}
+              preferredSourceId={payrollSource}
               home={householdId}
               sources={data.sources}
               transactions={data.transactions}
@@ -232,6 +244,20 @@ export function IncomePage() {
               'Income source saved',
             )
           }
+        />
+      )}
+      {uploadPaycheck && (
+        <PayrollUploadFlow
+          home={householdId}
+          sources={data.sources}
+          close={() => setUploadPaycheck(false)}
+          saved={(sourceId) => {
+            setUploadPaycheck(false)
+            data.refresh()
+            setPayrollRefresh((v) => v + 1)
+            setPayrollSource(sourceId)
+            setTab('payroll')
+          }}
         />
       )}
       {paycheck && (
