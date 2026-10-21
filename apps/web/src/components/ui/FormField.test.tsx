@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { afterEach, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MoneyField } from './FormField'
+import { FormField, MoneyField, Select } from './FormField'
 afterEach(cleanup)
 function Fixture() {
   const [value, setValue] = useState<number | null>(null)
@@ -26,4 +26,19 @@ it('keeps exact cents and invalid input visible instead of rounding excess decim
   fireEvent.change(input, { target: { value: '90071992547409.92' } })
   expect(input.validity.valid).toBe(false)
   expect(input.value).toBe('90071992547409.92')
+})
+
+it('gives dropdowns a stable field name without including option text', () => {
+  render(
+    <FormField label="Payment status">
+      <Select defaultValue="pending">
+        <option value="pending">Pending</option>
+        <option value="completed">Completed</option>
+      </Select>
+    </FormField>,
+  )
+  const field = screen.getByRole('combobox', { name: 'Payment status' })
+  expect(screen.getByLabelText('Payment status', { exact: true })).toBe(field)
+  fireEvent.change(field, { target: { value: 'completed' } })
+  expect(screen.getByRole('combobox', { name: 'Payment status' })).toBe(field)
 })

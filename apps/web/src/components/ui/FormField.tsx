@@ -1,5 +1,8 @@
 import { moneyText, parseMoney } from '../../lib/payment-money'
 import {
+  Children,
+  cloneElement,
+  isValidElement,
   useEffect,
   useRef,
   useState,
@@ -10,10 +13,19 @@ import {
 import { Input } from './index'
 
 export function FormField({ label, children }: { label: string; children: ReactNode }) {
+  const labelId = useId()
   return (
     <label className="grid min-w-0 gap-2 text-sm text-slate-300">
-      <span>{label}</span>
-      {children}
+      <span id={labelId}>{label}</span>
+      {Children.map(children, (child) => {
+        if (
+          !isValidElement<{ 'aria-labelledby'?: string; 'aria-label'?: string }>(child) ||
+          child.props['aria-label'] ||
+          child.props['aria-labelledby']
+        )
+          return child
+        return cloneElement(child, { 'aria-labelledby': labelId })
+      })}
     </label>
   )
 }
