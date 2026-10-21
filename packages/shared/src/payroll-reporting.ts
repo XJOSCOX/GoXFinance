@@ -1,5 +1,6 @@
 import { payrollSum, payrollRound } from './payroll-calculations'
 import type { PayrollWeek } from './payroll'
+import { payrollYtdLines } from './payroll-ytd'
 export function payrollTaxReport(weeks: PayrollWeek[]) {
   const rows = weeks
       .filter((w) => w.reviewedAt && w.statement)
@@ -21,9 +22,8 @@ export function payrollTaxReport(weeks: PayrollWeek[]) {
     const s = w.statement!,
       day = s.payDate!,
       year = day.slice(0, 4)
-    for (const l of s.lines) {
-      if (l.side === 'informational') continue
-      const key = [w.sourceId, year, l.side, l.code, l.label.toLowerCase()].join('|'),
+    for (const l of payrollYtdLines(s.lines)) {
+      const key = [w.sourceId, year, l.side, l.code, l.component].join('|'),
         previous = latest.get(key)
       if (l.ytdCents === null) warnings.push(`${day}: ${l.label} YTD is unknown.`)
       if (
@@ -44,6 +44,22 @@ export function payrollTaxReport(weeks: PayrollWeek[]) {
       })
     }
   }
+  const observations = [...latest.values()]
+  const latestYtd = observations.filter(
+    (r) =>
+      !/^FICA TAX$/i.test(r.label.trim()) ||
+      !['social_security', 'medicare'].every((code) =>
+        observations.some(
+          (v) =>
+            v.sourceId === r.sourceId &&
+            v.year === r.year &&
+            v.code === code &&
+            v.side === 'deduction' &&
+            v.amountCents !== null &&
+            v.payDate >= r.payDate,
+        ),
+      ),
+  )
   return {
     periods: rows.map((w) => ({
       weekId: w.id,
@@ -58,7 +74,7 @@ export function payrollTaxReport(weeks: PayrollWeek[]) {
       employeeWithholding: w.statement!.lines.filter((l) => l.side === 'deduction'),
       employerTaxes: w.statement!.lines.filter((l) => l.side === 'employer_tax'),
     })),
-    latestYtd: [...latest.values()],
+    latestYtd,
     warnings: [...new Set(warnings)],
     grossCents: payrollSum(rows.map((w) => w.statement!.grossCents ?? 0)),
     documentedNetCents: payrollSum(rows.map((w) => w.statement!.netCents ?? 0)),

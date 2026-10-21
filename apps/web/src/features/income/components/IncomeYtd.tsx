@@ -2,6 +2,8 @@ import { payrollTaxReport, type PayrollWeek, type IncomeSource } from '@goxfinan
 import { incomeDisplayDate } from './income-display'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { useState } from 'react'
+import { FormField, Select } from '../../../components/ui/FormField'
 export function IncomeYtd({
   weeks,
   year,
@@ -15,9 +17,19 @@ export function IncomeYtd({
   loading: boolean
   error: string
 }) {
-  const report = payrollTaxReport(weeks),
-    rows = report.latestYtd.filter((r) => r.year === year && r.side === 'deduction'),
-    earnings = report.latestYtd.filter((r) => r.year === year && r.side === 'earnings'),
+  const [selection, setSelection] = useState<string | null>(null)
+  const allowed = new Set(sources.map((s) => s.id)),
+    report = payrollTaxReport(weeks.filter((w) => allowed.has(w.sourceId))),
+    yearRows = report.latestYtd.filter((r) => r.year === year),
+    latestSource = [...yearRows].sort((a, b) => b.payDate.localeCompare(a.payDate))[0]?.sourceId,
+    selected =
+      selection === 'all' || sources.some((s) => s.id === selection)
+        ? selection!
+        : (latestSource ?? sources[0]?.id ?? 'all'),
+    visible = yearRows.filter((r) => selected === 'all' || r.sourceId === selected),
+    rows = visible.filter((r) => r.side === 'deduction' && r.amountCents !== null),
+    missing = visible.filter((r) => r.amountCents === null),
+    earnings = visible.filter((r) => r.side === 'earnings' && r.amountCents !== null),
     featured = rows.filter((r) =>
       ['federal', 'social_security', 'medicare', 'roth', 'traditional'].includes(r.code),
     ),
@@ -29,7 +41,7 @@ export function IncomeYtd({
           <div>
             <dt className="text-slate-300">{r.label}</dt>
             <dd className="mt-1 text-[11px] text-slate-500">
-              {sources.length > 1
+              {selected === 'all'
                 ? (sources.find((s) => s.id === r.sourceId)?.name ?? 'Employer') + ' / '
                 : ''}
               {incomeDisplayDate(r.payDate, false)}
@@ -46,6 +58,24 @@ export function IncomeYtd({
         <h2 className="font-semibold">Year to date</h2>
         <span className="text-xs text-slate-400">{year} YTD</span>
       </div>
+      {sources.length > 0 && (
+        <div className="mt-3">
+          <FormField label="YTD employer">
+            <Select
+              aria-label="YTD employer"
+              value={selected}
+              onChange={(e) => setSelection(e.target.value)}
+            >
+              {sources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.name}
+                </option>
+              ))}
+              <option value="all">All employers (separate records)</option>
+            </Select>
+          </FormField>
+        </div>
+      )}
       {loading ? (
         <p role="status" className="mt-4 text-sm text-slate-400">
           Loading statement details...
@@ -54,7 +84,7 @@ export function IncomeYtd({
         <p role="alert" className="mt-4 text-sm text-amber-200">
           Statement details unavailable. {error}
         </p>
-      ) : !rows.length && !earnings.length ? (
+      ) : !visible.length ? (
         <p className="mt-4 text-sm text-slate-400">
           Review a paystub to see reported withholding and retirement contributions.
         </p>
@@ -75,6 +105,14 @@ export function IncomeYtd({
                 Reported earnings ({earnings.length})
               </summary>
               {render(earnings)}
+            </details>
+          )}
+          {missing.length > 0 && (
+            <details className="mt-3 text-sm">
+              <summary className="cursor-pointer text-slate-400">
+                YTD not reported ({missing.length})
+              </summary>
+              {render(missing)}
             </details>
           )}
           <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
