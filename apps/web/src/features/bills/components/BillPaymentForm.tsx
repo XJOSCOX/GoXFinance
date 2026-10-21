@@ -5,6 +5,9 @@ import {
   debtPaymentStatusLabels,
   localBillDate,
   paymentMethodLabels,
+  billCarryForward,
+  billMonthlyCents,
+  type BillView,
   type BillPayment,
   type BillPaymentInput,
   type BillPeriodView,
@@ -21,6 +24,7 @@ import {
 } from '../../../components/payments/PaymentBreakdown'
 import { BillAmountSummary } from './BillAmountSummary'
 import { PaymentConfirmation } from '../../../components/payments/PaymentConfirmation'
+import { formatMoney } from '../../../lib/money'
 
 export function BillPaymentForm({
   period,
@@ -29,6 +33,8 @@ export function BillPaymentForm({
   close,
   allowCompleted = true,
   billRevision,
+  bill,
+  selectPeriod,
 }: {
   period: BillPeriodView
   payment?: BillPayment
@@ -36,6 +42,8 @@ export function BillPaymentForm({
   close: () => void
   allowCompleted?: boolean
   billRevision?: number
+  bill?: BillView
+  selectPeriod?: (id: string) => void
 }) {
   const [confirmBill, setConfirmBill] = useState(false)
   const [billedAmount, setBilledAmount] = useState(moneyText(period.amountCents))
@@ -80,6 +88,25 @@ export function BillPaymentForm({
       : payment || !allowCompleted
         ? ['scheduled', 'pending', 'failed']
         : ['scheduled', 'pending', 'completed', 'failed']
+  const today = localBillDate(),
+    carry = bill ? billCarryForward(bill, today) : null
+  let previewPayment: number | null = null
+  try {
+    previewPayment = parseMoney(amount)
+  } catch {
+    /* Keep invalid typed input for correction. */
+  }
+  const afterPayment =
+    actualAmount === null || previewPayment === null
+      ? null
+      : Math.max(
+          0,
+          actualAmount -
+            (period.paidCents ?? 0) -
+            (period.creditCents ?? 0) +
+            (payment?.status === 'completed' ? payment.amountCents : 0) -
+            previewPayment,
+        )
   return (
     <Modal
       title={payment ? 'Correct payment' : 'Record payment'}
@@ -128,6 +155,49 @@ export function BillPaymentForm({
         }}
       >
         <div className="min-h-0 space-y-5 overflow-y-auto p-5 sm:p-7">
+          {bill && (
+            <section className="space-y-3 rounded-xl border border-white/10 p-4 text-sm">
+              <p>
+                Usual monthly budget:{' '}
+                <strong>
+                  {formatMoney(
+                    billMonthlyCents(
+                      bill.amountType === 'variable' ? bill.estimatedAmountCents : bill.amountCents,
+                      bill.frequency,
+                    ),
+                  )}
+                </strong>
+              </p>
+              {carry && (
+                <p>
+                  Past due: <strong>{formatMoney(carry.past.amountCents)}</strong>
+                  {carry.past.estimated ? ' estimated' : ''} · Next payment including carry-forward:{' '}
+                  <strong>{formatMoney(carry.nextPayment.amountCents)}</strong>
+                  {carry.nextPayment.estimated ? ' estimated' : ''}
+                </p>
+              )}
+              {selectPeriod && (
+                <FormField label="Apply payment to billing period">
+                  <Select value={period.id} onChange={(e) => selectPeriod(e.target.value)}>
+                    {[...bill.periods]
+                      .filter((p) => p.paymentStatus !== 'cancelled')
+                      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.dueDate}
+                          {p.dueDate < today ? ' · Past due' : ' · Upcoming'} ·{' '}
+                          {formatMoney(p.remainingCents)} actual remaining
+                        </option>
+                      ))}
+                  </Select>
+                </FormField>
+              )}
+              <p className="text-xs text-slate-400">
+                Choose a period, then its full remaining balance or a partial amount below. Payments
+                are recorded against that period only; other unpaid periods remain owed.
+              </p>
+            </section>
+          )}
           <BillAmountSummary period={period} />
           {!payment && allowCompleted && billRevision !== undefined && (
             <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
@@ -142,7 +212,7 @@ export function BillPaymentForm({
                   Confirm the actual bill total for this period
                   <span className="mt-1 block text-xs text-slate-400">
                     Use the amount on your bill, even when you are only paying part of it. Your
-                    budget estimate stays unchanged.
+                    monthly estimate stays unchanged.
                   </span>
                 </span>
               </label>
@@ -169,7 +239,11 @@ export function BillPaymentForm({
             </p>
           )}
           <PaymentAmountSelector
-            options={billPaymentOptions(reviewedPeriod)}
+            options={billPaymentOptions(reviewedPeriod).map((option) =>
+              period.dueDate < today && option.id === 'remaining'
+                ? { ...option, label: option.label + ' — full past-due balance for this period' }
+                : option,
+            )}
             selected={selected}
             onSelect={(option) => {
               setSelected(option.id)
@@ -177,6 +251,15 @@ export function BillPaymentForm({
               setCleared(false)
             }}
           />
+          {afterPayment !== null && (
+            <p className="rounded-lg bg-white/[.03] p-3 text-sm">
+              If this payment completes, this period will have{' '}
+              <strong>{formatMoney(afterPayment)}</strong> remaining.{' '}
+              {status !== 'completed'
+                ? 'Pending or scheduled payments do not reduce the amount actually owed.'
+                : ''}
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Actual payment amount ($)">
               <Input

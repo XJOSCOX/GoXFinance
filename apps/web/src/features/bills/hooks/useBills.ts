@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { BillChangeRequest, BillView, Debt, HouseholdMember } from '@goxfinance/shared'
-import { errorMessage } from '../../../lib/api'
+import type {
+  BillChangeRequest,
+  BillView,
+  Debt,
+  HouseholdMember,
+  PlannerData,
+} from '@goxfinance/shared'
+import { apiRequest, errorMessage } from '../../../lib/api'
 import { listMembers } from '../../households/api/householdClient'
 import { listDebts } from '../../debts/api/debtClient'
 import { listBillRequests, listBills, refreshBills } from '../api/billClient'
@@ -11,22 +17,25 @@ export function useBills(householdId: string) {
     debts: Debt[]
     members: HouseholdMember[]
     requests: BillChangeRequest[]
-  }>({ bills: [], debts: [], members: [], requests: [] })
+    planner: PlannerData | null
+  }>({ bills: [], debts: [], members: [], requests: [], planner: null })
   const [error, setError] = useState(''),
     [loading, setLoading] = useState(true)
   const fetchData = useCallback(async () => {
     await refreshBills(householdId)
-    const [records, debtRecords, people, proposals] = await Promise.all([
+    const [records, debtRecords, people, proposals, planner] = await Promise.all([
       listBills(householdId),
       listDebts(householdId),
       listMembers(householdId),
       listBillRequests(householdId),
+      apiRequest<PlannerData>(`households/${householdId}/planner`),
     ])
     return {
       bills: records.bills,
       debts: debtRecords.debts,
       members: people.members,
       requests: proposals.requests,
+      planner,
     }
   }, [householdId])
   const refresh = useCallback(async () => {
@@ -37,7 +46,7 @@ export function useBills(householdId: string) {
     let active = true
     setLoading(true)
     setError('')
-    setData({ bills: [], debts: [], members: [], requests: [] })
+    setData({ bills: [], debts: [], members: [], requests: [], planner: null })
     void fetchData()
       .then((result) => {
         if (active) setData(result)

@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   calculateBillSummary,
-  localBillDate,
+  billPlanningTotals,
+  sumCents,
   type BillAction,
   type BillView,
 } from '@goxfinance/shared'
@@ -16,6 +17,7 @@ import { Select } from '../../../components/ui/FormField'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
 import { formatMoney } from '../../../lib/money'
 import { useNotify } from '../../../components/ui/useNotify'
+import { useLocalToday } from '../../../lib/useLocalToday'
 import { errorMessage } from '../../../lib/api'
 import { useHousehold } from '../../households/hooks/useHousehold'
 import { applyBillAction, createBill, requestBillAction } from '../api/billClient'
@@ -26,6 +28,7 @@ import { useBills } from '../hooks/useBills'
 import { BillApprovals } from '../components/BillApprovals'
 
 export function BillsPage() {
+  const today = useLocalToday()
   const { householdId = '' } = useParams(),
     { households, selected, select } = useHousehold(),
     household = households.find((item) => item.id === householdId),
@@ -33,6 +36,7 @@ export function BillsPage() {
   const {
     bills,
     debts,
+    planner,
     members,
     requests,
     error,
@@ -64,8 +68,9 @@ export function BillsPage() {
     }
     await load()
   }
-  const summary = calculateBillSummary(bills, debts, localBillDate()),
+  const summary = calculateBillSummary(bills, debts, today),
     detail = bills.find((item) => item.id === detailId)
+  const planningTotals = planner ? billPlanningTotals(planner, today) : null
   const visible = bills.filter(
     (item) =>
       item.kind === kind &&
@@ -103,31 +108,44 @@ export function BillsPage() {
           }}
         />
       </div>
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <SummaryStat
           label="Monthly bills"
           tone="info"
-          amount={formatMoney(summary.standaloneMonthlyCents)}
-          detail="Known / estimated, excludes linked debt"
+          amount={formatMoney(planningTotals?.monthlyBillsCents ?? null)}
+          detail="Recurring obligations, including saved variable estimates"
         />
         <SummaryStat
-          label="Bills + debt obligations"
+          label="Bills + confirmed debt plans"
           tone="info"
-          amount={formatMoney(summary.householdMonthlyObligationsCents)}
-          detail="Monthly equivalent; debt links counted once"
+          amount={formatMoney(planningTotals?.billsAndConfirmedPlansCents ?? null)}
+          detail="Monthly bill budget + confirmed debt plans due this month; links count once"
         />
         <SummaryStat
-          label="Actual remaining"
+          label="Bills remaining incl. estimates"
           tone="warning"
           amount={formatMoney(
-            summary.unknownPeriodCount && !summary.confirmedPeriodCount
-              ? null
-              : summary.outstandingCents,
+            planningTotals
+              ? sumCents([
+                  planningTotals.confirmedRemainingCents,
+                  planningTotals.estimatedRemainingCents,
+                ])
+              : null,
           )}
           detail={
-            summary.unknownPeriodCount
-              ? `${summary.unknownPeriodCount} bill totals unconfirmed; excluded`
-              : 'Generated periods with confirmed amounts'
+            planningTotals
+              ? `Due this month (${today.slice(0, 7)}) · ${formatMoney(planningTotals.confirmedRemainingCents)} actual + ${formatMoney(planningTotals.estimatedRemainingCents)} estimated${planningTotals.unknownCount ? ' · ' + planningTotals.unknownCount + ' unknown' : ''}`
+              : 'Loading bill estimates and actual amounts'
+          }
+        />
+        <SummaryStat
+          label="Upcoming month bills"
+          tone="info"
+          amount={formatMoney(planningTotals?.nextMonthBillsCents ?? null)}
+          detail={
+            planningTotals
+              ? `Due ${planningTotals.nextMonth} · includes saved estimates; excludes carry-forward${planningTotals.nextMonthUnknownCount ? ' · ' + planningTotals.nextMonthUnknownCount + ' unknown' : ''}`
+              : 'Loading upcoming bills'
           }
         />
         <SummaryStat

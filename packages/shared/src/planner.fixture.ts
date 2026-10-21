@@ -130,6 +130,20 @@ export function plannerFixture() {
     plannerRecord(fictionalAdvance(advance.id)),
     plannerRecord(
       plannerInputSchema.parse({
+        kind: 'debt_plan',
+        name: 'Fictional reviewed card payment',
+        target: { kind: 'debt', id: card.id },
+        mode: 'pay_by_date',
+        amountCents: 7500,
+        startDate: '2026-10-19',
+        deadline: '2026-10-27',
+        amountBasis: 'custom',
+        verification: { verified: false },
+        status: 'confirmed',
+      }),
+    ),
+    plannerRecord(
+      plannerInputSchema.parse({
         kind: 'preferences',
         name: 'Fictional groceries reserve',
         essentialReserveCents: 10000,

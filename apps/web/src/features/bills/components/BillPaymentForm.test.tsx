@@ -49,7 +49,7 @@ it('never fills a payment from an estimate and retains input after failed persis
   render(<BillPaymentForm period={period} save={save} close={close} />)
   const amount = screen.getByLabelText('Actual payment amount ($)') as HTMLInputElement
   expect(amount.value).toBe('')
-  expect(screen.getByText('Budget estimate')).toBeTruthy()
+  expect(screen.getByText('Monthly Estimate')).toBeTruthy()
   expect(screen.getByText('$300.00')).toBeTruthy()
   fireEvent.change(amount, { target: { value: '200' } })
   fireEvent.click(screen.getByRole('button', { name: 'Save pending payment' }))

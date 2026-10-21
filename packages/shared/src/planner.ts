@@ -45,6 +45,25 @@ export const plannerInputSchema = z
     z
       .object({
         ...common,
+        kind: z.literal('debt_plan'),
+        target: plannerTargetSchema,
+        mode: z.enum(['pay_by_date', 'linked_bill']),
+        amountCents: cents.nullable(),
+        startDate: z.iso.date(),
+        deadline: z.iso.date(),
+        billId: nullableId,
+        billUpdatedAt: z.string().nullable().default(null),
+        amountBasis: z.enum(['balance', 'settlement', 'custom']),
+        settlementId: nullableId,
+        settlementRevision: z.number().int().positive().nullable().default(null),
+        replaceOriginal: z.boolean().default(false),
+        verification: plannerVerificationSchema,
+        status: z.enum(['draft', 'confirmed', 'cancelled']),
+      })
+      .strict(),
+    z
+      .object({
+        ...common,
         kind: z.literal('priority'),
         target: plannerTargetSchema,
         priority: z.enum(plannerPriorities),
@@ -169,6 +188,19 @@ export const plannerInputSchema = z
   ])
   .superRefine((v, c) => {
     const issue = (message: string) => c.addIssue({ code: 'custom', message })
+    if (v.kind === 'debt_plan') {
+      if (v.target.kind !== 'debt') issue('Choose an existing debt for this payment goal.')
+      if (v.deadline < v.startDate) issue('Deadline cannot precede the plan start date.')
+      if (v.mode === 'linked_bill' && !v.billId) issue('Select the existing linked monthly bill.')
+      if (v.mode === 'pay_by_date' && v.status === 'confirmed' && !v.amountCents)
+        issue('Confirm a positive planned payment amount before including the goal.')
+      if (v.mode === 'pay_by_date' && v.billId)
+        issue('A dated payoff goal does not select a monthly bill.')
+      if (v.replaceOriginal && v.status === 'confirmed' && !v.verification.verified)
+        issue('Replacing the original schedule requires verified provider terms.')
+      if (v.amountBasis === 'settlement' && !v.settlementId)
+        issue('Record and select the settlement offer first.')
+    }
     if (
       'verification' in v &&
       v.verification.verified &&

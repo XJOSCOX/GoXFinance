@@ -108,9 +108,12 @@ export const forecastInputSchema = z
   })
 export type ForecastInput = z.infer<typeof forecastInputSchema>
 export type ForecastSources = {
+  plannerConfirmedDebtsOnly?: boolean
+  plannerUnconfirmedDebtIds?: string[]
   planner?: import('./planner').PlannerSources
   plannerSuppressedPeriods?: string[]
   plannerCoveredDebts?: { debtId: string; start: string; end: string }[]
+  plannerBillSchedules?: { debtId: string; start: string; end: string }[]
   payroll?: import('./payroll').PayrollWeek[]
   cashAccounts?: import('./banking').BankAccount[]
   privacyLimited?: boolean

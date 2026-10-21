@@ -16,13 +16,22 @@ export function SettlementForm({
   record,
   save,
   close,
+  initialDebtId,
 }: {
   data: PlanningData
   record?: SettlementOffer
   save: (v: unknown) => Promise<void>
   close: () => void
+  initialDebtId?: string
 }) {
-  const [debtId, setDebt] = useState(record?.debtId ?? data.editableDebtIds[0] ?? ''),
+  const [debtId, setDebt] = useState(
+      record?.debtId ??
+        (initialDebtId && data.editableDebtIds.includes(initialDebtId)
+          ? initialDebtId
+          : undefined) ??
+        data.editableDebtIds[0] ??
+        '',
+    ),
     [kind, setKind] = useState(record?.kind ?? 'lump_sum'),
     [schedule, setSchedule] = useState(
       record?.schedule ?? [
@@ -73,12 +82,23 @@ export function SettlementForm({
           </Select>
         </FormField>
         <FormField label="Creditor or agency">
-          <Input name="creditor" required defaultValue={record?.creditor ?? ''} />
+          <Input
+            key={debtId}
+            name="creditor"
+            required
+            defaultValue={
+              record?.creditor ?? data.debts.find((d) => d.id === debtId)?.creditorName ?? ''
+            }
+          />
         </FormField>
         <AmountField
           label="Balance at time of offer ($)"
           name="original"
-          value={record?.originalBalanceCents}
+          key={debtId}
+          value={
+            record?.originalBalanceCents ??
+            data.debts.find((d) => d.id === debtId)?.currentBalanceCents
+          }
         />
         <AmountField
           label="Total settlement obligation ($)"

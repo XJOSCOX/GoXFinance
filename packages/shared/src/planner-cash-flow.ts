@@ -9,16 +9,46 @@ import {
 } from './planner-payments'
 import { sumCents } from './outflows'
 import type { PlannerInput } from './planner'
+import { debtPlanProblem, debtPlanIds } from './debt-payment-plans'
 export function plannerCashFlow(s: ForecastSources, v: ForecastInput, today: string) {
   const records = s.planner?.records ?? [],
     warnings: string[] = [],
     events: ForecastEvent[] = [],
     covered: { debtId: string; start: string; end: string }[] = [],
-    periods: string[] = []
+    periods: string[] = [],
+    billSchedules: { debtId: string; start: string; end: string }[] = []
   const incomeDeductions = new Map<string, { amount: number; treatment: string }>()
+  const confirmedIds = new Set<string>(
+    s.offers.filter((o) => o.status === 'accepted' && o.writtenConfirmed).map((o) => o.debtId),
+  )
+  for (const r of records) {
+    const p = r.values
+    if (
+      (p.kind === 'debt_plan' && !debtPlanProblem(p, s, today)) ||
+      (p.kind === 'arrangement' && effectiveArrangement(p, today)) ||
+      (p.kind === 'advance' && activeAdvance(p))
+    )
+      if ('target' in p && p.target?.kind === 'debt') confirmedIds.add(p.target.id)
+  }
+  const unconfirmed = s.plannerConfirmedDebtsOnly
+    ? s.debts.filter((d) => !confirmedIds.has(d.id)).map((d) => d.id)
+    : []
+  if (unconfirmed.length)
+    warnings.push(
+      `${unconfirmed.length} debt accounts need payment-plan confirmation. Reported balances and unreviewed minimums are excluded; existing bills and recorded payments remain included.`,
+    )
   const add = (e: ForecastEvent) => events.push(e)
   for (const r of records) {
     const p = r.values
+    if (p.kind === 'debt_plan' && p.status === 'confirmed' && p.replaceOriginal) {
+      const problem = debtPlanProblem(p, s, today)
+      if (!problem)
+        for (const debtId of debtPlanIds(p, s)) {
+          const coverage = { debtId, start: p.startDate, end: p.deadline }
+          if (p.mode === 'linked_bill') billSchedules.push(coverage)
+          else covered.push(coverage)
+        }
+    }
     if (effectiveArrangement(p, today) && p.kind === 'arrangement') {
       if (
         p.target.kind === 'debt' &&
@@ -233,7 +263,13 @@ export function plannerCashFlow(s: ForecastSources, v: ForecastInput, today: str
       )
   }
   return {
-    sources: { ...s, plannerCoveredDebts: covered, plannerSuppressedPeriods: periods },
+    sources: {
+      ...s,
+      plannerUnconfirmedDebtIds: unconfirmed,
+      plannerCoveredDebts: covered,
+      plannerBillSchedules: billSchedules,
+      plannerSuppressedPeriods: periods,
+    },
     events,
     warnings,
     adjust(e: ForecastEvent): ForecastEvent | null {

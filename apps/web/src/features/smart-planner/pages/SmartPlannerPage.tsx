@@ -35,7 +35,9 @@ function Planner({ home }: { home: string }) {
     [error, setError] = useState(''),
     [reload, setReload] = useState(0),
     [days, setDays] = useState(30),
-    [view, setView] = useState(search.has('record') ? 'records' : 'plan'),
+    [view, setView] = useState(
+      search.has('record') || search.has('debtGoals') ? 'records' : 'plan',
+    ),
     [editor, setEditor] = useState<{
       kind: Exclude<PlannerInput['kind'], 'balance'>
       record?: PlannerRecord
@@ -334,6 +336,7 @@ function Planner({ home }: { home: string }) {
                     >
                       <option value="">Choose an action…</option>
                       <option value="priority">Set obligation priority</option>
+                      <option value="debt_plan">Confirm debt plan / payoff goal</option>
                       <option value="arrangement">Add split / BNPL arrangement</option>
                       <option value="advance">Track an existing cash advance</option>
                       <option value="allocation">Reserve money / link a goal</option>

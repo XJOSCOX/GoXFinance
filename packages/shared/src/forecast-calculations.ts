@@ -1,4 +1,5 @@
 import { plannerCashFlow } from './planner-cash-flow'
+import { addDebtPlanGoals } from './debt-payment-plans'
 import { smartForecastInflows } from './smart-forecast-inflows'
 import { prepareSmartEvent, traceForecastEvent } from './smart-forecast-events'
 import { enrichSmartForecast } from './smart-forecast-report'
@@ -88,6 +89,7 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
       estimated: true,
     })
   forecastObligations(s, v, today, months, add, warnings)
+  if (v.smart && s.planner) addDebtPlanGoals(s, v, today, events, warnings, add)
   if (v.variableSpendingCents) {
     const count = Math.round((Date.parse(v.endDate) - Date.parse(v.startDate)) / 86400000) + 1,
       base = Math.floor(v.variableSpendingCents / count),

@@ -18,6 +18,7 @@ import { readMoney, text } from '../../../lib/financial-entry'
 import { TargetField, AccountField, VerificationFields } from './PlannerFields'
 import { ArrangementFields } from './ArrangementFields'
 import { AdvanceFields } from './AdvanceFields'
+import { DebtPlanFields } from './DebtPlanFields'
 import { apiRequest } from '../../../lib/api'
 export function PlannerEditor({
   home,
@@ -50,6 +51,25 @@ export function PlannerEditor({
       common = { kind, name: text(f, 'name'), notes: text(f, 'notes') },
       verification = readVerification(f)
     let fields: unknown
+    if (kind === 'debt_plan') {
+      const bill = s.bills.find((b) => b.id === text(f, 'billId')),
+        offer = s.offers.find((o) => o.id === text(f, 'settlementId'))
+      fields = {
+        target,
+        mode: text(f, 'mode'),
+        amountCents: readMoney(f, 'debtPlanAmount'),
+        startDate: text(f, 'planStart'),
+        deadline: text(f, 'planDeadline'),
+        billId: bill?.id ?? null,
+        billUpdatedAt: bill?.updatedAt ?? null,
+        amountBasis: text(f, 'amountBasis') || 'custom',
+        settlementId: offer?.id ?? null,
+        settlementRevision: offer?.revision ?? null,
+        replaceOriginal: f.has('replaceOriginal'),
+        verification,
+        status: text(f, 'planStatus'),
+      }
+    }
     if (kind === 'priority')
       fields = {
         target,
@@ -145,6 +165,7 @@ export function PlannerEditor({
       title={
         (record ? 'Edit ' : 'Add ') +
         {
+          debt_plan: 'debt payment goal',
           priority: 'obligation priority',
           arrangement: 'payment arrangement',
           advance: 'cash advance',
@@ -184,7 +205,7 @@ export function PlannerEditor({
             placeholder="Short, recognizable name"
           />
         </FormField>
-        {kind !== 'preferences' && (
+        {kind !== 'preferences' && kind !== 'debt_plan' && (
           <TargetField
             sources={s}
             value={v && 'target' in v ? v.target : initial?.target}
@@ -199,6 +220,9 @@ export function PlannerEditor({
           />
         )}
       </div>
+      {kind === 'debt_plan' && (
+        <DebtPlanFields sources={s} value={v?.kind === 'debt_plan' ? v : undefined} />
+      )}
       {kind === 'priority' && (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -385,7 +409,7 @@ export function PlannerEditor({
           </p>
         </>
       )}
-      {['priority', 'arrangement', 'advance'].includes(kind) && (
+      {['priority', 'arrangement', 'advance', 'debt_plan'].includes(kind) && (
         <VerificationFields value={v && 'verification' in v ? v.verification : undefined} />
       )}
       <FormField label="Notes (optional)">

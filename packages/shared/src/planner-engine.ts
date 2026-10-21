@@ -18,7 +18,11 @@ export function smartPlanner(
   input: ForecastInput,
   today: string,
 ): PlannerReport {
-  const report = forecast(s, { ...input, includeSettlements: true }, today),
+  const report = forecast(
+      { ...s, plannerConfirmedDebtsOnly: true },
+      { ...input, includeSettlements: true },
+      today,
+    ),
     records = s.planner?.records ?? [],
     warnings = [...report.warnings]
   const prefs = records

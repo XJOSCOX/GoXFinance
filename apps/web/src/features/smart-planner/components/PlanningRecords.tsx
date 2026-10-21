@@ -5,6 +5,8 @@ import {
   plannerPaymentTotals,
   plannerInstallmentCents,
   advancePaymentLinks,
+  debtPlanProgress,
+  debtPlanProblem,
 } from '@goxfinance/shared'
 import { Button, Card, Input } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
@@ -180,6 +182,28 @@ function RecordDetails({
   sources: ForecastSources
   today: string
 }) {
+  if (v.kind === 'debt_plan') {
+    const progress = debtPlanProgress(v, sources, today),
+      problem = debtPlanProblem(v, sources, today)
+    return (
+      <div className="space-y-2 text-xs">
+        <p>
+          {v.status} · {v.mode === 'linked_bill' ? 'Existing monthly bill' : 'Pay by ' + v.deadline}{' '}
+          · {v.startDate}–{v.deadline}
+        </p>
+        <p>
+          Target {formatMoney(v.amountCents)} · actually paid {formatMoney(progress.paidCents)} ·
+          remaining goal {formatMoney(progress.remainingCents)}
+        </p>
+        <p>
+          {v.replaceOriginal
+            ? 'Provider-confirmed replacement schedule'
+            : 'Personal target; contractual obligations remain unchanged'}
+        </p>
+        {problem && <p className="text-amber-200">{problem}</p>}
+      </div>
+    )
+  }
   if (v.kind === 'arrangement')
     return (
       <div className="space-y-2 text-xs">

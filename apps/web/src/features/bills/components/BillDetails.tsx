@@ -27,7 +27,9 @@ export function BillDetails({
 }) {
   const today = useLocalToday()
   const [periodId, setPeriodId] = useState(
-    bill.periods.find((item) => !['paid', 'credited', 'overpaid'].includes(item.paymentStatus))
+    [...bill.periods]
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+      .find((item) => !['paid', 'credited', 'overpaid', 'cancelled'].includes(item.paymentStatus))
       ?.id ??
       bill.periods[0]?.id ??
       '',
@@ -197,6 +199,9 @@ export function BillDetails({
             </section>
             {payment !== undefined && (
               <BillPaymentForm
+                key={payment?.id ?? period.id}
+                bill={bill}
+                selectPeriod={payment ? undefined : setPeriodId}
                 period={period}
                 billRevision={bill.revision}
                 allowCompleted={!bill.requiresApproval}
@@ -240,7 +245,7 @@ export function BillDetails({
               {formatMoney(average.averageCents)} · {average.sampleCount} completed periods
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              Separate from your budget estimate. Only periods with actual amounts are included.
+              Separate from your monthly estimate. Only periods with actual amounts are included.
             </p>
             {bill.canManage && average.averageCents !== null && (
               <Button

@@ -2,9 +2,10 @@ import type { BillPeriodView } from '@goxfinance/shared'
 import { formatMoney } from '../../../lib/money'
 
 export function BillAmountSummary({ period }: { period: BillPeriodView }) {
+  const estimate = period.budgetEstimateCents ?? period.estimatedAmountCents
   const amounts = [
     [
-      'Budget estimate',
+      'Monthly Estimate',
       period.budgetEstimateCents ?? period.estimatedAmountCents,
       'For planning only',
     ],
@@ -31,9 +32,16 @@ export function BillAmountSummary({ period }: { period: BillPeriodView }) {
           </div>
         ))}
       </dl>
+      {period.amountCents === null && estimate !== null && (
+        <p className="text-xs text-sky-200">
+          Estimated remaining:{' '}
+          {formatMoney(Math.max(0, estimate - (period.paidCents ?? 0) - (period.creditCents ?? 0)))}
+          . The recurring obligation is included in planning; enter the actual bill when available.
+        </p>
+      )}
       {(period.creditCents > 0 || period.overpaidCents > 0) && (
         <p className="border-t border-white/10 pt-3 text-xs text-slate-400">
-          Credits: {formatMoney(period.creditCents)} � Overpayment:{' '}
+          Credits: {formatMoney(period.creditCents)} · Overpayment:{' '}
           {formatMoney(period.overpaidCents)}
         </p>
       )}

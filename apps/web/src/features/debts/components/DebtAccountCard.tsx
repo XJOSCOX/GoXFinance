@@ -8,6 +8,7 @@ import {
 } from '@goxfinance/shared'
 import { Button } from '../../../components/ui'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { Link } from 'react-router-dom'
 
 export function DebtAccountCard({
   debt,
@@ -96,6 +97,20 @@ export function DebtAccountCard({
               <MoreHorizontal size={17} />
             </summary>
             <div className="absolute right-0 top-10 z-20 min-w-40 rounded-lg border border-white/10 bg-[#252825] p-1 shadow-xl">
+              {canEdit && !requestMode && (
+                <Link
+                  className="block rounded-md px-3 py-2 text-sm hover:bg-white/5"
+                  to={`/households/${debt.householdId}/debt-planning?settlementDebt=${debt.id}`}
+                >
+                  Record settlement
+                </Link>
+              )}
+              <Link
+                className="block rounded-md px-3 py-2 text-sm hover:bg-white/5"
+                to={`/households/${debt.householdId}/goals`}
+              >
+                Plan payment / due-date goal
+              </Link>
               {canEdit && (
                 <Button
                   size="small"

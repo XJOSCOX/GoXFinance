@@ -4,6 +4,8 @@ import {
   plannerInstallmentCents,
   effectiveArrangement,
   activeAdvance,
+  debtPlanIds,
+  debtPlanProblem,
   type PlannerInput,
   type PlannerRecord,
   type ForecastSources,
@@ -36,6 +38,57 @@ export function validatePlanner(
     Date.parse(v.verification.verifiedAt) > Date.now()
   )
     fail('Verification cannot be in the future.')
+  if (v.kind === 'debt_plan') {
+    const debt = s.debts.find((d) => d.id === v.target.id)
+    if (!debt || debt.isArchived) fail('Choose an active debt in this household.')
+    if (v.billId) {
+      const bill = s.bills.find((b) => b.id === v.billId)
+      if (!bill || bill.linkedDebtId !== v.target.id)
+        fail('Choose the existing bill linked to this debt.')
+    }
+    if (v.settlementId) {
+      const offer = s.offers.find((o) => o.id === v.settlementId)
+      if (!offer || offer.debtId !== v.target.id) fail('Choose a settlement for this debt.')
+      if (offer && (v.amountCents !== offer.amountCents || v.startDate !== offer.offerDate))
+        fail('Use the settlement total and offer date so existing linked payments count once.')
+      if (offer && v.replaceOriginal && offer.schedule.some((i) => i.dueDate < v.deadline))
+        fail(
+          'A personal goal cannot postpone an agreed settlement deadline. Use its existing installment schedule.',
+        )
+    }
+    if (v.status === 'confirmed') {
+      const problem = debtPlanProblem(v, s, today)
+      if (problem) fail(problem)
+      const ids = debtPlanIds(v, s)
+      if (
+        other.some(
+          (r) =>
+            r.values.kind === 'debt_plan' &&
+            r.values.status === 'confirmed' &&
+            ids.includes(r.values.target.id),
+        )
+      )
+        fail('This debt already has a confirmed plan. Edit or cancel it first.')
+      if (
+        other.some(
+          (r) =>
+            ((r.values.kind === 'advance' && activeAdvance(r.values)) ||
+              (r.values.kind === 'arrangement' && effectiveArrangement(r.values, today))) &&
+            'target' in r.values &&
+            r.values.target &&
+            ids.includes(r.values.target.id),
+        )
+      )
+        fail(
+          'Review the existing advance or installment arrangement instead of adding overlapping debt terms.',
+        )
+      if (v.mode === 'linked_bill' && !v.replaceOriginal)
+        fail('Confirm provider-approved monthly terms before using the bill as the debt schedule.')
+      if (v.replaceOriginal && v.startDate > today)
+        fail('Replacement terms must already be effective. Save future terms as a draft.')
+    }
+    return
+  }
   if (v.kind === 'preferences' && other.some((r) => r.values.kind === 'preferences'))
     fail('Edit the existing household preferences.')
   if (
@@ -75,6 +128,18 @@ export function validatePlanner(
   const debt = v.target.kind === 'debt' ? s.debts.find((d) => d.id === v.target.id) : null
   if (debt?.isArchived) fail('Restore the debt before adding an active arrangement.')
   const active = v.kind === 'arrangement' ? effectiveArrangement(v, today) : activeAdvance(v)
+  if (
+    active &&
+    other.some(
+      (r) =>
+        r.values.kind === 'debt_plan' &&
+        r.values.status === 'confirmed' &&
+        debtPlanIds(r.values, s).includes(v.target.id),
+    )
+  )
+    fail(
+      'A confirmed debt payment plan already exists. Review or cancel it before adding overlapping repayment terms.',
+    )
   if (
     active &&
     other.some((r) => {

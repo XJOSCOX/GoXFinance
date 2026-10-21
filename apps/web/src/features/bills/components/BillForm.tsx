@@ -145,7 +145,7 @@ export function BillForm({
                 />
               ) : (
                 <MoneyField
-                  label="Budget estimate ($)"
+                  label="Monthly Estimate ($)"
                   value={value.estimatedAmountCents}
                   onChange={(amount) => update('estimatedAmountCents', amount)}
                 />

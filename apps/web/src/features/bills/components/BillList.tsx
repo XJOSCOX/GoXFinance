@@ -1,5 +1,10 @@
 import { CalendarDays, Link2, MoreHorizontal, ReceiptText } from 'lucide-react'
-import type { BillView, FinancialCategory } from '@goxfinance/shared'
+import {
+  billRegisterAmounts,
+  billCarryForward,
+  type BillView,
+  type FinancialCategory,
+} from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
@@ -7,8 +12,14 @@ import { toneStyles } from '../../../components/ui/semantic-tones'
 import { billPeriodStatus } from '../bill-status'
 import { useLocalToday } from '../../../lib/useLocalToday'
 
-const columns = 'xl:grid-cols-[minmax(12rem,1.2fr)_minmax(0,2fr)_13rem]'
-const labels = ['Budget estimate', 'Confirmed bill', 'Paid', 'Still owed']
+const columns = 'xl:grid-cols-[minmax(11rem,1fr)_minmax(0,2.6fr)_12rem]'
+const labels = [
+  'Monthly Estimate',
+  'Confirmed this month',
+  'Paid this month',
+  'Past due / still owed',
+  'Next month',
+]
 type Props = {
   bills: BillView[]
   categories: FinancialCategory[]
@@ -25,7 +36,9 @@ export function BillList({ bills, categories, ...actions }: Props) {
         <h2 className="text-sm font-semibold">
           Your bills <span className="ml-2 text-xs font-normal text-slate-500">{bills.length}</span>
         </h2>
-        <p className="text-xs text-slate-500">Amounts shown per billing period</p>
+        <p className="text-xs text-slate-500">
+          This month’s bills and payments · overdue balances separate
+        </p>
       </div>
       {!bills.length ? (
         <Card className="p-10 text-center">
@@ -40,7 +53,7 @@ export function BillList({ bills, categories, ...actions }: Props) {
             className={`hidden items-center gap-6 border-b border-white/[.07] bg-white/[.02] px-5 py-3 text-[11px] text-slate-500 xl:grid ${columns}`}
           >
             <span>Bill / due date</span>
-            <div className="grid grid-cols-4 gap-3 text-right">
+            <div className="grid grid-cols-5 gap-3 text-right">
               {labels.map((label) => (
                 <span key={label}>{label}</span>
               ))}
@@ -80,14 +93,15 @@ function BillListItem({
     (period) => !['paid', 'credited', 'overpaid', 'cancelled'].includes(period.paymentStatus),
   )
   const period = outstanding ?? periods.at(-1)
-  const amounts = period
-    ? [
-        period.budgetEstimateCents ?? period.estimatedAmountCents,
-        period.amountCents,
-        period.paidCents,
-        period.remainingCents,
-      ]
-    : [null, null, null, null]
+  const register = billRegisterAmounts(bill, today),
+    carry = billCarryForward(bill, today)
+  const amounts = [
+    register.monthlyCents,
+    register.confirmedCents,
+    register.paidCents,
+    register.pastDue.amountCents,
+    register.nextMonth.totalCents,
+  ]
   const status = period ? billPeriodStatus(period, today) : null
   return (
     <article
@@ -123,6 +137,14 @@ function BillListItem({
             </span>
           )}
         </p>
+        {carry.past.amountCents > 0 && carry.nextDate && (
+          <p className="mt-2 text-xs text-amber-200">
+            Next payment {carry.nextPayment.estimated ? 'estimate ' : ''}
+            {formatMoney(carry.nextPayment.amountCents)} by {carry.nextDate} · includes{' '}
+            {formatMoney(carry.past.amountCents)} carried forward
+            {carry.nextPayment.unknownCount ? ' · some amounts unknown' : ''}
+          </p>
+        )}
         <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
           <CalendarDays size={12} aria-hidden="true" />
           {period
@@ -130,14 +152,55 @@ function BillListItem({
             : 'No billing periods yet'}
         </p>
       </div>
-      <dl className="grid grid-cols-2 gap-x-5 gap-y-3 rounded-lg border border-white/[.06] bg-black/10 p-3 sm:grid-cols-4 xl:gap-3 xl:border-0 xl:bg-transparent xl:p-0 xl:text-right">
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-3 rounded-lg border border-white/[.06] bg-black/10 p-3 sm:grid-cols-3 xl:grid-cols-5 xl:gap-3 xl:border-0 xl:bg-transparent xl:p-0 xl:text-right">
         {labels.map((label, index) => (
           <div key={label} className="min-w-0">
             <dt className="text-[11px] text-slate-500 xl:sr-only">{label}</dt>
             <dd
-              className={`mt-1 tabular-nums xl:mt-0 ${index === 3 ? `font-semibold ${period?.overdue ? toneStyles.negative.text : toneStyles.warning.text}` : index === 2 ? `text-sm ${toneStyles.positive.text}` : index === 0 ? `text-sm ${toneStyles.info.text}` : 'text-sm text-slate-300'}`}
+              className={`mt-1 tabular-nums xl:mt-0 ${index === 3 ? `font-semibold ${register.pastDue.amountCents > 0 ? toneStyles.negative.text : 'text-slate-300'}` : index === 2 ? `text-sm ${toneStyles.positive.text}` : index === 0 ? `text-sm ${toneStyles.info.text}` : 'text-sm text-slate-300'}`}
             >
-              {formatMoney(amounts[index])}
+              {index === 1 && !register.currentCount
+                ? 'Not due this month'
+                : index === 1 && register.confirmedCents === null
+                  ? 'Not confirmed'
+                  : formatMoney(amounts[index])}
+              {index === 0 && (
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  {bill.amountType === 'fixed' ? 'Fixed amount' : 'Usage estimate'}
+                </span>
+              )}
+              {index === 1 &&
+                register.confirmedCents !== null &&
+                register.unknownCurrentCount > 0 && (
+                  <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                    Some periods not confirmed
+                  </span>
+                )}
+              {index === 2 && register.remainingCents !== null && (
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  {formatMoney(register.remainingCents)} left this month
+                </span>
+              )}
+              {index === 3 && register.pastDue.estimated && (
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  Estimated arrears · actual bill not yet entered
+                </span>
+              )}
+              {index === 3 && register.pastDue.unknownCount > 0 && (
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  Some overdue amounts unknown
+                </span>
+              )}
+              {index === 4 && (
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  {register.nextMonth.month} · {formatMoney(register.nextMonth.due.amountCents)} due
+                  + {formatMoney(register.nextMonth.carried.amountCents)} carried forward if unpaid
+                  {register.nextMonth.unknownCount ? ' · some amounts unknown' : ''}
+                  {register.nextMonth.due.estimated || register.nextMonth.carried.estimated
+                    ? ' · estimated'
+                    : ' · projected'}
+                </span>
+              )}
             </dd>
           </div>
         ))}

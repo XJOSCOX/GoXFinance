@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import type { SettlementOffer, PayoffScenarioInput } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { Button, Card } from '../../../components/ui'
@@ -11,10 +11,13 @@ import { PayoffPlanner } from '../components/PayoffPlanner'
 import { SettlementList } from '../components/SettlementList'
 import { SettlementForm } from '../components/SettlementForm'
 export function DebtPlanningPage() {
+  const [search] = useSearchParams()
   const { householdId: home = '' } = useParams(),
     { data, error, refresh } = usePlanning(home),
-    [tab, setTab] = useState('payoff'),
-    [editor, setEditor] = useState<SettlementOffer | null | undefined>(undefined),
+    [tab, setTab] = useState(search.has('settlementDebt') ? 'settlements' : 'payoff'),
+    [editor, setEditor] = useState<SettlementOffer | null | undefined>(
+      search.has('settlementDebt') ? null : undefined,
+    ),
     [audit, setAudit] = useState(''),
     [history, setHistory] = useState(''),
     key = useRef(crypto.randomUUID()),
@@ -83,6 +86,7 @@ export function DebtPlanningPage() {
           )}
           {editor !== undefined && (
             <SettlementForm
+              initialDebtId={search.get('settlementDebt') ?? undefined}
               data={data}
               record={editor ?? undefined}
               close={() => setEditor(undefined)}

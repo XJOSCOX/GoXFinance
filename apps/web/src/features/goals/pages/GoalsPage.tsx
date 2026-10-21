@@ -14,6 +14,7 @@ import { saveGoal, saveGoalBatch } from '../api/goalClient'
 import { GoalForm } from '../components/GoalForm'
 import { ContributionForm } from '../components/ContributionForm'
 import { GoalCard } from '../components/GoalCard'
+import { DebtPaymentGoals } from '../components/DebtPaymentGoals'
 export function GoalsPage() {
   const { householdId: home = '' } = useParams(),
     { data, error, refresh } = useGoals(home),
@@ -77,6 +78,7 @@ export function GoalsPage() {
           </Button>
         )}
       </header>
+      <DebtPaymentGoals key={home} home={home} />
       {(error || trading.error) && (
         <p role="alert" className="mb-4 text-sm text-rose-300">
           {error || trading.error}

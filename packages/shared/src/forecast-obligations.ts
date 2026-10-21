@@ -14,6 +14,8 @@ export function forecastObligations(
   const plannedDate = (date: string) => (v.smart && date < v.startDate ? v.startDate : date)
   const plannerCovered = (id: string, date: string) =>
     (s.plannerCoveredDebts ?? []).some((c) => c.debtId === id && date >= c.start && date <= c.end)
+  const confirmedBillSchedule = (id: string, date: string) =>
+    (s.plannerBillSchedules ?? []).some((c) => c.debtId === id && date >= c.start && date <= c.end)
   const debtGroups = debtObligationGroups(s.debts),
     groupId = (id: string) => debtGroups.find((g) => g.some((d) => d.id === id))?.[0].id ?? id
   const commitments = new Map<
@@ -72,8 +74,11 @@ export function forecastObligations(
       const pastDue = Math.max(...group.map((r) => r.pastDueAmountCents ?? 0))
       if (
         pastDue > 0 &&
+        !group.every((d) => s.plannerUnconfirmedDebtIds?.includes(d.id)) &&
         d.currentBalanceCents !== 0 &&
-        !group.some((d) => plannerCovered(d.id, v.startDate))
+        !group.some(
+          (d) => plannerCovered(d.id, v.startDate) || confirmedBillSchedule(d.id, v.startDate),
+        )
       ) {
         requireDebt(d.id, v.startDate, pastDue, d.accountNickname || d.creditorName)
         warnings.push(
@@ -84,6 +89,7 @@ export function forecastObligations(
   for (const month of months)
     for (const group of debtGroups) {
       const d = representativeDebtBalance(group)
+      if (group.every((d) => s.plannerUnconfirmedDebtIds?.includes(d.id))) continue
       if (d.currentBalanceCents === 0) continue
       const day = d.dueDay ?? (d.nextDueDate ? Number(d.nextDueDate.slice(-2)) : null)
       if (group.every((r) => r.minimumPaymentCents === null))
@@ -105,7 +111,14 @@ export function forecastObligations(
       const amount = group.some((r) => r.minimumPaymentCents !== null)
         ? Math.max(...group.map((r) => r.minimumPaymentCents ?? 0))
         : null
-      if (group.some((d) => plannerCovered(d.id, plannedDate(date)))) continue
+      if (
+        group.some(
+          (d) =>
+            plannerCovered(d.id, plannedDate(date)) ||
+            confirmedBillSchedule(d.id, plannedDate(date)),
+        )
+      )
+        continue
       requireDebt(
         d.id,
         plannedDate(date),
@@ -247,6 +260,8 @@ export function forecastObligations(
   if (v.includeSettlements)
     for (const offer of s.offers.filter((o) => o.status === 'accepted'))
       for (const item of offer.schedule) {
+        if (plannerCovered(offer.debtId, item.dueDate < v.startDate ? v.startDate : item.dueDate))
+          continue
         const p = s.payments.find((p) => p.id === item.paymentId)
         const paid =
           p?.paymentStatus === 'completed' && p.paymentDate <= today ? paymentNetCents(p, today) : 0

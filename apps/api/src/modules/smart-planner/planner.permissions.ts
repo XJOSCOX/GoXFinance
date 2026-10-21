@@ -56,6 +56,12 @@ export function plannerPermissions(access: FinancialAccess) {
         return false
       if (v.kind === 'allocation' && v.goalId && !s.planner?.goals?.some((g) => g.id === v.goalId))
         return false
+      if (
+        v.kind === 'debt_plan' &&
+        ((v.billId && !s.bills.some((b) => b.id === v.billId)) ||
+          (v.settlementId && !s.offers.some((o) => o.id === v.settlementId)))
+      )
+        return false
       return true
     } catch {
       return false
@@ -69,12 +75,23 @@ export function plannerPermissions(access: FinancialAccess) {
     // Household-wide cash, reserves and bank observations remain Owner controlled.
     if (v.kind === 'balance' || v.kind === 'preferences' || !('target' in v) || !v.target)
       throw new FinancialError('Only the Owner can manage household cash or general reserves', 403)
-    const members = targetMembers(v.target, s),
+    const members = [
+        ...new Set([
+          ...targetMembers(v.target, s),
+          ...(v.kind === 'debt_plan' && v.billId
+            ? (s.bills.find((b) => b.id === v.billId)?.memberIds ?? [])
+            : []),
+        ]),
+      ],
       owner = ctx.people.find((p) => p.linkedUserId === ctx.home.createdByUserId)?.id
     const bill =
-      v.target.kind === 'bill' || v.target.kind === 'bill_period'
-        ? s.bills.find((b) => b.id === v.target!.id || b.periods.some((p) => p.id === v.target!.id))
-        : null
+      v.kind === 'debt_plan' && v.billId
+        ? s.bills.find((b) => b.id === v.billId)
+        : v.target.kind === 'bill' || v.target.kind === 'bill_period'
+          ? s.bills.find(
+              (b) => b.id === v.target!.id || b.periods.some((p) => p.id === v.target!.id),
+            )
+          : null
     if (
       bill &&
       owner &&

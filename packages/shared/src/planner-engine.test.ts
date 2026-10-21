@@ -204,7 +204,24 @@ it('verified court enforcement is critical while ordinary collections are not au
     d = fictionalDebt('Fictional collection')
   d.accountType = 'collection'
   s.debts = [d]
-  s.planner = { records: [] }
+  s.planner = {
+    records: [
+      plannerRecord(
+        plannerInputSchema.parse({
+          kind: 'debt_plan',
+          name: 'Fictional reviewed collection payment',
+          target: { kind: 'debt', id: d.id },
+          mode: 'pay_by_date',
+          amountCents: 7500,
+          startDate: today,
+          deadline: '2026-10-27',
+          amountBasis: 'custom',
+          verification: { verified: false },
+          status: 'confirmed',
+        }),
+      ),
+    ],
+  }
   expect(smartPlanner(s, v, today).items[0].priority).toBe('important')
   s.planner.records.push(
     plannerRecord(
