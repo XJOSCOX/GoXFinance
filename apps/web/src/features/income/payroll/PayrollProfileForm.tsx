@@ -156,7 +156,7 @@ export function PayrollProfileForm({
                 ? ''
                 : initial.regularThresholdHundredths / 100
             }
-            required
+            placeholder="Optional reference hours"
           />
         </FormField>
         <FormField label="Workweek time zone">
