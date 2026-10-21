@@ -7,8 +7,6 @@ import {
   payrollMilestones,
   payrollGross,
   weeklyHoursSchema,
-  parsePayrollHours,
-  payrollHoursText,
   type PayrollProfile,
   type PayrollWeek,
 } from '@goxfinance/shared'
@@ -17,6 +15,8 @@ import { AmountField, DateField } from '../../../components/financial/EntryField
 import { Input } from '../../../components/ui'
 import { FormField } from '../../../components/ui/FormField'
 import { formatMoney } from '../../../lib/money'
+import { PayrollTimeField } from './PayrollTimeField'
+import { readPayrollTime } from './payroll-time-entry'
 export function PayrollHoursForm({
   profile,
   week,
@@ -50,9 +50,13 @@ export function PayrollHoursForm({
       expectedPayDate: f.get('payDate'),
       ...Object.fromEntries(
         fields.flatMap<[string, number | null | undefined]>((k) => {
-          const raw = String(f.get(k) || '')
-          if (!raw && k === 'unpaid') return [[k + 'Hundredths', null]]
-          const parsed = parsePayrollHours(raw || (k === 'regular' || k === 'overtime' ? '' : '0'))
+          const parsed = readPayrollTime(
+            f,
+            k,
+            { hundredths: week?.[`${k}Hundredths`], minutes: week?.[`${k}Minutes`] },
+            k === 'unpaid',
+            k === 'regular' || k === 'overtime',
+          )
           return [
             [k + 'Hundredths', parsed.hundredths],
             [k + 'Minutes', parsed.minutes],
@@ -135,20 +139,20 @@ export function PayrollHoursForm({
             required
           />
           {fields.map((k) => (
-            <FormField
+            <PayrollTimeField
               key={k}
               label={
-                k === 'otherPaid' ? 'Other paid hours' : k[0].toUpperCase() + k.slice(1) + ' hours'
+                k === 'otherPaid'
+                  ? 'Other paid'
+                  : k === 'pto'
+                    ? 'Paid time off'
+                    : k[0].toUpperCase() + k.slice(1)
               }
-            >
-              <Input
-                name={k}
-                inputMode="text"
-                defaultValue={payrollHoursText(week?.[`${k}Hundredths`], week?.[`${k}Minutes`])}
-                required={k === 'regular' || k === 'overtime'}
-                placeholder="38h 34min, 38:34, or 38.5"
-              />
-            </FormField>
+              name={k}
+              saved={{ hundredths: week?.[`${k}Hundredths`], minutes: week?.[`${k}Minutes`] }}
+              required={k === 'regular' || k === 'overtime'}
+              zero={k !== 'regular' && k !== 'unpaid'}
+            />
           ))}
           <AmountField
             label="Regular rate ($)"

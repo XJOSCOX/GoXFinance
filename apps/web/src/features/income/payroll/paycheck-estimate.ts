@@ -2,17 +2,17 @@ import {
   bankDecimalCents,
   weeklyHoursSchema,
   payrollPeriodEnd,
-  parsePayrollHours,
   type PayrollProfile,
 } from '@goxfinance/shared'
+import { readPayrollTime } from './payroll-time-entry'
 export function paycheckEstimateHours(f: FormData, profile: PayrollProfile) {
   const frequency = profile.payFrequency ?? 'weekly',
     start = String(f.get('start') ?? ''),
     end = String(f.get('end') ?? ''),
-    regular = parsePayrollHours(String(f.get('regular') ?? '')),
-    overtime = parsePayrollHours(String(f.get('overtime') || '0')),
-    pto = parsePayrollHours(String(f.get('pto') || '0'))
-  if (overtime.hundredths > 0 && !f.get('overtimeRate'))
+    regular = readPayrollTime(f, 'regular', {}, false, true),
+    overtime = readPayrollTime(f, 'overtime'),
+    pto = readPayrollTime(f, 'pto')
+  if ((overtime.hundredths ?? 0) > 0 && !f.get('overtimeRate'))
     throw new Error('Enter the overtime rate for these overtime hours.')
   return weeklyHoursSchema.parse({
     sourceId: profile.sourceId,

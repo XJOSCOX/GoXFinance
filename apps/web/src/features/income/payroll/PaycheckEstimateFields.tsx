@@ -8,8 +8,7 @@ import {
   type PayrollWeek,
 } from '@goxfinance/shared'
 import { DateField, AmountField } from '../../../components/financial/EntryFields'
-import { FormField } from '../../../components/ui/FormField'
-import { Input } from '../../../components/ui'
+import { PayrollTimeField } from './PayrollTimeField'
 import { formatMoney } from '../../../lib/money'
 import { paycheckEstimateHours } from './paycheck-estimate'
 export function PaycheckEstimateFields({
@@ -37,8 +36,7 @@ export function PaycheckEstimateFields({
     >
       <p className="text-xs text-slate-400">
         {payrollFrequencyLabels[profile.payFrequency ?? 'weekly']} payroll. Choose full dates for
-        the hours you want to estimate. No fixed workweek or hours are assumed. Enter decimal hours
-        or Deputy-style hours and minutes (38h 34min / 38:34).
+        the hours you want to estimate. Enter hours and minutes separately, just as shown in Deputy.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <DateField label="Work period starts" name="start" required />
@@ -50,17 +48,8 @@ export function PaycheckEstimateFields({
           value={profile.regularRateCents}
           required
         />
-        <FormField label="Regular hours">
-          <Input name="regular" inputMode="text" placeholder="38h 34min, 38:34, or 38.5" required />
-        </FormField>
-        <FormField label="Overtime hours">
-          <Input
-            name="overtime"
-            inputMode="text"
-            placeholder="0 if none, or 2h 15min"
-            defaultValue="0"
-          />
-        </FormField>
+        <PayrollTimeField label="Regular" name="regular" required />
+        <PayrollTimeField label="Overtime" name="overtime" zero />
         <AmountField
           label="Overtime rate ($)"
           name="overtimeRate"
@@ -70,9 +59,7 @@ export function PaycheckEstimateFields({
       <details>
         <summary className="cursor-pointer text-sm text-slate-400">Paid time off & bonus</summary>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <FormField label="Paid time off hours">
-            <Input name="pto" inputMode="text" placeholder="0 if none, or 2h 15min" />
-          </FormField>
+          <PayrollTimeField label="Paid time off" name="pto" zero />
           <AmountField label="Bonus ($)" name="bonus" />
         </div>
       </details>
