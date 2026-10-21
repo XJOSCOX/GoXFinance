@@ -9,6 +9,8 @@ import { BillAmountSummary } from './BillAmountSummary'
 import { BillPaymentForm } from './BillPaymentForm'
 import { recordBillPayment } from '../api/billClient'
 import { BillAuditHistory } from './BillAuditHistory'
+import { billPeriodStatus } from '../bill-status'
+import { useLocalToday } from '../../../lib/useLocalToday'
 
 export function BillDetails({
   bill,
@@ -23,6 +25,7 @@ export function BillDetails({
   startPayment?: boolean
   changed: () => Promise<void>
 }) {
+  const today = useLocalToday()
   const [periodId, setPeriodId] = useState(
     bill.periods.find((item) => !['paid', 'credited', 'overpaid'].includes(item.paymentStatus))
       ?.id ??
@@ -80,8 +83,7 @@ export function BillDetails({
           >
             {bill.periods.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.billingPeriod} · Due {item.dueDate} ·{' '}
-                {item.paymentStatus.replaceAll('_', ' ')}
+                {item.billingPeriod} · Due {item.dueDate} · {billPeriodStatus(item, today).label}
               </option>
             ))}
           </Select>

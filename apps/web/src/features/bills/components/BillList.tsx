@@ -4,6 +4,8 @@ import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { toneStyles } from '../../../components/ui/semantic-tones'
+import { billPeriodStatus } from '../bill-status'
+import { useLocalToday } from '../../../lib/useLocalToday'
 
 const columns = 'xl:grid-cols-[minmax(12rem,1.2fr)_minmax(0,2fr)_13rem]'
 const labels = ['Budget estimate', 'Confirmed bill', 'Paid', 'Still owed']
@@ -16,6 +18,7 @@ type Props = {
   onArchive: (bill: BillView) => void
 }
 export function BillList({ bills, categories, ...actions }: Props) {
+  const today = useLocalToday()
   return (
     <section aria-label="Bill register" className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
@@ -49,6 +52,7 @@ export function BillList({ bills, categories, ...actions }: Props) {
               <BillListItem
                 key={bill.id}
                 bill={bill}
+                today={today}
                 category={
                   categories.find((category) => category.id === bill.categoryId)?.name ??
                   bill.category
@@ -64,12 +68,13 @@ export function BillList({ bills, categories, ...actions }: Props) {
 }
 function BillListItem({
   bill,
+  today,
   category,
   onView,
   onPay,
   onEdit,
   onArchive,
-}: Omit<Props, 'bills' | 'categories'> & { bill: BillView; category: string }) {
+}: Omit<Props, 'bills' | 'categories'> & { bill: BillView; today: string; category: string }) {
   const periods = [...bill.periods].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   const outstanding = periods.find(
     (period) => !['paid', 'credited', 'overpaid', 'cancelled'].includes(period.paymentStatus),
@@ -83,12 +88,7 @@ function BillListItem({
         period.remainingCents,
       ]
     : [null, null, null, null]
-  const status =
-    bill.status !== 'active'
-      ? bill.status
-      : period?.overdue
-        ? 'Overdue'
-        : (period?.paymentStatus.replaceAll('_', ' ') ?? 'No periods')
+  const status = period ? billPeriodStatus(period, today) : null
   return (
     <article
       aria-label={bill.name}
@@ -102,7 +102,13 @@ function BillListItem({
           >
             {bill.name}
           </button>
-          <StatusBadge status={status} />
+          {bill.status !== 'active' ? (
+            <StatusBadge status={bill.status} />
+          ) : status ? (
+            <StatusBadge status={status.label} tone={status.tone} />
+          ) : (
+            <StatusBadge status="No periods" />
+          )}
         </div>
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
           <span>{category}</span>
