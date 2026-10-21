@@ -39,10 +39,8 @@ it('shows one weekly paycheck, no fabricated average, and explains a different r
   expect(screen.queryByText('2026-09', { exact: true })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'View latest pay month' }))
   expect(changeMonth).toHaveBeenCalledWith('2026-09')
-  fireEvent.click(screen.getByRole('button', { name: 'Monthly totals' }))
-  expect(
-    screen.getByText('Recorded deposits grouped by calendar month, not your pay schedule.'),
-  ).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Monthly totals' })).toBeNull()
+  expect(screen.getByText('Year to date')).toBeTruthy()
 })
 it('shows a per-paycheck average only after two recorded checks', () => {
   render(

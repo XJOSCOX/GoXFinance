@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { localBillDate, type IncomeSource, type IncomeTransaction } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
-import { Button, Card, Input } from '../../../components/ui'
-import { Select, FormField } from '../../../components/ui/FormField'
+import { Button, Card } from '../../../components/ui'
 import { Modal } from '../../../components/ui/Modal'
 import { useNotify } from '../../../components/ui/useNotify'
 import { errorMessage } from '../../../lib/api'
@@ -12,8 +11,12 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useIncome } from '../hooks/useIncome'
 import { useIncomeToday } from '../hooks/useIncomeToday'
 import { saveSource, saveIncome, archiveSource } from '../api/incomeClient'
+import { ActionMenu } from '../../../components/ui/ActionMenu'
+import { IncomeFilters } from '../components/IncomeFilters'
+import { useIncomePayroll } from '../hooks/useIncomePayroll'
 import { IncomeOverview } from '../components/IncomeOverview'
 import { IncomeSources } from '../components/IncomeSources'
+import { LatestPaycheck } from '../components/LatestPaycheck'
 import { IncomeHistory } from '../components/IncomeHistory'
 import { filterIncomeHistory, incomeHistoryDate } from '../components/income-history'
 import { IncomeDetails } from '../components/IncomeDetails'
@@ -29,6 +32,7 @@ export function IncomePage() {
   const today = useIncomeToday()
   const home = households.find((v) => v.id === householdId),
     data = useIncome(householdId)
+  const payroll = useIncomePayroll(householdId, data.transactions)
   const [uploadPaycheck, setUploadPaycheck] = useState<{ sourceId?: string } | null>(null),
     [payrollRefresh, setPayrollRefresh] = useState(0),
     [payrollSource, setPayrollSource] = useState('')
@@ -44,6 +48,7 @@ export function IncomePage() {
       sourceId?: string
       date?: string
     } | null>(null),
+    [viewPaycheck, setViewPaycheck] = useState<IncomeTransaction | null>(null),
     [details, setDetails] = useState<IncomeSource | null>(null),
     [archive, setArchive] = useState<IncomeSource | null>(null),
     [busy, setBusy] = useState(false),
@@ -99,15 +104,21 @@ export function IncomePage() {
             <Button variant="primary" disabled={data.loading} onClick={() => setUploadPaycheck({})}>
               Upload Paycheck
             </Button>
-            <Button disabled={data.loading} onClick={() => setSource(null)}>
-              Add employer / source
-            </Button>
-            <Button
-              disabled={data.loading || !editableSources.length}
-              onClick={() => setPaycheck({})}
-            >
-              Record income
-            </Button>
+            <ActionMenu
+              label="Income actions"
+              items={[
+                {
+                  label: 'Add employer / source',
+                  onSelect: () => setSource(null),
+                  disabled: data.loading,
+                },
+                {
+                  label: 'Record income manually',
+                  onSelect: () => setPaycheck({}),
+                  disabled: data.loading || !editableSources.length,
+                },
+              ]}
+            />
           </div>
         )}
       </header>
@@ -124,82 +135,45 @@ export function IncomePage() {
         <p role="status">Loading income…</p>
       ) : (
         <>
-          <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Income views">
+          <div
+            className="mb-5 flex gap-5 overflow-x-auto border-b border-white/10"
+            role="tablist"
+            aria-label="Income views"
+          >
             {[
               ['overview', 'Overview'],
-              ['sources', 'Income sources'],
-              ['history', 'Paycheck history'],
+              ['sources', 'Sources'],
+              ['history', 'Paychecks'],
               ['payroll', 'Payroll'],
             ].map(([id, label]) => (
-              <Button
+              <button
+                type="button"
                 key={id}
                 role="tab"
                 aria-selected={tab === id}
-                variant={tab === id ? 'primary' : 'secondary'}
+                className={`shrink-0 border-b-2 px-1 pb-3 pt-1 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a9b8a9] ${tab === id ? 'border-[#b1beb0] font-medium text-white' : 'border-transparent text-slate-500 hover:text-slate-200'}`}
                 onClick={() => setTab(id)}
               >
                 {label}
-              </Button>
+              </button>
             ))}
           </div>
           {tab !== 'payroll' && (
-            <Card className="mb-5 grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4">
-              {tab === 'history' ? (
-                <FormField label="Paycheck dates">
-                  <Select value={historyMonth} onChange={(e) => setHistoryMonth(e.target.value)}>
-                    <option value="">All dates</option>
-                    {historyMonths.map((m) => (
-                      <option key={m} value={m}>
-                        {new Date(m + '-01T12:00:00Z').toLocaleDateString('en-US', {
-                          month: 'long',
-                          year: 'numeric',
-                          timeZone: 'UTC',
-                        })}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-              ) : (
-                <FormField label="Reporting month">
-                  <Input
-                    type="month"
-                    value={month}
-                    onChange={(e) => {
-                      if (e.target.value) setMonth(e.target.value)
-                    }}
-                  />
-                </FormField>
-              )}
-              <FormField label="Earning member">
-                <Select value={member} onChange={(e) => setMember(e.target.value)}>
-                  <option value="">All members</option>
-                  {data.members.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.fullName}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-              <FormField label="Search sources">
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Employer or source"
-                />
-              </FormField>
-              {tab === 'history' && (
-                <FormField label="Paycheck status">
-                  <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="">All statuses</option>
-                    {['expected', 'pending', 'confirmed', 'cancelled'].map((v) => (
-                      <option key={v} value={v}>
-                        {v.charAt(0).toUpperCase() + v.slice(1)}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-              )}
-            </Card>
+            <IncomeFilters
+              tab={tab}
+              month={month}
+              setMonth={setMonth}
+              historyMonth={historyMonth}
+              setHistoryMonth={setHistoryMonth}
+              historyMonths={historyMonths}
+              member={member}
+              setMember={setMember}
+              query={query}
+              setQuery={setQuery}
+              status={status}
+              setStatus={setStatus}
+              members={data.members}
+            />
           )}
           {tab === 'payroll' ? (
             <PayrollPanel
@@ -221,6 +195,9 @@ export function IncomePage() {
                 ),
               }}
               members={data.members}
+              weeks={payroll.weeks}
+              payrollLoading={payroll.loading}
+              payrollError={payroll.error}
               month={month}
               changeMonth={setMonth}
               today={today}
@@ -266,6 +243,7 @@ export function IncomePage() {
               <IncomeHistory
                 transactions={transactions}
                 sources={data.sources}
+                view={setViewPaycheck}
                 edit={(v) => setPaycheck({ existing: v })}
                 details={setDetails}
               />
@@ -314,6 +292,22 @@ export function IncomePage() {
             )
           }
         />
+      )}
+      {viewPaycheck && (
+        <Modal title="Paycheck details" onClose={() => setViewPaycheck(null)} className="max-w-3xl">
+          {payroll.error && (
+            <p role="alert" className="mb-3 text-sm text-amber-200">
+              Statement details unavailable. {payroll.error}
+            </p>
+          )}
+          <LatestPaycheck
+            label="Statement & receipt"
+            transaction={viewPaycheck}
+            source={data.sources.find((s) => s.id === viewPaycheck.sourceId)}
+            week={payroll.weeks.find((w) => w.incomeTransactionId === viewPaycheck.id)}
+            member={data.members.find((m) => m.id === viewPaycheck.responsibleMemberId)?.fullName}
+          />
+        </Modal>
       )}
       {details && (
         <IncomeDetails

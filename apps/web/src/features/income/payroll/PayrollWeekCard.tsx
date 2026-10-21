@@ -6,8 +6,9 @@ import {
   type PayrollProfile,
   type IncomeTransaction,
 } from '@goxfinance/shared'
-import { Button, Card } from '../../../components/ui'
+import { Card } from '../../../components/ui'
 import { PayrollDepositConfirmation, type PayrollReceipt } from './PayrollDepositConfirmation'
+import { ActionMenu, type MenuAction } from '../../../components/ui/ActionMenu'
 import { formatMoney } from '../../../lib/money'
 export function PayrollWeekCard({
   week: w,
@@ -141,32 +142,27 @@ export function PayrollWeekCard({
         </p>
       </details>
       {w.canManage && (
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
-          {!w.statementReceivedAt && (
-            <Button size="small" disabled={busy} onClick={edit}>
-              Edit hours
-            </Button>
-          )}
-          {w.stage === 'hours_submitted' && (
-            <Button size="small" disabled={busy} onClick={pending}>
-              Payroll processing
-            </Button>
-          )}
-          {w.statement && (
-            <Button size="small" disabled={busy} onClick={review}>
-              View / correct statement
-            </Button>
-          )}
-          <Button size="small" disabled={busy} onClick={upload}>
-            Upload paystub
-          </Button>
-          {w.stage === 'deposit_confirmed' && (
-            <Button size="small" variant="primary" disabled={busy} onClick={confirm}>
-              {w.stage === 'deposit_confirmed'
-                ? 'Correct actual deposit'
-                : 'Confirm actual deposit'}
-            </Button>
-          )}
+        <div className="mt-3 flex justify-end">
+          <ActionMenu
+            label={'Actions for payroll period ' + w.workweekStart}
+            items={
+              [
+                ...(!w.statementReceivedAt
+                  ? [{ label: 'Edit hours', onSelect: edit, disabled: busy }]
+                  : []),
+                ...(w.stage === 'hours_submitted'
+                  ? [{ label: 'Payroll processing', onSelect: pending, disabled: busy }]
+                  : []),
+                ...(w.statement
+                  ? [{ label: 'View / correct statement', onSelect: review, disabled: busy }]
+                  : []),
+                { label: 'Upload paystub', onSelect: upload, disabled: busy },
+                ...(w.stage === 'deposit_confirmed'
+                  ? [{ label: 'Correct actual deposit', onSelect: confirm, disabled: busy }]
+                  : []),
+              ] satisfies MenuAction[]
+            }
+          />
         </div>
       )}
       {w.canManage &&

@@ -41,3 +41,9 @@ Automated coverage includes variable hours and decimal rounding, configurable pa
 Remaining boundaries: no banking integration, tax calculation, automatic payroll import, overtime eligibility determination, or automatic recurring confirmed-income generation. This phase stops after verification; the full application audit is next.
 
 Paycheck history defaults to **All dates**, independent of the overview reporting month. Optional month/member/source/status filters show the visible and total record counts, plus a clear-filters action so older paychecks are not silently hidden. Confirmed entries use their deposit date for filtering and sorting; unconfirmed entries use their printed pay date.
+
+## Income workspace layout
+
+The primary action is Upload Paycheck. The adjacent action menu contains source creation and manual entry. Overview, Sources, Paychecks and Payroll use a slim tab bar. Source and paycheck actions use the shared keyboard-accessible menu, which closes on selection, Escape and outside clicks.
+
+The overview shows confirmed-deposit-month gross, deductions and net, with unknown-amount counts and a separate all-dates pending count. The latest paycheck retains its original period, printed date, actual receipt, worked/paid hours and expandable earnings/deduction components. A differing statement net and actual deposit are displayed separately. The YTD panel reuses the existing latest-dated component observations without summing consecutive cumulative statements. The Paychecks list remains all-dates by default; each row can open read-only details or the existing audited correction form. All data access uses the existing authorized Income and Payroll APIs; this redesign adds no migration or financial writes.

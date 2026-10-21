@@ -1,8 +1,15 @@
-import { incomeSummary, type IncomeData, type HouseholdMember } from '@goxfinance/shared'
-import { useState } from 'react'
+import {
+  incomeSummary,
+  type IncomeData,
+  type HouseholdMember,
+  type PayrollWeek,
+} from '@goxfinance/shared'
 import { IncomePaycheckStats } from './IncomePaycheckStats'
+import { LatestPaycheck } from './LatestPaycheck'
+import { IncomeYtd } from './IncomeYtd'
+import { paycheckOverview } from './paycheck-overview'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
-import { Button, Card } from '../../../components/ui'
+import { Button } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function IncomeOverview({
   data,
@@ -10,132 +17,106 @@ export function IncomeOverview({
   month,
   today,
   changeMonth,
+  weeks = [],
+  payrollLoading = false,
+  payrollError = '',
 }: {
   data: IncomeData
   members: HouseholdMember[]
   month: string
   today: string
   changeMonth: (month: string) => void
+  weeks?: PayrollWeek[]
+  payrollLoading?: boolean
+  payrollError?: string
 }) {
-  const summary = incomeSummary(data.transactions, month, today)
-  const [historyView, setHistoryView] = useState<'weekly' | 'monthly'>('weekly')
-  const latestMonth = summary.monthly[0]?.period
-  const monthLabel = new Date(month + '-01T12:00:00Z').toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-  const history = historyView === 'weekly' ? summary.weekly : summary.monthly
+  const summary = incomeSummary(data.transactions, month, today),
+    pay = paycheckOverview(data.transactions, month, today),
+    sourceIds = new Set(data.transactions.map((t) => t.sourceId)),
+    visibleWeeks = weeks.filter((w) => sourceIds.has(w.sourceId)),
+    latestWeek = visibleWeeks.find((w) => w.incomeTransactionId === pay.latest?.id),
+    latestMonth = summary.monthly[0]?.period,
+    monthLabel = new Date(month + '-01T12:00:00Z').toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
+  const detail = (missing: number) =>
+    missing
+      ? `${missing} paycheck ${missing === 1 ? 'amount' : 'amounts'} not recorded`
+      : 'Confirmed paychecks in ' + monthLabel
   return (
-    <div className="space-y-5">
-      <p className="text-sm text-slate-400">
-        Totals for {monthLabel}. The reporting month groups deposits; it does not change your pay
-        frequency.
-      </p>
+    <div className="space-y-4">
       {summary.confirmedCents === 0 &&
         !summary.bySource.length &&
         latestMonth &&
         latestMonth !== month && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 p-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-400">
             <p>
-              No confirmed deposits in {monthLabel}. Your latest recorded deposit is in{' '}
-              {latestMonth}.
+              No received paychecks in {monthLabel}. Latest pay month: {latestMonth}.
             </p>
-            <Button size="small" onClick={() => changeMonth(latestMonth)}>
+            <Button size="small" variant="ghost" onClick={() => changeMonth(latestMonth)}>
               View latest pay month
             </Button>
           </div>
         )}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryStat
-          label="Confirmed income"
+          compact
+          label="Gross pay"
+          amount={formatMoney(pay.gross.cents)}
+          detail={detail(pay.gross.missing)}
+        />
+        <SummaryStat
+          compact
+          label="Paycheck deductions"
+          amount={formatMoney(pay.deductions.cents)}
+          detail={detail(pay.deductions.missing)}
+        />
+        <SummaryStat
+          compact
+          label="Net deposited"
           tone="positive"
           amount={formatMoney(summary.confirmedCents)}
-          detail="Actual net deposits in reporting month"
+          detail={`${pay.receivedCount} received paychecks in ${monthLabel}`}
         />
         <SummaryStat
-          label="Pending income"
+          compact
+          label="Awaiting receipt"
           tone="warning"
-          amount={formatMoney(summary.pendingCents)}
-          detail={`Estimated net, not received · ${summary.pendingUnknownCount} unknown`}
+          amount={String(data.transactions.filter((t) => t.status === 'pending').length)}
+          detail="All dates / not received"
         />
-        <SummaryStat
-          label="Expected future income"
-          tone="info"
-          amount={formatMoney(summary.expectedCents)}
-          detail={`Recorded expectations only · ${summary.expectedUnknownCount} unknown`}
+      </div>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
+        <LatestPaycheck
+          transaction={pay.latest}
+          source={data.sources.find((s) => s.id === pay.latest?.sourceId)}
+          week={latestWeek}
+          member={members.find((m) => m.id === pay.latest?.responsibleMemberId)?.fullName}
+        />
+        <IncomeYtd
+          weeks={visibleWeeks}
+          sources={data.sources.filter((s) => sourceIds.has(s.id))}
+          year={month.slice(0, 4)}
+          loading={payrollLoading}
+          error={payrollError}
         />
       </div>
       <IncomePaycheckStats data={data} today={today} />
-      <div className="grid gap-5 sm:grid-cols-2">
-        {[
-          {
-            title: 'By earning member',
-            items: summary.byMember,
-            label: (id: string) => members.find((v) => v.id === id)?.fullName ?? 'Member',
-          },
-          {
-            title: 'By source',
-            items: summary.bySource,
-            label: (id: string) => data.sources.find((v) => v.id === id)?.name ?? 'Source',
-          },
-        ].map((group) => (
-          <Card key={group.title} className="p-5">
-            <h2 className="font-semibold">{group.title}</h2>
-            {group.items.length ? (
-              group.items.map((v) => (
-                <p key={v.id} className="mt-3 flex justify-between gap-3 text-sm">
-                  <span>{group.label(v.id)}</span>
-                  <strong>{formatMoney(v.amountCents)}</strong>
-                </p>
-              ))
-            ) : (
-              <p className="mt-3 text-sm text-slate-400">No confirmed deposits this month.</p>
-            )}
-          </Card>
-        ))}
-      </div>
-      <Card className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold">Deposit history</h2>
-          <div className="flex gap-2" role="group" aria-label="Deposit history grouping">
-            <Button
-              size="small"
-              aria-pressed={historyView === 'weekly'}
-              onClick={() => setHistoryView('weekly')}
-            >
-              Weekly totals
-            </Button>
-            <Button
-              size="small"
-              aria-pressed={historyView === 'monthly'}
-              onClick={() => setHistoryView('monthly')}
-            >
-              Monthly totals
-            </Button>
-          </div>
+      <details className="rounded-xl border border-white/8 px-5 py-3 text-sm">
+        <summary className="cursor-pointer text-slate-400">Expected income & data coverage</summary>
+        <div className="mt-3 grid gap-3 text-xs text-slate-400 sm:grid-cols-2">
+          <p>
+            Recorded future estimates: {formatMoney(summary.expectedCents)}.{' '}
+            {summary.expectedUnknownCount} amounts unknown.
+          </p>
+          <p>
+            Gross, deductions and deposited totals use confirmed deposits in the selected month.
+            Paycheck and YTD details retain their original statement dates.
+          </p>
         </div>
-        <p className="mt-2 text-xs text-slate-400">
-          {historyView === 'weekly'
-            ? 'Recorded deposits grouped by calendar week.'
-            : 'Recorded deposits grouped by calendar month, not your pay schedule.'}
-        </p>
-        <div className="mt-3 max-h-56 overflow-y-auto">
-          {history.length ? (
-            history.map((v) => (
-              <p key={v.period} className="flex justify-between gap-3 py-2 text-sm">
-                <span>
-                  {v.period}
-                  {historyView === 'weekly' ? ' | week starting' : ''}
-                </span>
-                <span>{formatMoney(v.amountCents)}</span>
-              </p>
-            ))
-          ) : (
-            <p className="text-sm text-slate-400">No confirmed history yet.</p>
-          )}
-        </div>
-      </Card>
+      </details>
     </div>
   )
 }

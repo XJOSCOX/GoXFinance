@@ -7,6 +7,7 @@ import {
   type HouseholdMember,
 } from '@goxfinance/shared'
 import { Card, Button } from '../../../components/ui'
+import { ActionMenu, type MenuAction } from '../../../components/ui/ActionMenu'
 import { formatMoney } from '../../../lib/money'
 export function IncomeSources({
   today,
@@ -102,34 +103,35 @@ export function IncomeSources({
                   )}
                 </div>
               )}
-              <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-                <Button size="small" onClick={() => details(source)}>
-                  Details
-                </Button>
-                {source.canManage && (
-                  <>
-                    {!source.isArchived && (
-                      <>
-                        <Button size="small" onClick={() => edit(source)}>
-                          Edit
-                        </Button>
-                        {source.status === 'active' && source.incomeType !== 'trading_payout' && (
-                          <Button size="small" onClick={() => upload(source)}>
-                            Upload paycheck
-                          </Button>
-                        )}
-                        {source.status === 'active' && (
-                          <Button size="small" onClick={() => record(source)}>
-                            Record income
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    <Button size="small" onClick={() => archive(source)}>
-                      {source.isArchived ? 'Restore' : 'Archive'}
-                    </Button>
-                  </>
-                )}
+              <div className="flex justify-end border-t border-white/10 pt-2">
+                <ActionMenu
+                  label={'Actions for ' + source.name}
+                  items={
+                    [
+                      { label: 'Details & history', onSelect: () => details(source) },
+                      ...(source.canManage
+                        ? [
+                            ...(!source.isArchived
+                              ? [
+                                  { label: 'Edit source', onSelect: () => edit(source) },
+                                  ...(source.status === 'active' &&
+                                  source.incomeType !== 'trading_payout'
+                                    ? [{ label: 'Upload paycheck', onSelect: () => upload(source) }]
+                                    : []),
+                                  ...(source.status === 'active'
+                                    ? [{ label: 'Record income', onSelect: () => record(source) }]
+                                    : []),
+                                ]
+                              : []),
+                            {
+                              label: source.isArchived ? 'Restore source' : 'Archive source',
+                              onSelect: () => archive(source),
+                            },
+                          ]
+                        : []),
+                    ] satisfies MenuAction[]
+                  }
+                />
               </div>
             </Card>
           )

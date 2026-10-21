@@ -13,6 +13,7 @@ import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { DateField, AmountField } from '../../../components/financial/EntryFields'
 import { useNotify } from '../../../components/ui/useNotify'
 import { apiRequest, errorMessage } from '../../../lib/api'
+import { ActionMenu } from '../../../components/ui/ActionMenu'
 import { formatMoney } from '../../../lib/money'
 import { loadPayroll, savePayroll } from './payrollClient'
 import { PayrollProfileForm } from './PayrollProfileForm'
@@ -94,7 +95,7 @@ export function PayrollPanel({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <FormField label="Payroll income source">
           <Select value={source?.id ?? ''} onChange={(e) => setSourceId(e.target.value)}>
-            {!available.length && <option value="">Add an employment income source first</option>}
+            {!available.length && <option value="">Choose a payroll source</option>}
             {available.map((s) => (
               <option value={s.id} key={s.id}>
                 {s.name}
@@ -103,36 +104,42 @@ export function PayrollPanel({
           </Select>
         </FormField>
         {source?.canManage && (
-          <div className="flex gap-2">
-            <Button onClick={() => setSettings(true)}>Payroll settings</Button>
-            <Button variant="primary" disabled={!profile} onClick={() => setHours(null)}>
-              Report hours
-            </Button>
-          </div>
+          <ActionMenu
+            label="Payroll actions"
+            items={[
+              { label: 'Payroll settings', onSelect: () => setSettings(true) },
+              { label: 'Report hours', onSelect: () => setHours(null), disabled: !profile },
+            ]}
+          />
         )}
       </div>
       {!profile ? (
         <Card className="p-5 text-sm text-slate-400">
-          Choose an existing Income source and confirm its payroll settings. No hours, paychecks or
-          tax deductions are assumed.
+          Upload a paycheck above to detect the employer and schedule, or configure payroll settings
+          for manual hours. No earnings are assumed.
         </Card>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="small"
-              variant={tab === 'weeks' ? 'primary' : 'secondary'}
-              onClick={() => setTab('weeks')}
-            >
-              Paychecks & forecasts
-            </Button>
-            <Button
-              size="small"
-              variant={tab === 'tax' ? 'primary' : 'secondary'}
-              onClick={() => setTab('tax')}
-            >
-              Taxes, deductions & comparison
-            </Button>
+          <div
+            className="flex gap-5 border-b border-white/10"
+            role="tablist"
+            aria-label="Payroll views"
+          >
+            {[
+              ['weeks', 'Paychecks & forecasts'],
+              ['tax', 'Taxes & comparison'],
+            ].map(([id, label]) => (
+              <button
+                type="button"
+                key={id}
+                role="tab"
+                aria-selected={tab === id}
+                className={`border-b-2 pb-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a9b8a9] ${tab === id ? 'border-[#b1beb0] text-white' : 'border-transparent text-slate-500'}`}
+                onClick={() => setTab(id)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           {tab === 'tax' ? (
             <PayrollReports weeks={weeks} />
