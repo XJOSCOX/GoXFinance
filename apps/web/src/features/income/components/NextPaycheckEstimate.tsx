@@ -85,13 +85,6 @@ export function NextPaycheckEstimate({
               Upload paycheck
             </Button>
           )}
-          <p className="mt-4 border-t border-sky-300/10 pt-3 text-[11px] leading-relaxed text-slate-500">
-            {forecast.netCents === null
-              ? 'Take-home unknown until deductions can be estimated. '
-              : `${forecast.confidence} confidence. `}
-            Upcoming across all dates. Saved estimate only; excluded from confirmed income and cash
-            totals.
-          </p>
         </>
       )}
     </Card>
