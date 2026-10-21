@@ -3,12 +3,14 @@ import {
   type IncomeData,
   type HouseholdMember,
   type PayrollWeek,
+  type IncomeTransaction,
 } from '@goxfinance/shared'
 import { IncomePaycheckStats } from './IncomePaycheckStats'
 import { LatestPaycheck } from './LatestPaycheck'
 import { IncomeYtd } from './IncomeYtd'
 import { paycheckOverview } from './paycheck-overview'
-import { SummaryStat } from '../../../components/ui/SummaryStat'
+import { IncomeMonthSummary } from './IncomeMonthSummary'
+import { RecentPaychecks } from './RecentPaychecks'
 import { Button } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function IncomeOverview({
@@ -20,6 +22,7 @@ export function IncomeOverview({
   weeks = [],
   payrollLoading = false,
   payrollError = '',
+  viewPaycheck,
 }: {
   data: IncomeData
   members: HouseholdMember[]
@@ -29,6 +32,7 @@ export function IncomeOverview({
   weeks?: PayrollWeek[]
   payrollLoading?: boolean
   payrollError?: string
+  viewPaycheck?: (t: IncomeTransaction) => void
 }) {
   const summary = incomeSummary(data.transactions, month, today),
     pay = paycheckOverview(data.transactions, month, today),
@@ -41,10 +45,6 @@ export function IncomeOverview({
       year: 'numeric',
       timeZone: 'UTC',
     })
-  const detail = (missing: number) =>
-    missing
-      ? `${missing} paycheck ${missing === 1 ? 'amount' : 'amounts'} not recorded`
-      : 'Confirmed paychecks in ' + monthLabel
   return (
     <div className="space-y-4">
       {summary.confirmedCents === 0 &&
@@ -60,50 +60,48 @@ export function IncomeOverview({
             </Button>
           </div>
         )}
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <SummaryStat
-          compact
-          label="Gross pay"
-          amount={formatMoney(pay.gross.cents)}
-          detail={detail(pay.gross.missing)}
-        />
-        <SummaryStat
-          compact
-          label="Paycheck deductions"
-          amount={formatMoney(pay.deductions.cents)}
-          detail={detail(pay.deductions.missing)}
-        />
-        <SummaryStat
-          compact
-          label="Net deposited"
-          tone="positive"
-          amount={formatMoney(summary.confirmedCents)}
-          detail={`${pay.receivedCount} received paychecks in ${monthLabel}`}
-        />
-        <SummaryStat
-          compact
-          label="Awaiting receipt"
-          tone="warning"
-          amount={String(data.transactions.filter((t) => t.status === 'pending').length)}
-          detail="All dates / not received"
-        />
+      <IncomeMonthSummary
+        net={summary.confirmedCents}
+        gross={pay.gross.cents}
+        deductions={pay.deductions.cents}
+        received={pay.receivedCount}
+        pending={data.transactions.filter((t) => t.status === 'pending').length}
+        month={monthLabel}
+        missing={
+          data.transactions.filter(
+            (t) =>
+              t.status === 'confirmed' &&
+              t.depositDate?.startsWith(month) &&
+              t.depositDate <= today &&
+              (t.actualGrossCents === null || t.deductionsCents === null),
+          ).length
+        }
+      />
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
+        <div className="min-w-0 space-y-4">
+          <LatestPaycheck
+            transaction={pay.latest}
+            source={data.sources.find((s) => s.id === pay.latest?.sourceId)}
+            week={latestWeek}
+            member={members.find((m) => m.id === pay.latest?.responsibleMemberId)?.fullName}
+          />
+          <RecentPaychecks
+            transactions={data.transactions}
+            sources={data.sources}
+            view={viewPaycheck}
+          />
+        </div>
+        <div className="min-w-0 space-y-4">
+          <IncomeYtd
+            weeks={visibleWeeks}
+            sources={data.sources.filter((s) => sourceIds.has(s.id))}
+            year={month.slice(0, 4)}
+            loading={payrollLoading}
+            error={payrollError}
+          />
+          <IncomePaycheckStats data={data} today={today} />
+        </div>
       </div>
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
-        <LatestPaycheck
-          transaction={pay.latest}
-          source={data.sources.find((s) => s.id === pay.latest?.sourceId)}
-          week={latestWeek}
-          member={members.find((m) => m.id === pay.latest?.responsibleMemberId)?.fullName}
-        />
-        <IncomeYtd
-          weeks={visibleWeeks}
-          sources={data.sources.filter((s) => sourceIds.has(s.id))}
-          year={month.slice(0, 4)}
-          loading={payrollLoading}
-          error={payrollError}
-        />
-      </div>
-      <IncomePaycheckStats data={data} today={today} />
       <details className="rounded-xl border border-white/8 px-5 py-3 text-sm">
         <summary className="cursor-pointer text-slate-400">Expected income & data coverage</summary>
         <div className="mt-3 grid gap-3 text-xs text-slate-400 sm:grid-cols-2">

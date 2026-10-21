@@ -48,9 +48,8 @@ export function IncomePaycheckStats({ data, today }: { data: IncomeData; today: 
           ))}
         </div>
       )}
-      <p className="mt-3 text-xs text-slate-400">
-        All recorded dates. Missing uploads are not counted as zero pay. These amounts are not a
-        monthly salary estimate.
+      <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+        Based on recorded paychecks, not a salary projection. Missing uploads are excluded.
       </p>
     </Card>
   )

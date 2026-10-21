@@ -44,6 +44,8 @@ Paycheck history defaults to **All dates**, independent of the overview reportin
 
 ## Income workspace layout
 
+The overview uses one take-home summary strip, a compact period selector and collapsible member/source filters. The latest statement's earnings and deductions open by default; the four most recent non-cancelled paychecks are directly accessible below it, with YTD and recorded-paycheck statistics stacked alongside on larger screens.
+
 The primary action is Upload Paycheck. The adjacent action menu contains source creation and manual entry. Overview, Sources, Paychecks and Payroll use a slim tab bar. Source and paycheck actions use the shared keyboard-accessible menu, which closes on selection, Escape and outside clicks.
 
 The overview shows confirmed-deposit-month gross, deductions and net, with unknown-amount counts and a separate all-dates pending count. The latest paycheck retains its original period, printed date, actual receipt, worked/paid hours and expandable earnings/deduction components. A differing statement net and actual deposit are displayed separately. The YTD panel reuses the existing latest-dated component observations without summing consecutive cumulative statements. The Paychecks list remains all-dates by default; each row can open read-only details or the existing audited correction form. All data access uses the existing authorized Income and Payroll APIs; this redesign adds no migration or financial writes.

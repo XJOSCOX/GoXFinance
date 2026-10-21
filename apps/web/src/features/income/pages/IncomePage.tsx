@@ -198,6 +198,7 @@ export function IncomePage() {
               weeks={payroll.weeks}
               payrollLoading={payroll.loading}
               payrollError={payroll.error}
+              viewPaycheck={setViewPaycheck}
               month={month}
               changeMonth={setMonth}
               today={today}

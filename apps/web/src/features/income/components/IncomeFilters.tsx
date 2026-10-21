@@ -30,6 +30,47 @@ export function IncomeFilters({
   setStatus: (v: string) => void
   members: HouseholdMember[]
 }) {
+  if (tab === 'overview')
+    return (
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <label className="flex items-center gap-3 text-xs text-slate-400">
+          Period
+          <Input
+            aria-label="Reporting month"
+            className="w-44"
+            type="month"
+            value={month}
+            onChange={(e) => {
+              if (e.target.value) setMonth(e.target.value)
+            }}
+          />
+        </label>
+        <details className="relative max-w-full" open={member || query ? true : undefined}>
+          <summary className="cursor-pointer rounded-lg border border-white/10 px-3 py-2.5 text-xs text-slate-400">
+            Filter income{member || query ? ' (active)' : ''}
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <FormField label="Earning member">
+              <Select value={member} onChange={(e) => setMember(e.target.value)}>
+                <option value="">All members</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.fullName}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField label="Search sources">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Employer or source"
+              />
+            </FormField>
+          </div>
+        </details>
+      </div>
+    )
   return (
     <div className="mb-5 grid items-end gap-3 border-b border-white/8 pb-5 sm:grid-cols-2 xl:grid-cols-4">
       {tab === 'history' ? (

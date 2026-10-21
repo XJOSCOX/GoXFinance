@@ -41,6 +41,8 @@ it('shows one weekly paycheck, no fabricated average, and explains a different r
   expect(changeMonth).toHaveBeenCalledWith('2026-09')
   expect(screen.queryByRole('button', { name: 'Monthly totals' })).toBeNull()
   expect(screen.getByText('Year to date')).toBeTruthy()
+  expect(screen.getByRole('region', { name: 'Monthly income summary' })).toBeTruthy()
+  expect(screen.getByText('Recent paychecks')).toBeTruthy()
 })
 it('shows a per-paycheck average only after two recorded checks', () => {
   render(

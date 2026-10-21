@@ -39,8 +39,13 @@ export function LatestPaycheck({
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 p-5">
         <div>
-          <p className="text-xs uppercase tracking-widest text-slate-500">{label}</p>
-          <h2 className="mt-2 text-lg font-semibold">{source?.name ?? 'Income source'}</h2>
+          <p className="flex items-center gap-2 text-xs text-slate-400">
+            <ReceiptText size={14} aria-hidden="true" />
+            {label}
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">
+            {source?.name ?? 'Income source'}
+          </h2>
           <p className="mt-1 text-xs text-slate-400">
             {incomeFrequencyLabels[t.frequencySnapshot] ?? 'Recorded pay'}
             {member ? ' / ' + member : ''}
@@ -52,7 +57,7 @@ export function LatestPaycheck({
           >
             {confirmed ? 'Received' : t.status === 'cancelled' ? 'Cancelled' : 'Awaiting receipt'}
           </span>
-          <p className="mt-3 text-2xl font-semibold tabular-nums">
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-emerald-200 tabular-nums">
             {formatMoney(confirmed ? t.actualNetCents : (s?.netCents ?? t.actualNetCents))}
           </p>
           <p className="mt-1 text-xs text-slate-500">
@@ -66,7 +71,7 @@ export function LatestPaycheck({
             )}
         </div>
       </div>
-      <dl className="grid grid-cols-2 gap-4 p-5 text-sm sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-4 bg-white/[0.015] p-5 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-xs text-slate-500">Work period</dt>
           <dd className="mt-1">{incomeDisplayPeriod(t.workPeriodStart, t.workPeriodEnd)}</dd>
@@ -107,17 +112,14 @@ export function LatestPaycheck({
           ].map((group) => {
             const lines = s.lines.filter((l) => l.side === group.side)
             return (
-              <details key={group.side} className="bg-[#1b1d1c] p-5">
-                <summary className="cursor-pointer text-sm font-medium">
+              <details key={group.side} open className="bg-[#1b1d1c] p-5">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-slate-400">
                   {group.label}
-                  <span className="ml-2 text-xs font-normal text-slate-500">
-                    {lines.length} components
-                  </span>
                 </summary>
-                <dl className="mt-3 space-y-3">
+                <dl className="mt-3 divide-y divide-white/5">
                   {lines.map((l, i) => (
-                    <div key={i} className="flex justify-between gap-3 text-xs">
-                      <div>
+                    <div key={i} className="flex justify-between gap-3 py-2 text-xs">
+                      <div className="min-w-0">
                         <dt className="text-slate-300">{l.label}</dt>
                         {l.hoursHundredths !== null && (
                           <dd className="mt-1 text-slate-500">
@@ -126,7 +128,9 @@ export function LatestPaycheck({
                           </dd>
                         )}
                       </div>
-                      <dd className="tabular-nums">{formatMoney(l.currentCents)}</dd>
+                      <dd className="shrink-0 font-medium tabular-nums">
+                        {formatMoney(l.currentCents)}
+                      </dd>
                     </div>
                   ))}
                 </dl>
