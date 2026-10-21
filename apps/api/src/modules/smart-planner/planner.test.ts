@@ -216,6 +216,22 @@ it.each(['admin', 'editor'])(
     expect(
       (await f.ok('GET', '/planner')).requests.map((r: { status: string }) => r.status),
     ).toEqual(['approved', 'rejected', 'cancelled'])
+    const historyPath = '/planner/records/' + approved.record.id + '/audit'
+    expect(
+      (await f.ok('GET', historyPath)).history.map((r: { action: string }) => r.action),
+    ).toEqual([
+      'request_submitted',
+      'request_approved',
+      'request_submitted',
+      'request_rejected',
+      'request_submitted',
+      'request_cancelled',
+    ])
+    expect(
+      (await f.ok('GET', historyPath, undefined, user.cookie)).history.map(
+        (r: { action: string }) => r.action,
+      ),
+    ).toEqual(['request_submitted', 'request_submitted', 'request_submitted', 'request_cancelled'])
   },
 )
 it('rejects stale approval after a source changes and rolls approval back if audit persistence fails', async () => {

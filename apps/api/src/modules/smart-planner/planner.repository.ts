@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
 import {
   plannerRecords,
   plannerRequests,
@@ -42,7 +42,15 @@ export function plannerRepository(db: DatabaseConnection) {
       return db.transaction(work, { behavior: 'immediate' })
     },
     auditRows(home: string) {
-      return db.select().from(plannerAudit).where(eq(plannerAudit.householdId, home)).all()
+      return (
+        db
+          .select()
+          .from(plannerAudit)
+          .where(eq(plannerAudit.householdId, home))
+          // SQLite insertion order resolves events recorded in the same millisecond.
+          .orderBy(asc(plannerAudit.createdAt), sql`${plannerAudit}.rowid`)
+          .all()
+      )
     },
     audit(
       home: string,

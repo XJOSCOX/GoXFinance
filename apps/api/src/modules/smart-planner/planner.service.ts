@@ -441,11 +441,27 @@ export function plannerService(
         record = store.records(home).find((r) => r.id === id)
       if (!record || !access.visible(record.values, data))
         throw new FinancialError('Record not found', 404)
-      return store
-        .auditRows(home)
+      const rows = store.auditRows(home),
+        requestIds = new Set(
+          store
+            .requests(home)
+            .filter((request) => request.targetId === id)
+            .map((request) => request.id),
+        )
+      // Creation requests have no target until approval creates their record.
+      // Follow that persisted result to include their submission in the same history.
+      for (const row of rows) {
+        const result = JSON.parse(row.resultJson) as {
+          record?: { id: string }
+          request?: { id: string }
+        }
+        if (result.record?.id === id && result.request?.id) requestIds.add(result.request.id)
+      }
+      return rows
         .filter(
           (a) =>
             (a.targetId === id ||
+              requestIds.has(a.targetId) ||
               (JSON.parse(a.resultJson) as { record?: { id: string } }).record?.id === id) &&
             (ctx.role === 'owner' || a.actorUserId === user.id),
         )
