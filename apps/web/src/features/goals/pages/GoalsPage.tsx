@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Goal, GoalContribution } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
-import { Button, Card, Input } from '../../../components/ui'
-import { Select } from '../../../components/ui/FormField'
+import { Button, Card } from '../../../components/ui'
 import { FinancialAudit } from '../../../components/financial/FinancialAudit'
 import { useNotify } from '../../../components/ui/useNotify'
 import { useHousehold } from '../../households/hooks/useHousehold'
@@ -15,6 +14,8 @@ import { GoalForm } from '../components/GoalForm'
 import { ContributionForm } from '../components/ContributionForm'
 import { GoalCard } from '../components/GoalCard'
 import { DebtPaymentGoals } from '../components/DebtPaymentGoals'
+import { GoalsToolbar } from '../components/GoalsToolbar'
+import { goalCategory, sortGoals } from '../goal-display'
 export function GoalsPage() {
   const { householdId: home = '' } = useParams(),
     { data, error, refresh } = useGoals(home),
@@ -32,7 +33,13 @@ export function GoalsPage() {
     [audit, setAudit] = useState(''),
     [query, setQuery] = useState(''),
     [period, setPeriod] = useState(''),
-    [account, setAccount] = useState('')
+    [account, setAccount] = useState(''),
+    [view, setView] = useState('targets'),
+    [selecting, setSelecting] = useState(false),
+    [debtCreateVersion, setDebtCreateVersion] = useState(0),
+    [category, setCategory] = useState(''),
+    [order, setOrder] = useState('due'),
+    [grouped, setGrouped] = useState(true)
   useEffect(() => {
     if (household && selected?.id !== home) select(home)
   }, [home, household, selected?.id, select])
@@ -55,11 +62,19 @@ export function GoalsPage() {
       (g) =>
         g.name.toLowerCase().includes(query.toLowerCase()) &&
         (!period || g.period === period) &&
-        (!account || g.tradingAccountId === account),
+        (!account || g.tradingAccountId === account) &&
+        (!category || goalCategory(g) === category),
     ) ?? []
+  const ordered = sortGoals(visible, order)
+  const sections: [string, Goal[]][] = grouped
+    ? [...new Set(ordered.map(goalCategory))].map((name) => [
+        name,
+        ordered.filter((g) => goalCategory(g) === name),
+      ])
+    : [['', ordered]]
   return (
     <WorkspaceLayout title="Goals">
-      <header className="mb-5 flex flex-wrap justify-between gap-3">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Goals</h1>
           <p className="mt-2 text-sm text-slate-400">
@@ -70,113 +85,137 @@ export function GoalsPage() {
           <Button
             variant="primary"
             onClick={() => {
-              setBatchGoals(undefined)
-              setForm(null)
+              if (view === 'debts') setDebtCreateVersion((n) => n + 1)
+              else {
+                setBatchGoals(undefined)
+                setForm(null)
+              }
             }}
           >
-            Create goal
+            {view === 'debts' ? 'Plan debt payment' : 'Create goal'}
           </Button>
         )}
       </header>
-      <DebtPaymentGoals key={home} home={home} />
-      {(error || trading.error) && (
-        <p role="alert" className="mb-4 text-sm text-rose-300">
-          {error || trading.error}
-        </p>
-      )}
-      {!data && !error && <p role="status">Loading goals...</p>}
-      <Card className="mb-4 grid gap-3 p-4 sm:grid-cols-3">
-        <Input
-          aria-label="Search goals"
-          placeholder="Search goals"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+      <nav aria-label="Goal sections" className="mb-4 flex gap-4 border-b border-white/[.08]">
+        {[
+          ['targets', `Targets${data ? ` (${data.goals.length})` : ''}`],
+          ['debts', 'Debt payment plans'],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-current={view === value ? 'page' : undefined}
+            className={`border-b-2 px-1 pb-3 text-sm ${view === value ? 'border-[#a9b8a9] text-white' : 'border-transparent text-slate-500 hover:text-slate-200'}`}
+            onClick={() => setView(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div hidden={view !== 'debts'}>
+        <DebtPaymentGoals key={home} home={home} createVersion={debtCreateVersion} />
+      </div>
+      <div hidden={view !== 'targets'}>
+        {(error || trading.error) && (
+          <p role="alert" className="mb-4 text-sm text-rose-300">
+            {error || trading.error}
+          </p>
+        )}
+        {!data && !error && <p role="status">Loading goals...</p>}
+        <GoalsToolbar
+          category={category}
+          setCategory={setCategory}
+          order={order}
+          setOrder={setOrder}
+          grouped={grouped}
+          setGrouped={setGrouped}
+          query={query}
+          setQuery={setQuery}
+          period={period}
+          setPeriod={setPeriod}
+          account={account}
+          setAccount={setAccount}
+          trading={trading.data}
+          selecting={selecting}
+          setSelecting={(value) => {
+            setSelecting(value)
+            if (!value) setSelectedGoals([])
+          }}
+          canSelect={!!data?.goals.some((g) => g.canManage && g.tradingAccountId && !g.copyGroupId)}
         />
-        <Select
-          aria-label="Filter goal period"
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-        >
-          <option value="">All periods</option>
-          {['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'].map((p) => (
-            <option key={p}>{p}</option>
-          ))}
-        </Select>
-        <Select
-          aria-label="Filter linked account"
-          value={account}
-          onChange={(e) => setAccount(e.target.value)}
-        >
-          <option value="">All account / combined goals</option>
-          {trading.data?.accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.nickname}
-            </option>
-          ))}
-        </Select>
-      </Card>
-      {!visible.length && data && (
-        <Card className="p-10 text-center text-sm text-slate-400">
-          No goals to show. Create a goal or adjust your filters.
-        </Card>
-      )}
-      {data?.goals.some((g) => g.canManage && g.tradingAccountId) && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Button
-            size="small"
-            onClick={() =>
-              setSelectedGoals(
-                visible
-                  .filter((g) => g.canManage && g.tradingAccountId && !g.copyGroupId)
-                  .map((g) => g.id),
-              )
-            }
-          >
-            Select account goals
-          </Button>
-          <Button
-            size="small"
-            disabled={selectedGoals.length < 2}
-            onClick={() => {
-              const chosen = data.goals.filter((g) => selectedGoals.includes(g.id))
-              setBatchGoals(chosen)
-              setForm(chosen[0])
-            }}
-          >
-            Edit selected ({selectedGoals.length})
-          </Button>
-          {!!selectedGoals.length && (
-            <Button size="small" variant="ghost" onClick={() => setSelectedGoals([])}>
-              Clear selection
+        {!visible.length && data && (
+          <Card className="p-10 text-center text-sm text-slate-400">
+            No goals to show. Create a goal or adjust your filters.
+          </Card>
+        )}
+        {selecting && data?.goals.some((g) => g.canManage && g.tradingAccountId) && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Button
+              size="small"
+              onClick={() =>
+                setSelectedGoals(
+                  visible
+                    .filter((g) => g.canManage && g.tradingAccountId && !g.copyGroupId)
+                    .map((g) => g.id),
+                )
+              }
+            >
+              Select account goals
             </Button>
-          )}
-        </div>
-      )}
-      <div className="grid items-start gap-3 lg:grid-cols-2">
-        {visible.map((goal) => (
-          <GoalCard
-            key={goal.id}
-            goal={goal}
-            contributions={data?.contributions.filter((c) => c.goalId === goal.id) ?? []}
-            trading={trading.data}
-            selected={selectedGoals.includes(goal.id)}
-            onSelect={
-              goal.canManage && goal.tradingAccountId && !goal.copyGroupId
-                ? (checked) =>
-                    setSelectedGoals(
-                      checked
-                        ? [...selectedGoals, goal.id]
-                        : selectedGoals.filter((id) => id !== goal.id),
-                    )
-                : undefined
-            }
-            onEdit={() => {
-              setBatchGoals(undefined)
-              setForm(goal)
-            }}
-            onContribute={(entry) => setContribution({ goal, entry })}
-            onAudit={setAudit}
-          />
+            <Button
+              size="small"
+              disabled={selectedGoals.length < 2}
+              onClick={() => {
+                const chosen = data.goals.filter((g) => selectedGoals.includes(g.id))
+                setBatchGoals(chosen)
+                setForm(chosen[0])
+              }}
+            >
+              Edit selected ({selectedGoals.length})
+            </Button>
+            {!!selectedGoals.length && (
+              <Button size="small" variant="ghost" onClick={() => setSelectedGoals([])}>
+                Clear selection
+              </Button>
+            )}
+          </div>
+        )}
+        {sections.map(([name, goals]) => (
+          <section key={name || 'all'} className="mb-5">
+            {name && (
+              <h2 className="mb-3 text-sm font-semibold">
+                {name}{' '}
+                <span className="ml-2 text-xs font-normal text-slate-500">{goals.length}</span>
+              </h2>
+            )}
+            <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {goals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  contributions={data?.contributions.filter((c) => c.goalId === goal.id) ?? []}
+                  trading={trading.data}
+                  selected={selectedGoals.includes(goal.id)}
+                  onSelect={
+                    selecting && goal.canManage && goal.tradingAccountId && !goal.copyGroupId
+                      ? (checked) =>
+                          setSelectedGoals(
+                            checked
+                              ? [...selectedGoals, goal.id]
+                              : selectedGoals.filter((id) => id !== goal.id),
+                          )
+                      : undefined
+                  }
+                  onEdit={() => {
+                    setBatchGoals(undefined)
+                    setForm(goal)
+                  }}
+                  onContribute={(entry) => setContribution({ goal, entry })}
+                  onAudit={setAudit}
+                />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
       {form !== undefined && (

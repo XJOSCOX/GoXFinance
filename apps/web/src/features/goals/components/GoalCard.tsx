@@ -1,5 +1,7 @@
 import type { Goal, GoalContribution, TradingData } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
+import { ActionMenu } from '../../../components/ui/ActionMenu'
+import { InfoHint } from '../../../components/ui/InfoHint'
 import { formatMoney } from '../../../lib/money'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { toneStyles, type SemanticTone } from '../../../components/ui/semantic-tones'
@@ -37,10 +39,11 @@ export function GoalCard({
         : atMost
           ? 'negative'
           : 'info'
+  const accountName = trading?.accounts.find((a) => a.id === goal.tradingAccountId)?.nickname
   return (
-    <Card className={`min-w-0 border-t-2 p-5 ${toneStyles[tone].border}`}>
-      <div className="flex flex-wrap justify-between gap-3">
-        <div>
+    <Card className={`min-w-0 border-t-2 p-4 ${toneStyles[tone].border}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {onSelect && (
               <input
@@ -51,34 +54,40 @@ export function GoalCard({
                 onChange={(e) => onSelect(e.target.checked)}
               />
             )}
-            <h2 className="font-semibold">{goal.name}</h2>
+            <h3 className="text-sm font-semibold">{goal.name}</h3>
           </div>
-          <p className="mt-1 text-xs capitalize text-slate-500">
-            {goal.goalType.replaceAll('_', ' ')} / {goal.period} / {goal.status}
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            {goal.tradingAccountId
-              ? trading?.accounts.find((a) => a.id === goal.tradingAccountId)?.nickname
-              : goal.copyGroupId
-                ? trading?.groups.find((g) => g.id === goal.copyGroupId)?.name
-                : 'Member / household total'}
-          </p>
-        </div>
-        <div className="flex items-start gap-1">
-          {goal.canManage && (
-            <Button size="small" onClick={onEdit}>
-              Edit
-            </Button>
+          {goal.status !== 'active' && (
+            <p className="mt-1 text-xs capitalize text-amber-200">{goal.status}</p>
           )}
-          <Button size="small" variant="ghost" onClick={() => onAudit(goal.id)}>
-            Audit
-          </Button>
+          {accountName && !goal.name.includes(accountName) && (
+            <p className="mt-1 text-xs text-slate-500">{accountName}</p>
+          )}
+          {goal.copyGroupId && (
+            <p className="mt-1 text-xs text-slate-500">
+              {trading?.groups.find((g) => g.id === goal.copyGroupId)?.name}
+            </p>
+          )}
         </div>
+        <ActionMenu
+          label={`Actions for goal ${goal.name}`}
+          items={[
+            ...(goal.canManage ? [{ label: 'Edit goal', onSelect: onEdit }] : []),
+            ...(goal.canManage && ['savings', 'manual'].includes(goal.goalType)
+              ? [{ label: 'Record contribution', onSelect: () => onContribute() }]
+              : []),
+            { label: 'Audit history', onSelect: () => onAudit(goal.id) },
+          ]}
+        />
       </div>
-      <p className="mt-4 text-xs text-slate-400">
-        {p.startDate} to {p.endDate}
-        {goal.timezone ? ` / ${goal.timezone}, sessions start ${goal.sessionStart}` : ''}
-      </p>
+      <div className="mt-3 flex items-center gap-1 text-xs text-slate-400">
+        <span>
+          {p.startDate} – {p.endDate}
+        </span>
+        <InfoHint
+          label={`${goal.name}: calculation details`}
+          text={`${goal.goalType.replaceAll('_', ' ')} · ${goal.period} · ${goal.status}. ${p.source}${goal.timezone ? ` / ${goal.timezone}, sessions start ${goal.sessionStart}` : ''}. ${goal.notes ?? ''}`}
+        />
+      </div>
       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xl font-semibold tabular-nums">
           {p.notStarted ? 'Not started' : formatMoney(p.actualCents)}{' '}
@@ -115,7 +124,7 @@ export function GoalCard({
             ? 'Not started; starts ' + p.startDate
             : formatMoney(p.actualCents) + ' of ' + formatMoney(goal.targetCents)
         }
-        className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[.07]"
+        className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.07]"
       >
         <div className={`h-full ${toneStyles[tone].bar}`} style={{ width: percent + '%' }} />
       </div>
@@ -128,13 +137,14 @@ export function GoalCard({
             ? 'Overage: ' + formatMoney(p.overageCents)
             : 'Shortfall: ' + formatMoney(p.shortfallCents)}
       </p>
-      <p className="mt-2 text-xs leading-5 text-slate-500">{p.source}</p>
-      {goal.canManage && ['savings', 'manual'].includes(goal.goalType) && (
-        <Button size="small" className="mt-3" onClick={() => onContribute()}>
-          Record contribution
-        </Button>
+      {goal.goalType === 'trading_profit' && (
+        <p className="mt-2 text-[11px] text-slate-500">
+          {p.source.toLowerCase().includes('combine')
+            ? 'Simulated Combine performance · not cash'
+            : 'Trading performance · not deposited income'}
+        </p>
       )}
-      <details className="mt-4 border-t border-white/10 pt-3">
+      <details className="mt-3 border-t border-white/10 pt-2">
         <summary className="cursor-pointer text-xs text-slate-400">
           Period history &amp; contributions
         </summary>
