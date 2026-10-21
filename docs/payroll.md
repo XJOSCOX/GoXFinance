@@ -125,11 +125,9 @@ Synthetic fixture: ten fictional weekly statements with varying regular wages, a
 5. In disposable QA, delete an estimate and refresh. Verify it disappears from upcoming estimates without changing confirmed income. Recreate its period if needed; audit history remains.
 6. Browse recent-paycheck pages and check the mobile navigation drawer. No browser storage is used for financial records.
 
-
 ### Verification
 
 Validated on October 20, 2026: lint, typecheck and production build passed; 182 test files / 678 tests passed with two workers and a 30-second test timeout. The production build retains the existing large-chunk advisory. Browser QA at localhost:1421 confirmed a fictional estimate correction, the guarded delete dialog, expanded calculations, desktop header actions and mobile navigation without horizontal overflow. Plaintext/encrypted cancellation, authorization, restart and existing backup/recovery coverage passed. The normal encrypted launcher restarted successfully; no real paycheck, estimate, rules, deposit or bank record was modified during the read-only real-account review.
-
 
 ## Comparing an uploaded actual paycheck
 
@@ -142,3 +140,13 @@ Reviewed, reconciled same-source paychecks become observations for subsequently 
 Synthetic regressions cover higher/lower/equal differences, unknowns, post-receipt forecasts, changed periods, same-timestamp versions, matched draft upload, pending deposit status, employer isolation and restart persistence in plaintext and encrypted SQLite. No real paycheck upload is fabricated to demonstrate the comparison.
 
 Verification for the comparison update: 184 test files / 684 tests passed; lint, typecheck and production build passed. The encrypted app restarted successfully. No actual paycheck, confirmed deposit, employer settings or saved estimate was changed while implementing this display.
+
+## Multi-paycheck uploads
+
+The upload dialog accepts up to ten PDF/PNG/JPG files (10 MB each) through file selection or drag and drop. Review and edit each paycheck individually; only its own Save Paycheck action persists it. Finish closes the queue and refreshes all successful saves. Skipped or failed files do not create paychecks, and an extraction error can be retried without repeating successful imports. Files remain only in the in-memory upload session; no financial data or documents are written to browser storage.
+
+Extraction happens one document at a time immediately before review, so its signed receipt reflects employer/draft revisions after preceding saves. A multi-file batch independently detects each employer and period rather than forcing every file onto the original source or selected estimate. Single-file uploads retain the selected employer/draft hints. Existing authorization, duplicate-import checks, audit, review validation, source isolation and separate deposit confirmation remain in force. The API's normal extraction rate limit still applies; retry a rate-limited file when the limit clears.
+
+Closing an unsaved review returns that file to the queue; reopening extracts a fresh preview. Unsaved review edits are not persisted. Successfully saved files are locked in the queue and their raw File references are released; corrections remain available through normal payroll history after finishing. The entire queue is released when closed.
+
+Batch-upload verification: 186 test files / 691 tests passed; lint, typecheck and production build passed. Browser QA confirmed multiple-file selection and responsive dialog layout at desktop and 390px mobile widths, with no horizontal overflow. File-selection fixtures were fictional images; no real payroll was imported or modified during this check.

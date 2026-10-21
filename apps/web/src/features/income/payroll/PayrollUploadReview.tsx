@@ -23,6 +23,7 @@ export function PayrollUploadReview({
   preferredWeekId,
   close,
   saved,
+  reviewContext,
 }: {
   home: string
   preview: PayrollUploadPreview
@@ -30,6 +31,7 @@ export function PayrollUploadReview({
   preferredWeekId?: string
   close: () => void
   saved: (sourceId: string) => void
+  reviewContext?: { fileName: string; index: number; total: number }
 }) {
   const initialId =
     preferredSourceId && preview.sources.some((s) => s.id === preferredSourceId)
@@ -91,6 +93,17 @@ export function PayrollUploadReview({
         saved(week.sourceId)
       }}
     >
+      {reviewContext && (
+        <div className="rounded-xl border border-sky-300/15 bg-sky-300/[.04] p-3">
+          <p className="text-xs text-sky-200">
+            Paycheck {reviewContext.index} of {reviewContext.total}
+          </p>
+          <p className="mt-1 break-words text-sm font-medium">{reviewContext.fileName}</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Edit the extracted information below. Saving confirms this paycheck only.
+          </p>
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <FormField label="Employer / income source">
           <Select

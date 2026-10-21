@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import type { PayrollStatement, PayrollWeek, PayrollUploadPreview } from '@goxfinance/shared'
 import { Modal } from '../../../components/ui/Modal'
-import { Button, Input } from '../../../components/ui'
+import { PaystubFilePicker } from './PaystubFilePicker'
+import { Button } from '../../../components/ui'
 import { errorMessage, apiRequest } from '../../../lib/api'
 import { encodePaystub, payrollBase } from './payrollClient'
 export type PaystubPreview = {
@@ -29,21 +30,23 @@ export function PaystubUpload({
     pending = useRef(false)
   return (
     <Modal
-      title={uploadFirst ? 'Upload Paycheck' : 'Upload paystub'}
+      title={uploadFirst ? 'Upload paycheck' : 'Upload paystub'}
+      description="Upload your document, then review dates, earnings and deductions."
+      framed
+      className="max-w-2xl"
       onClose={() => {
         if (!pending.current) close()
       }}
     >
-      <div className="space-y-4">
+      <div className="min-h-0 space-y-5 overflow-y-auto p-5 sm:p-6">
         <p className="text-sm text-slate-400">
           PDF, PNG or JPG, up to 10 MB. Processed only by your local API; original documents are
           discarded. Redact personal identifiers first.
         </p>
-        <Input
-          type="file"
-          accept="application/pdf,image/png,image/jpeg"
+        <PaystubFilePicker
+          files={file ? [file] : []}
+          change={(files) => setFile(files[0] ?? null)}
           disabled={busy}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
         {error && (
           <p role="alert" className="text-sm text-rose-300">
