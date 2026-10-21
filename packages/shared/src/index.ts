@@ -60,3 +60,5 @@ export * from './payroll-schedule'
 export * from './payroll-reporting'
 export * from './payroll-upload'
 export * from './payroll-periods'
+
+export * from './income-paycheck-statistics'

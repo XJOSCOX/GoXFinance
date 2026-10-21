@@ -19,7 +19,7 @@ it('shows Thursday or configured paydays without creating transactions', () => {
   expect(upcomingPayday({ frequency: 'weekly', payday: 1 }, '2026-10-20')).toBe('2026-10-26')
   expect(upcomingPayday({ frequency: 'irregular', payday: 4 }, '2026-10-19')).toBeNull()
 })
-it('uses deposit dates, includes missed weeks in averages, and separates all estimates', () => {
+it('uses deposit dates, excludes unrecorded weeks from averages, and separates all estimates', () => {
   const base = {
     sourceId: 'source',
     responsibleMemberId: 'person',
@@ -39,8 +39,8 @@ it('uses deposit dates, includes missed weeks in averages, and separates all est
     '2026-10-19',
   )
   expect(result.confirmedCents).toBe(140000)
-  expect(result.weekCount).toBe(4)
-  expect(result.averageWeeklyCents).toBe(35000)
+  expect(result.weekCount).toBe(2)
+  expect(result.averageWeeklyCents).toBe(70000)
   expect(result.averageMonthlyCents).toBe(140000)
   expect(result.pendingCents).toBe(80000)
   expect(result.expectedCents).toBe(80000)

@@ -203,6 +203,7 @@ export function IncomePage() {
               }}
               members={data.members}
               month={month}
+              changeMonth={setMonth}
               today={today}
             />
           ) : tab === 'sources' ? (

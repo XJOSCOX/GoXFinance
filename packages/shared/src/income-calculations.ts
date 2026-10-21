@@ -39,7 +39,7 @@ const weekKey = (date: string) => {
   day.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7))
   return day.toISOString().slice(0, 10)
 }
-// Include zero-income weeks/months between first and last confirmed deposits through today.
+// Summarize recorded deposits only; absent uploads are not evidence of zero income.
 export function incomeSummary(transactions: IncomeTransaction[], month: string, today: string) {
   const confirmed = transactions.filter(
     (v) => v.status === 'confirmed' && v.depositDate && v.depositDate <= today,
@@ -57,16 +57,10 @@ export function incomeSummary(transactions: IncomeTransaction[], month: string, 
       .map(([period, amountCents]) => ({ period, amountCents }))
       .sort((a, b) => b.period.localeCompare(a.period))
   }
-  const first = confirmed.map((v) => v.depositDate!).sort()[0]
-  const weeks = first
-    ? Math.round((Date.parse(weekKey(today)) - Date.parse(weekKey(first))) / 604800000) + 1
-    : 0
-  const months = first
-    ? (Number(today.slice(0, 4)) - Number(first.slice(0, 4))) * 12 +
-      Number(today.slice(5, 7)) -
-      Number(first.slice(5, 7)) +
-      1
-    : 0
+  const weeklyHistory = periods(weekKey)
+  const monthlyHistory = periods((date) => date.slice(0, 7))
+  const weeks = weeklyHistory.length
+  const months = monthlyHistory.length
   const net = total(confirmed, 'actualNetCents')
   return {
     confirmedCents: total(monthly, 'actualNetCents'),
@@ -84,8 +78,8 @@ export function incomeSummary(transactions: IncomeTransaction[], month: string, 
     expectedUnknownCount: transactions.filter(
       (v) => v.status === 'expected' && v.payDate >= today && v.expectedNetCents === null,
     ).length,
-    weekly: periods(weekKey),
-    monthly: periods((date) => date.slice(0, 7)),
+    weekly: weeklyHistory,
+    monthly: monthlyHistory,
     averageWeeklyCents: weeks ? roundCentsRatio(net, 1, weeks) : null,
     averageMonthlyCents: months ? roundCentsRatio(net, 1, months) : null,
     weekCount: weeks,

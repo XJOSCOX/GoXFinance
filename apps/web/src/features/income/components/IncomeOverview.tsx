@@ -1,21 +1,51 @@
 import { incomeSummary, type IncomeData, type HouseholdMember } from '@goxfinance/shared'
+import { useState } from 'react'
+import { IncomePaycheckStats } from './IncomePaycheckStats'
 import { SummaryStat } from '../../../components/ui/SummaryStat'
-import { Card } from '../../../components/ui'
+import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function IncomeOverview({
   data,
   members,
   month,
   today,
+  changeMonth,
 }: {
   data: IncomeData
   members: HouseholdMember[]
   month: string
   today: string
+  changeMonth: (month: string) => void
 }) {
   const summary = incomeSummary(data.transactions, month, today)
+  const [historyView, setHistoryView] = useState<'weekly' | 'monthly'>('weekly')
+  const latestMonth = summary.monthly[0]?.period
+  const monthLabel = new Date(month + '-01T12:00:00Z').toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  const history = historyView === 'weekly' ? summary.weekly : summary.monthly
   return (
     <div className="space-y-5">
+      <p className="text-sm text-slate-400">
+        Totals for {monthLabel}. The reporting month groups deposits; it does not change your pay
+        frequency.
+      </p>
+      {summary.confirmedCents === 0 &&
+        !summary.bySource.length &&
+        latestMonth &&
+        latestMonth !== month && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 p-3 text-sm">
+            <p>
+              No confirmed deposits in {monthLabel}. Your latest recorded deposit is in{' '}
+              {latestMonth}.
+            </p>
+            <Button size="small" onClick={() => changeMonth(latestMonth)}>
+              View latest pay month
+            </Button>
+          </div>
+        )}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <SummaryStat
           label="Confirmed income"
@@ -36,27 +66,7 @@ export function IncomeOverview({
           detail={`Recorded expectations only · ${summary.expectedUnknownCount} unknown`}
         />
       </div>
-      <Card className="p-5">
-        <h2 className="font-semibold">Confirmed income averages</h2>
-        <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-          <p>
-            Weekly <strong className="ml-2">{formatMoney(summary.averageWeeklyCents)}</strong>
-            <span className="mt-1 block text-xs text-slate-400">
-              {summary.weekCount} calendar weeks
-            </span>
-          </p>
-          <p>
-            Monthly <strong className="ml-2">{formatMoney(summary.averageMonthlyCents)}</strong>
-            <span className="mt-1 block text-xs text-slate-400">
-              {summary.monthCount} calendar months
-            </span>
-          </p>
-        </div>
-        <p className="mt-4 text-xs text-slate-400">
-          From the first confirmed deposit through today, including weeks and months with no
-          recorded deposits. Current periods may be incomplete.
-        </p>
-      </Card>
+      <IncomePaycheckStats data={data} today={today} />
       <div className="grid gap-5 sm:grid-cols-2">
         {[
           {
@@ -85,31 +95,47 @@ export function IncomeOverview({
           </Card>
         ))}
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        {[
-          { title: 'Weekly net history', items: summary.weekly },
-          { title: 'Monthly net history', items: summary.monthly },
-        ].map((group) => (
-          <Card key={group.title} className="p-5">
-            <h2 className="font-semibold">{group.title}</h2>
-            <div className="mt-3 max-h-56 overflow-y-auto">
-              {group.items.length ? (
-                group.items.map((v) => (
-                  <p key={v.period} className="flex justify-between gap-3 py-2 text-sm">
-                    <span>
-                      {v.period}
-                      {group.title.startsWith('Weekly') ? ' · week starting' : ''}
-                    </span>
-                    <span>{formatMoney(v.amountCents)}</span>
-                  </p>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400">No confirmed history yet.</p>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-semibold">Deposit history</h2>
+          <div className="flex gap-2" role="group" aria-label="Deposit history grouping">
+            <Button
+              size="small"
+              aria-pressed={historyView === 'weekly'}
+              onClick={() => setHistoryView('weekly')}
+            >
+              Weekly totals
+            </Button>
+            <Button
+              size="small"
+              aria-pressed={historyView === 'monthly'}
+              onClick={() => setHistoryView('monthly')}
+            >
+              Monthly totals
+            </Button>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-slate-400">
+          {historyView === 'weekly'
+            ? 'Recorded deposits grouped by calendar week.'
+            : 'Recorded deposits grouped by calendar month, not your pay schedule.'}
+        </p>
+        <div className="mt-3 max-h-56 overflow-y-auto">
+          {history.length ? (
+            history.map((v) => (
+              <p key={v.period} className="flex justify-between gap-3 py-2 text-sm">
+                <span>
+                  {v.period}
+                  {historyView === 'weekly' ? ' | week starting' : ''}
+                </span>
+                <span>{formatMoney(v.amountCents)}</span>
+              </p>
+            ))
+          ) : (
+            <p className="text-sm text-slate-400">No confirmed history yet.</p>
+          )}
+        </div>
+      </Card>
     </div>
   )
 }
