@@ -35,6 +35,8 @@ it.each([
   [true, 33],
   [false, 34],
   [true, 34],
+  [false, 35],
+  [true, 35],
 ] as const)(
   'adds forecast tables without changing existing rows and verifies safety backup; encrypted=%s prior=%s',
   (encrypted, priorVersion) => {
@@ -119,11 +121,13 @@ it.each([
         expect(
           next.sqlite.prepare('SELECT * FROM "' + name.replaceAll('"', '""') + '"').all(),
         ).toEqual(rows)
-      for (const name of priorVersion === 34
-        ? ['planner_records', 'planner_requests', 'planner_audit', 'planner_snapshots']
-        : priorVersion === 33
-          ? ['forecast_settings_versions']
-          : ['forecast_scenarios', 'forecast_audit', 'forecast_settings_versions'])
+      for (const name of priorVersion === 35
+        ? ['insight_records', 'insight_audit']
+        : priorVersion === 34
+          ? ['planner_records', 'planner_requests', 'planner_audit', 'planner_snapshots']
+          : priorVersion === 33
+            ? ['forecast_settings_versions']
+            : ['forecast_scenarios', 'forecast_audit', 'forecast_settings_versions'])
         expect(next.sqlite.prepare('SELECT * FROM ' + name).all()).toEqual([])
       expect(next.sqlite.pragma('foreign_key_check')).toEqual([])
       expect(next.sqlite.pragma('integrity_check', { simple: true })).toBe('ok')

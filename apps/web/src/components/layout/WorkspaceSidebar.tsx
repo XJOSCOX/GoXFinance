@@ -1,4 +1,5 @@
 import {
+  Lightbulb,
   CalendarClock,
   Wallet,
   Landmark,
@@ -33,6 +34,7 @@ export function WorkspaceSidebar({
   const navigate = useNavigate()
   const { households, select } = useHousehold()
   const navigation = [
+    { href: `/households/${household.id}/insights`, label: 'Financial insights', icon: Lightbulb },
     { href: `/households/${household.id}/planner`, label: 'Smart Planner', icon: CalendarClock },
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { href: `/households/${household.id}/bank-accounts`, label: 'Bank accounts', icon: Landmark },
@@ -110,7 +112,7 @@ export function WorkspaceSidebar({
                 'Goals',
               ],
             },
-            { label: 'Activity & insights', items: ['Trading', 'Reports'] },
+            { label: 'Activity & insights', items: ['Financial insights', 'Trading', 'Reports'] },
           ].map((group) => (
             <section key={group.label} className="mb-4">
               <h2 className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[.13em] text-slate-500">

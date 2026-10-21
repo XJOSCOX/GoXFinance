@@ -1,3 +1,4 @@
+import { InsightsPage } from '../features/insights/InsightsPage'
 import { SmartPlannerPage } from '../features/smart-planner/pages/SmartPlannerPage'
 import { ReportsPage } from '../features/reports/pages/ReportsPage'
 import { BankAccountsPage } from '../features/banking/pages/BankAccountsPage'
@@ -73,6 +74,14 @@ export default function App() {
         <HouseholdProvider>
           <BrowserRouter>
             <Routes>
+              <Route
+                path="/households/:householdId/insights"
+                element={
+                  <ProtectedRoute>
+                    <InsightsPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/households/:householdId/bank-accounts"
                 element={

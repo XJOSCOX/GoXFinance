@@ -84,3 +84,7 @@ export * from './debt-payment-plans'
 export * from './bill-obligation-summary'
 
 export * from './forecast-warnings'
+
+export * from './insights'
+export * from './insight-engine'
+export * from './insight-spending'

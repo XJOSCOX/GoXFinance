@@ -1,3 +1,6 @@
+import { registerInsightsRoutes } from './modules/insights/insights.routes'
+import { insightsService } from './modules/insights/insights.service'
+import { insightsRepository } from './modules/insights/insights.repository'
 import { plannerRepository } from './modules/smart-planner/planner.repository'
 import { plannerPermissions } from './modules/smart-planner/planner.permissions'
 import { plannerService } from './modules/smart-planner/planner.service'
@@ -323,6 +326,30 @@ export async function buildApp(options: AppOptions) {
   const bankStore = bankRepository(db),
     bankAccess = bankPermissions(financialAccess(householdStore, memberStore), bankStore),
     banks = bankService(bankStore, bankAccess, assetRepository(db), debts)
+  registerInsightsRoutes(
+    app,
+    auth,
+    insightsService(
+      insightsRepository(db),
+      financialAccess(householdStore, memberStore),
+      (user, home) => {
+        const base = forecastSources(user, home),
+          balances = overviewRepository(db).balances(home),
+          assets = assetRepository(db)
+        return {
+          ...base,
+          balances,
+          assets: {
+            assets: assets.all(home).map((a) => ({ ...a, canManage: false })),
+            valuations: assets.values(home),
+            debts: base.debts,
+            balances,
+          },
+        }
+      },
+      (home) => forecastRepository(db).settings(home),
+    ),
+  )
   registerBankRoutes(app, auth, banks)
   registerPlannerRoutes(
     app,

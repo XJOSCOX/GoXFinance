@@ -1,3 +1,4 @@
+import { OverviewInsights } from '../../insights/OverviewInsights'
 import { OverviewBudgets } from '../components/OverviewBudgets'
 import { OverviewCashFlow } from '../components/OverviewCashFlow'
 import { OverviewBanking } from '../components/OverviewBanking'
@@ -90,6 +91,9 @@ export function DashboardPage() {
             budgetSummary={<OverviewBudgets key={selected.id} home={selected.id} month={month} />}
             goalSummary={<OverviewGoals key={selected.id} home={selected.id} />}
           />
+          <div className="mt-3">
+            <OverviewInsights key={selected.id} home={selected.id} />
+          </div>
           <OverviewBanking key={selected.id} home={selected.id} />
         </>
       ) : (

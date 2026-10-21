@@ -30,3 +30,5 @@ export * from './bank-reconciliation'
 export * from './payroll'
 
 export * from './smart-planner'
+
+export * from './insights'
