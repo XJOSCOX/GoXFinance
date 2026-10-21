@@ -36,7 +36,12 @@ export function GroupForm({
       }
     >
       <FormField label="Group name">
-        <Input name="name" defaultValue={group?.name} required />
+        <Input
+          placeholder="Name for this trading group"
+          name="name"
+          defaultValue={group?.name}
+          required
+        />
       </FormField>
       <div className="space-y-3">
         <AccountSelectionToolbar accounts={accounts} selected={selected} onChange={setSelected} />

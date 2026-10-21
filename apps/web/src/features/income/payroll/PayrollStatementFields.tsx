@@ -19,10 +19,20 @@ export function PayrollStatementFields({ initial: s }: { initial: PayrollStateme
       </summary>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <FormField label="Employer">
-          <Input name="employer" maxLength={160} defaultValue={s.employer ?? ''} />
+          <Input
+            placeholder="Employer name on the paycheck"
+            name="employer"
+            maxLength={160}
+            defaultValue={s.employer ?? ''}
+          />
         </FormField>
         <FormField label="Assignment / client">
-          <Input name="assignment" maxLength={160} defaultValue={s.assignment ?? ''} />
+          <Input
+            placeholder="Client or work assignment (optional)"
+            name="assignment"
+            maxLength={160}
+            defaultValue={s.assignment ?? ''}
+          />
         </FormField>
         <DateField label="Pay period begins" name="periodStart" value={s.periodStart} required />
         <DateField label="Pay period ends" name="periodEnd" value={s.periodEnd} required />

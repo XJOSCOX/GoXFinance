@@ -31,6 +31,7 @@ export function ExpenseReviewFields({ data }: { data: BankReviewOptions }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Description">
               <Input
+                placeholder="What was purchased?"
                 name="description"
                 defaultValue={data.transaction.description.slice(0, 240)}
                 required
@@ -39,6 +40,7 @@ export function ExpenseReviewFields({ data }: { data: BankReviewOptions }) {
             </FormField>
             <FormField label="Merchant (optional)">
               <Input
+                placeholder="Store or merchant name"
                 name="merchant"
                 defaultValue={data.transaction.merchant?.slice(0, 160) ?? ''}
                 maxLength={160}
@@ -59,7 +61,7 @@ export function ExpenseReviewFields({ data }: { data: BankReviewOptions }) {
               </Select>
             </FormField>
             <FormField label="Notes (optional)">
-              <Input name="notes" maxLength={4000} />
+              <Input placeholder="Add optional details or context" name="notes" maxLength={4000} />
             </FormField>
           </div>
           <AllocationFields

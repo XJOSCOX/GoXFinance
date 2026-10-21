@@ -68,6 +68,7 @@ export function BillAdditionalFields({
       </label>
       <FormField label="Notes">
         <textarea
+          placeholder="Add optional details or notes"
           className="min-h-20 w-full resize-y rounded-lg border border-white/12 bg-[#151716] px-3 py-2 text-sm outline-none focus:border-[#a9b8a9]"
           maxLength={4000}
           value={value.notes ?? ''}

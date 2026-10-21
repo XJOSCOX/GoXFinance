@@ -51,6 +51,7 @@ export function CategoryEditor({
     >
       <FormField label="Category name">
         <Input
+          placeholder="e.g. Groceries or transportation"
           required
           maxLength={120}
           value={name}
@@ -59,6 +60,7 @@ export function CategoryEditor({
       </FormField>
       <FormField label="Description (optional)">
         <Input
+          placeholder="What this category includes (optional)"
           maxLength={500}
           value={description}
           onChange={(event) => setDescription(event.target.value)}

@@ -92,7 +92,12 @@ export function PayoffPlanner({
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FormField label="Scenario name">
-              <Input name="name" defaultValue={input.name} required />
+              <Input
+                placeholder="A short name for this plan"
+                name="name"
+                defaultValue={input.name}
+                required
+              />
             </FormField>
             <FormField label="Start date">
               <Input name="startDate" type="date" defaultValue={input.startDate} required />

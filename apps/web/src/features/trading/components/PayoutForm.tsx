@@ -166,7 +166,11 @@ export function PayoutForm({
         <Input name="reference" defaultValue={payout?.reference ?? ''} />
       </FormField>
       <FormField label="Notes (splits, fees or adjustments)">
-        <Input name="notes" defaultValue={payout?.notes ?? ''} />
+        <Input
+          placeholder="Add optional details or context"
+          name="notes"
+          defaultValue={payout?.notes ?? ''}
+        />
       </FormField>
     </FinancialEditor>
   )

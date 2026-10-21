@@ -7,12 +7,14 @@ export function AmountField({
   value,
   required = false,
   onChange,
+  placeholder,
 }: {
   label: string
   name: string
   value?: number | null
   required?: boolean
   onChange?: (value: string) => void
+  placeholder?: string
 }) {
   return (
     <FormField label={label}>
@@ -22,7 +24,7 @@ export function AmountField({
         defaultValue={moneyText(value)}
         onChange={(event) => onChange?.(event.target.value)}
         required={required}
-        placeholder={required ? '0.00' : 'Unknown'}
+        placeholder={placeholder ?? (required ? 'Amount in USD' : 'USD - unknown if blank')}
       />
     </FormField>
   )

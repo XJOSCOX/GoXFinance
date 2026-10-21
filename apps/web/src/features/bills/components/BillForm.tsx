@@ -87,6 +87,7 @@ export function BillForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Bill name">
                 <Input
+                  placeholder="e.g. Electricity or rent"
                   required
                   maxLength={160}
                   value={value.name}

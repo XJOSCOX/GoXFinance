@@ -139,7 +139,7 @@ export function DebtFormDialog({
           value={money[field]}
           disabled={Boolean(debt) && field === 'currentBalanceCents'}
           onChange={(event) => setMoney((current) => ({ ...current, [field]: event.target.value }))}
-          placeholder="Unknown"
+          placeholder="USD - unknown if blank"
           className="tabular-nums"
         />
       </label>
@@ -226,6 +226,7 @@ export function DebtFormDialog({
               <label className="block">
                 <span className={label}>Reason for Owner approval *</span>
                 <textarea
+                  placeholder="Briefly explain the requested change"
                   required
                   maxLength={2000}
                   value={reason}
@@ -405,6 +406,7 @@ export function DebtFormDialog({
               <label className="block">
                 <span className={label}>Notes</span>
                 <textarea
+                  placeholder="Add optional details or notes"
                   className={select + ' h-24 py-2'}
                   maxLength={4000}
                   value={form.notes ?? ''}

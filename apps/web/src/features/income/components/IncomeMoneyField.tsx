@@ -13,7 +13,7 @@ export function IncomeMoneyField({
     <FormField label={label}>
       <Input
         inputMode="decimal"
-        placeholder="Unknown"
+        placeholder="USD - unknown if blank"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

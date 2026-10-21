@@ -84,7 +84,12 @@ export function ForecastForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <FormField label="Scenario name">
-            <Input name="name" defaultValue={initial.name} required />
+            <Input
+              placeholder="A short name for this plan"
+              name="name"
+              defaultValue={initial.name}
+              required
+            />
           </FormField>
           <FormField label="As-of / starting date">
             <Input type="date" required value={start} onChange={(e) => setStart(e.target.value)} />
@@ -159,7 +164,12 @@ export function ForecastForm({
                 className="grid gap-2 rounded-lg border border-white/10 p-3 sm:grid-cols-2"
               >
                 <FormField label="Item name">
-                  <Input name={item.id + ':name'} defaultValue={item.name} required />
+                  <Input
+                    placeholder="Name of this cash-flow item"
+                    name={item.id + ':name'}
+                    defaultValue={item.name}
+                    required
+                  />
                 </FormField>
                 <FormField label="Date">
                   <Input type="date" name={item.id + ':date'} defaultValue={item.date} required />

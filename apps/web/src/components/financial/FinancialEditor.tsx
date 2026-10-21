@@ -70,7 +70,12 @@ export function FinancialEditor({
             {children}
             {record && (
               <FormField label={reasonLabel}>
-                <Input name="correctionReason" required maxLength={2000} />
+                <Input
+                  name="correctionReason"
+                  placeholder="Briefly explain what changed"
+                  required
+                  maxLength={2000}
+                />
               </FormField>
             )}
             {error && (

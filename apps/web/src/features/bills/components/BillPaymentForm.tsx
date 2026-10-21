@@ -236,7 +236,12 @@ export function BillPaymentForm({
           )}
           <PaymentBreakdown value={breakdown} onChange={setBreakdown} />
           <FormField label="Notes">
-            <Input maxLength={4000} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Input
+              placeholder="Add optional details or context"
+              maxLength={4000}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </FormField>
           <PaymentConfirmation
             amount={amount}

@@ -128,11 +128,13 @@ export function PayrollReviewForm({
           <div className="my-3 grid gap-3 sm:grid-cols-2">
             <AmountField
               label="Printed worked hours (optional reconciliation check)"
+              placeholder="Hours, e.g. 37.5"
               name="reportedWorked"
               value={initial.reportedWorkedHundredths}
             />
             <AmountField
               label="Printed paid hours (optional reconciliation check)"
+              placeholder="Hours, e.g. 37.5"
               name="reportedPaid"
               value={initial.reportedPaidHundredths}
             />

@@ -131,6 +131,7 @@ export function IncomeTransactionForm({
             </FormField>
             <FormField label="Reference (optional)">
               <Input
+                placeholder="Confirmation or reference number"
                 maxLength={160}
                 value={value.reference ?? ''}
                 onChange={(e) => update('reference', e.target.value || null)}
@@ -162,6 +163,7 @@ export function IncomeTransactionForm({
             </div>
             <FormField label="Notes">
               <Input
+                placeholder="Add optional details or context"
                 value={value.notes ?? ''}
                 onChange={(e) => update('notes', e.target.value || null)}
               />

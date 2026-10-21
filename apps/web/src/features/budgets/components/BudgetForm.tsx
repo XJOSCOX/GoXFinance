@@ -135,7 +135,11 @@ export function BudgetForm({
         </p>
       </section>
       <FormField label="Notes">
-        <Input name="notes" defaultValue={record?.notes ?? ''} />
+        <Input
+          placeholder="Add optional details or context"
+          name="notes"
+          defaultValue={record?.notes ?? ''}
+        />
       </FormField>
     </FinancialEditor>
   )

@@ -50,7 +50,7 @@ export function HouseholdEditDialog({ household, onClose }: { household: Househo
         <Input type="date" value={moveInDate} onChange={event => setMoveInDate(event.target.value)} />
         {fieldErrors.moveInDate && <span role="alert" className="mt-1 block text-rose-300">{fieldErrors.moveInDate}</span>}</label>
       <label className="block text-sm"><span className="mb-1.5 block text-slate-300">Notes</span>
-        <textarea rows={4} maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)}
+        <textarea placeholder="Add optional details or notes" rows={4} maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)}
           className="w-full rounded-lg border border-white/[.12] bg-[#151716] px-3 py-2 text-sm text-[#edecea] outline-none focus:border-[#a9b8a9]" />
         {fieldErrors.notes && <span role="alert" className="mt-1 block text-rose-300">{fieldErrors.notes}</span>}</label>
       {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}

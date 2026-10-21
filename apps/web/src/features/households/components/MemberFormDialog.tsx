@@ -65,7 +65,7 @@ export function MemberFormDialog({ member, mode = 'member', onSave, onClose }: {
         {fieldErrors.relationship && <span className="mt-1 block text-rose-300">{fieldErrors.relationship}</span>}
       </label>
       <label className="block text-sm"><span className="mb-1.5 block text-slate-300">Notes</span>
-        <textarea rows={4} maxLength={2000} className={`${fieldStyle} h-auto min-h-24 py-2`} value={notes} onChange={event => setNotes(event.target.value)} placeholder="Optional" />
+        <textarea rows={4} maxLength={2000} className={`${fieldStyle} h-auto min-h-24 py-2`} value={notes} onChange={event => setNotes(event.target.value)} placeholder="Add optional details about this member" />
         {fieldErrors.notes && <span className="mt-1 block text-rose-300">{fieldErrors.notes}</span>}
       </label>
       {error && <p role="alert" className="rounded-lg border border-[#b08985]/25 bg-[#b08985]/10 p-3 text-sm text-rose-300">{error}</p>}

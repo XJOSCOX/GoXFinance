@@ -42,7 +42,13 @@ export function BankAccountForm({
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Account nickname">
-          <Input name="name" defaultValue={record?.name} required maxLength={120} />
+          <Input
+            placeholder="A short name for this account"
+            name="name"
+            defaultValue={record?.name}
+            required
+            maxLength={120}
+          />
         </FormField>
         <FormField label="Institution">
           <Input

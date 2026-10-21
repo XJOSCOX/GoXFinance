@@ -173,7 +173,12 @@ export function PayrollHoursForm({
               value={week?.otherEarningsCents}
             />
             <FormField label="Notes">
-              <Input name="notes" maxLength={2000} defaultValue={week?.notes ?? ''} />
+              <Input
+                placeholder="Add optional details or context"
+                name="notes"
+                maxLength={2000}
+                defaultValue={week?.notes ?? ''}
+              />
             </FormField>
           </div>
         </details>

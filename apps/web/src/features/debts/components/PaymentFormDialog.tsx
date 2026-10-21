@@ -175,6 +175,7 @@ export function PaymentFormDialog({
           <PaymentBreakdown value={breakdown} onChange={setBreakdown} />
           <FormField label="Notes">
             <Input
+              placeholder="Add optional details or context"
               maxLength={4000}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}

@@ -88,6 +88,7 @@ export function IncomeSourceForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Source / employer name">
                 <Input
+                  placeholder="Employer or income source name"
                   required
                   maxLength={160}
                   value={value.name}
@@ -204,6 +205,7 @@ export function IncomeSourceForm({
           </FormSection>
           <FormField label="Notes">
             <Input
+              placeholder="Add optional details or context"
               value={value.notes ?? ''}
               onChange={(e) => update('notes', e.target.value || null)}
             />

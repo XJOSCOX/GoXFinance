@@ -56,7 +56,12 @@ export function AssetForm({
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <FormField label="Asset name">
-          <Input name="name" required defaultValue={record?.name ?? ''} />
+          <Input
+            placeholder="e.g. Family car"
+            name="name"
+            required
+            defaultValue={record?.name ?? ''}
+          />
         </FormField>
         <FormField label="Asset type">
           <Select name="category" defaultValue={record?.category ?? 'vehicle'}>
@@ -143,7 +148,11 @@ export function AssetForm({
         </section>
       )}
       <FormField label="Notes">
-        <Input name="notes" defaultValue={record?.notes ?? ''} />
+        <Input
+          placeholder="Add optional details or context"
+          name="notes"
+          defaultValue={record?.notes ?? ''}
+        />
       </FormField>
       <p className="text-xs text-slate-500">
         Purchase price is not a current valuation. Do not enter Combine/XFA nominal balances or

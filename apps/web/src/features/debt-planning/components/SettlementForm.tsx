@@ -181,13 +181,21 @@ export function SettlementForm({
         )}
       </section>
       <FormField label="Notes">
-        <Input name="notes" defaultValue={record?.notes ?? ''} />
+        <Input
+          placeholder="Add optional details or context"
+          name="notes"
+          defaultValue={record?.notes ?? ''}
+        />
       </FormField>
       <details>
         <summary className="text-sm text-slate-400">Supporting document metadata</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FormField label="Document name">
-            <Input name="document" defaultValue={record?.document?.name ?? ''} />
+            <Input
+              placeholder="Name of the supporting document"
+              name="document"
+              defaultValue={record?.document?.name ?? ''}
+            />
           </FormField>
           <FormField label="Local reference (no upload)">
             <Input name="reference" defaultValue={record?.document?.reference ?? ''} />

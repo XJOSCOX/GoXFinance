@@ -55,7 +55,7 @@ export function MoneyField({
         inputMode="decimal"
         pattern="[0-9]+(\.[0-9]{1,2})?"
         required={required}
-        placeholder="Unknown"
+        placeholder={required ? 'Amount in USD' : 'USD - unknown if blank'}
         value={text}
         onChange={(event) => {
           const next = event.target.value

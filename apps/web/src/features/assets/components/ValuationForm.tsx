@@ -68,7 +68,7 @@ export function ValuationForm({
         </Select>
       </FormField>
       <FormField label="Notes">
-        <Input name="notes" />
+        <Input placeholder="Add optional details or context" name="notes" />
       </FormField>
     </FinancialEditor>
   )

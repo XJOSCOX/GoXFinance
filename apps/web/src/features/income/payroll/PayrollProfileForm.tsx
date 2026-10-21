@@ -111,7 +111,12 @@ export function PayrollProfileForm({
           <Input name="employer" required maxLength={160} defaultValue={initial.employer} />
         </FormField>
         <FormField label="Assignment / client">
-          <Input name="assignment" maxLength={160} defaultValue={initial.assignment ?? ''} />
+          <Input
+            placeholder="Client or work assignment (optional)"
+            name="assignment"
+            maxLength={160}
+            defaultValue={initial.assignment ?? ''}
+          />
         </FormField>
         <AmountField
           label="Regular hourly rate ($)"

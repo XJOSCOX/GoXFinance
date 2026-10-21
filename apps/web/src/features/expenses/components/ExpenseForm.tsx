@@ -95,6 +95,7 @@ export function ExpenseForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Description">
                 <Input
+                  placeholder="What was purchased?"
                   required
                   maxLength={240}
                   value={value.description}
@@ -103,6 +104,7 @@ export function ExpenseForm({
               </FormField>
               <FormField label="Merchant (optional)">
                 <Input
+                  placeholder="Store or merchant name"
                   value={value.merchant ?? ''}
                   onChange={(e) => update('merchant', e.target.value || null)}
                 />
@@ -282,6 +284,7 @@ export function ExpenseForm({
           <FormSection title="Notes" collapsible>
             <FormField label="Notes">
               <Input
+                placeholder="Add optional details or context"
                 value={value.notes ?? ''}
                 onChange={(e) => update('notes', e.target.value || null)}
               />

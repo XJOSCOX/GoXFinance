@@ -391,6 +391,7 @@ export function DebtsPage() {
               <label className="mt-4 block text-xs text-slate-400">
                 Reason for Owner approval
                 <textarea
+                  placeholder="Briefly explain the requested change"
                   required
                   maxLength={2000}
                   value={archiveReason}

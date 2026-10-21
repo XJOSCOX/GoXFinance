@@ -51,6 +51,7 @@ export function CombinePromotionForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="New XFA name">
           <Input
+            placeholder="Name for the funded account"
             name="nickname"
             required
             maxLength={120}

@@ -50,7 +50,7 @@ export function BankBalanceForm({
           />
         </FormField>
         <FormField label="Notes (optional)">
-          <Input name="notes" maxLength={500} />
+          <Input placeholder="Add optional details or context" name="notes" maxLength={500} />
         </FormField>
       </div>
     </FinancialEditor>

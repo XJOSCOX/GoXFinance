@@ -233,6 +233,7 @@ export function DebtChangeRequestsPanel({
               <label className="mt-4 block text-xs text-slate-400">
                 {owner ? 'Review note (optional)' : 'Withdrawal note (optional)'}
                 <textarea
+                  placeholder="Add optional details or notes"
                   value={note}
                   maxLength={2000}
                   onChange={(event) => setNote(event.target.value)}

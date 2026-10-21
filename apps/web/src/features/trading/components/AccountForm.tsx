@@ -122,7 +122,13 @@ export function AccountForm({
       <div className="grid gap-4 sm:grid-cols-2">
         {account && (
           <FormField label="Nickname">
-            <Input name="nickname" defaultValue={defaults?.nickname} required maxLength={120} />
+            <Input
+              placeholder="A short name for this account"
+              name="nickname"
+              defaultValue={defaults?.nickname}
+              required
+              maxLength={120}
+            />
           </FormField>
         )}
         <FormField label="Responsible member">
@@ -234,7 +240,12 @@ export function AccountForm({
         household cash.
       </p>
       <FormField label="Notes">
-        <Input name="notes" defaultValue={defaults?.notes ?? ''} maxLength={4000} />
+        <Input
+          placeholder="Add optional details or context"
+          name="notes"
+          defaultValue={defaults?.notes ?? ''}
+          maxLength={4000}
+        />
       </FormField>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={rules} onChange={(e) => setRules(e.target.checked)} />

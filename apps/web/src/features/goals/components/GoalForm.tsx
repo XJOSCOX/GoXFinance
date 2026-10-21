@@ -117,7 +117,12 @@ export function GoalForm({
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Goal name">
-          <Input name="name" defaultValue={goalName} required />
+          <Input
+            placeholder="What are you working toward?"
+            name="name"
+            defaultValue={goalName}
+            required
+          />
         </FormField>
         <FormField label="Goal type">
           <Select
@@ -280,7 +285,11 @@ export function GoalForm({
         Targets are personal milestones, not provider rules or a reason to increase risk.
       </p>
       <FormField label="Notes">
-        <Input name="notes" defaultValue={goal?.notes ?? ''} />
+        <Input
+          placeholder="Add optional details or context"
+          name="notes"
+          defaultValue={goal?.notes ?? ''}
+        />
       </FormField>
     </FinancialEditor>
   )

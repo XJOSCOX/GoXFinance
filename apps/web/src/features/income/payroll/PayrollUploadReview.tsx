@@ -106,6 +106,7 @@ export function PayrollUploadReview({
         {sourceId === NEW_EMPLOYER && (
           <FormField label="New employer name">
             <Input
+              placeholder="Employer name"
               name="sourceName"
               required
               maxLength={160}

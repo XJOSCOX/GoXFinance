@@ -169,15 +169,13 @@ export function PayrollPanel({
                     const transaction = transactions.find((t) => t.id === w.incomeTransactionId)
                     if (!transaction)
                       throw new Error('Refresh Income before confirming this deposit')
-                    const values = incomeTransactionSchema
-                      .strip()
-                      .parse({
-                        ...transaction,
-                        status: 'confirmed',
-                        depositDate: v.date,
-                        receiptConfirmed: true,
-                        actualNetCents: v.amountCents,
-                      })
+                    const values = incomeTransactionSchema.strip().parse({
+                      ...transaction,
+                      status: 'confirmed',
+                      depositDate: v.date,
+                      receiptConfirmed: true,
+                      actualNetCents: v.amountCents,
+                    })
                     await apiRequest(`households/${home}/income/transactions/${transaction.id}`, {
                       method: 'PATCH',
                       body: JSON.stringify({
@@ -327,7 +325,11 @@ export function PayrollPanel({
             required
           />
           <FormField label="Reference (optional)">
-            <Input name="reference" maxLength={160} />
+            <Input
+              placeholder="Confirmation or reference number"
+              name="reference"
+              maxLength={160}
+            />
           </FormField>
         </FinancialEditor>
       )}

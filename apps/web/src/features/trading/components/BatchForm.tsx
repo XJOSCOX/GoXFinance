@@ -43,7 +43,7 @@ export function BatchForm({
         status. This does not send requests to Topstep or create income.
       </p>
       <FormField label="Batch name">
-        <Input name="name" required />
+        <Input placeholder="Name for this payout batch" name="name" required />
       </FormField>
       <DateField
         label="External request date"
@@ -114,7 +114,7 @@ export function BatchForm({
         </div>
       ))}
       <FormField label="Notes">
-        <Input name="notes" />
+        <Input placeholder="Add optional details or context" name="notes" />
       </FormField>
     </FinancialEditor>
   )
