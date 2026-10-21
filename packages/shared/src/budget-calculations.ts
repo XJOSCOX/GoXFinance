@@ -119,7 +119,7 @@ export function budgetBillObligations(bills: BillView[], month: string, member: 
         .filter((p) => p.dueDate.startsWith(month) && p.paymentStatus !== 'cancelled')
         .map((p) => ({
           id: p.id,
-          name: p.name,
+          name: b.name,
           dueDate: p.dueDate,
           estimateCents: p.budgetEstimateCents ?? p.estimatedAmountCents,
           billedCents: p.amountCents,

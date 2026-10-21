@@ -3,7 +3,7 @@ import { expect, it } from 'vitest'
 import { setup, create, edit } from '../trading/trading.fixture'
 import { testUser, testRequest } from '../../testing/workspace'
 import { openSqlite } from '../../db/encryption/sqlite-engine'
-import type { BudgetInput } from '@goxfinance/shared'
+import type { BudgetInput, BillInput } from '@goxfinance/shared'
 const input = (categoryId: string, member: string | null = null): BudgetInput => ({
   month: '2026-10',
   responsibleMemberId: member,
@@ -12,6 +12,43 @@ const input = (categoryId: string, member: string | null = null): BudgetInput =>
   notes: 'Fictional budget',
   limits: [{ categoryId, amountCents: 20000 }],
 })
+it.each([false, true])(
+  'reports a renamed bill without rewriting historical snapshots; encrypted=%s',
+  async (encrypted) => {
+    const f = await setup(encrypted),
+      category = (await f.ok('GET', '/categories')).categories[0]
+    const values: BillInput = {
+      name: '300',
+      category: category.name,
+      categoryId: category.id,
+      kind: 'recurring',
+      amountType: 'variable',
+      amountCents: null,
+      estimatedAmountCents: 30000,
+      frequency: 'monthly',
+      nextDueDate: '2026-10-01',
+      endDate: null,
+      autoPay: false,
+      status: 'active',
+      notes: null,
+      linkedDebtId: null,
+      memberIds: [f.member],
+    }
+    const bill = (await f.ok('POST', '/bills', values)).bill
+    const before = (await f.ok('GET', '/budgets?month=2026-10')).bills
+    await f.ok('POST', '/bills/' + bill.id + '/actions', {
+      action: 'edit_bill',
+      changes: { ...values, name: 'Fictional electricity' },
+    })
+    const after = (await f.ok('GET', '/budgets?month=2026-10')).bills
+    expect(after).toEqual(
+      before.map((row: { name: string }) => ({ ...row, name: 'Fictional electricity' })),
+    )
+    const saved = (await f.ok('GET', '/bills/' + bill.id)).bill
+    expect(saved.name).toBe('Fictional electricity')
+    expect(saved.periods[0].name).toBe('300')
+  },
+)
 it.each([false, true])(
   'creates, edits, archives, restores and copies independent months with persistence; encrypted=%s',
   async (encrypted) => {

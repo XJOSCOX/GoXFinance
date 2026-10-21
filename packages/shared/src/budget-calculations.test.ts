@@ -60,6 +60,23 @@ const bill = {
   ],
   payments: [payment],
 } as unknown as BillView
+it('uses the current bill name while preserving historical period amounts and labels', () => {
+  const renamed = {
+    ...bill,
+    name: 'Fictional electricity',
+    periods: bill.periods.map((p) => ({ ...p, name: '300' })),
+  }
+  const before = JSON.stringify(renamed)
+  expect(budgetBillObligations([renamed], '2026-10', null)[0]).toMatchObject({
+    name: 'Fictional electricity',
+    estimateCents: 30000,
+    billedCents: 34218,
+    paidCents: 20000,
+    remainingCents: 14218,
+  })
+  expect(JSON.stringify(renamed)).toBe(before)
+  expect(renamed.periods[0].name).toBe('300')
+})
 it('uses split purchase spending, historical bill categories, actual partial payments and no linked repayment aliases', () => {
   const rows = budgetSpending(
     [
