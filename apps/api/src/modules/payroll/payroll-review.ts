@@ -94,15 +94,15 @@ export function reviewPayroll(
               t.status !== 'cancelled',
           )
     const actualHours = payrollStatementHours(v),
-      regularHours = actualHours.regularHundredths ?? w.regularHundredths,
-      overtimeHours = actualHours.overtimeHundredths ?? w.overtimeHundredths
+      regularHours = actualHours.regularHundredths,
+      overtimeHours = actualHours.overtimeHundredths
     const values: IncomeTransactionInput = incomeTransactionSchema.parse({
       sourceId: s.id,
       workPeriodStart: v.periodStart,
       workPeriodEnd: v.periodEnd,
       regularHours: regularHours === null ? null : (regularHours / 100).toFixed(2),
       overtimeHours: overtimeHours === null ? null : (overtimeHours / 100).toFixed(2),
-      hourlyRateCents: actualHours.regularRateCents ?? w.regularRateCents,
+      hourlyRateCents: actualHours.regularRateCents,
       overtimeMultiplier: old?.overtimeMultiplier ?? s.overtimeMultiplier,
       expectedGrossCents: w.forecasts.at(-1)?.result.grossCents ?? old?.expectedGrossCents ?? null,
       expectedNetCents: w.forecasts.at(-1)?.result.netCents ?? old?.expectedNetCents ?? null,

@@ -20,6 +20,11 @@ import { readUploadReceipt } from './payroll-upload-receipt'
 import { payrollUploadPreview } from './payroll-upload-preview'
 import type { PayrollUploadAccess } from './payroll-upload-access'
 import { automaticPayrollProfile } from './payroll-auto-source'
+import {
+  isPayrollDraft,
+  uploadExistingWeek,
+  reconcileDraftPeriod,
+} from './payroll-draft-reconciliation'
 export function payrollUploadService(
   store: PayrollRepository,
   income: IncomeService,
@@ -32,6 +37,7 @@ export function payrollUploadService(
         .object({
           receipt: z.string().max(256000),
           sourceId: z.uuid().optional(),
+          draftWeekId: z.uuid().optional(),
           newSource: z
             .object({ name: z.string().trim().min(1).max(160) })
             .strict()
@@ -146,9 +152,12 @@ export function payrollUploadService(
         const v = p.statement
         if (!v.periodStart || !v.periodEnd || !v.payDate)
           throw new FinancialError('Confirm the missing pay period and statement date', 400)
-        const existing = store
-          .weeks(home)
-          .find((w) => w.sourceId === sourceId && w.workweekStart === v.periodStart)
+        const existing = uploadExistingWeek(
+          store.weeks(home),
+          sourceId,
+          v.periodStart,
+          p.draftWeekId,
+        )
         const periodProfile = existing
           ? payrollProfileSchema.parse(
               JSON.parse(store.rawWeek(home, existing.id)!.profileSnapshotJson),
@@ -186,11 +195,11 @@ export function payrollUploadService(
             400,
           )
         if (
-          !existing &&
           store
             .weeks(home)
             .some(
               (w) =>
+                w.id !== existing?.id &&
                 w.sourceId === sourceId &&
                 w.workweekStart <= v.periodEnd! &&
                 w.workweekEnd >= v.periodStart!,
@@ -207,7 +216,8 @@ export function payrollUploadService(
         }
         if (
           existing &&
-          (existing.workweekEnd !== v.periodEnd || receipt.weeks[existing.id] !== existing.revision)
+          ((existing.workweekEnd !== v.periodEnd && !isPayrollDraft(existing)) ||
+            receipt.weeks[existing.id] !== existing.revision)
         )
           throw new FinancialError(
             'Payroll week changed or already exists since this preview. Upload again.',
@@ -264,6 +274,8 @@ export function payrollUploadService(
             origin: 'upload_first',
           })
         }
+        if (existing)
+          reconcileDraftPeriod(store, home, user, existing, v, frequency, split, p.reason)
         const result = reviewPayroll(
           store,
           income,

@@ -34,7 +34,10 @@ export function IncomePage() {
   const home = households.find((v) => v.id === householdId),
     data = useIncome(householdId)
   const payroll = useIncomePayroll(householdId, data.transactions)
-  const [uploadPaycheck, setUploadPaycheck] = useState<{ sourceId?: string } | null>(null),
+  const [uploadPaycheck, setUploadPaycheck] = useState<{
+      sourceId?: string
+      draftWeekId?: string
+    } | null>(null),
     [estimatePaycheck, setEstimatePaycheck] = useState(false),
     [payrollRefresh, setPayrollRefresh] = useState(0),
     [payrollSource, setPayrollSource] = useState('')
@@ -195,6 +198,7 @@ export function IncomePage() {
             <IncomeOverview
               data={{
                 ...data,
+                sources: filteredSources,
                 transactions: data.transactions.filter(
                   (v) =>
                     (!member || v.responsibleMemberId === member) &&
@@ -206,6 +210,7 @@ export function IncomePage() {
               payrollLoading={payroll.loading}
               payrollError={payroll.error}
               viewPaycheck={setViewPaycheck}
+              uploadEstimate={(w) => setUploadPaycheck({ sourceId: w.sourceId, draftWeekId: w.id })}
               month={month}
               changeMonth={setMonth}
               today={today}
@@ -276,6 +281,7 @@ export function IncomePage() {
         <PayrollUploadFlow
           home={householdId}
           preferredSourceId={uploadPaycheck.sourceId}
+          preferredWeekId={uploadPaycheck.draftWeekId}
           close={() => setUploadPaycheck(null)}
           saved={(sourceId) => {
             setUploadPaycheck(null)

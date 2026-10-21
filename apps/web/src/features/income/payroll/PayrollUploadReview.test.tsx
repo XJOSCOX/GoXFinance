@@ -24,6 +24,44 @@ const preview = {
   sources: [],
   newSourceMember: { id: crypto.randomUUID(), name: 'Fictional Member' },
 }
+it('reconciles the selected draft through the existing upload save action', async () => {
+  vi.mocked(apiRequest).mockResolvedValue({ sourceId })
+  const draftId = crypto.randomUUID()
+  render(
+    <PayrollUploadReview
+      home={home}
+      preview={{
+        ...preview,
+        sources: [
+          {
+            id: sourceId,
+            name: 'Fictional employer',
+            profile: null,
+            frequency: 'weekly',
+            drafts: [
+              {
+                id: draftId,
+                start: statement.periodStart!,
+                end: statement.periodEnd!,
+                payDate: statement.payDate,
+              },
+            ],
+          },
+        ],
+      }}
+      preferredSourceId={sourceId}
+      preferredWeekId={draftId}
+      close={() => {}}
+      saved={() => {}}
+    />,
+  )
+  expect((screen.getByLabelText('Saved estimate') as HTMLSelectElement).value).toBe(draftId)
+  expect(screen.getByText(/This statement will reconcile the selected draft/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Save Paycheck' }))
+  await waitFor(() => expect(apiRequest).toHaveBeenCalled())
+  const body = JSON.parse(vi.mocked(apiRequest).mock.calls[0][1]!.body as string)
+  expect(body).toMatchObject({ sourceId, draftWeekId: draftId })
+})
 it('creates a detected employer with its paycheck without requiring manual rates or a second confirmation', async () => {
   vi.mocked(apiRequest).mockResolvedValue({ sourceId })
   const saved = vi.fn()

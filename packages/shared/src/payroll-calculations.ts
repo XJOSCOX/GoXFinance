@@ -285,8 +285,12 @@ export function payrollForecast(
   }
 }
 export function payrollComparison(
-  week: Pick<PayrollWeek, 'statement' | 'statementReceivedAt' | 'forecasts'>,
+  week: Pick<
+    PayrollWeek,
+    'statement' | 'statementReceivedAt' | 'forecasts' | 'forecastPeriodReconciled'
+  >,
 ) {
+  if (week.forecastPeriodReconciled) return null
   const actual = week.statement,
     forecast = [...week.forecasts]
       .filter(

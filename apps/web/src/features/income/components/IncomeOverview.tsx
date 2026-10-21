@@ -11,6 +11,7 @@ import { IncomeYtd } from './IncomeYtd'
 import { paycheckOverview } from './paycheck-overview'
 import { IncomeMonthSummary } from './IncomeMonthSummary'
 import { RecentPaychecks } from './RecentPaychecks'
+import { NextPaycheckEstimate } from './NextPaycheckEstimate'
 import { Button } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function IncomeOverview({
@@ -23,6 +24,7 @@ export function IncomeOverview({
   payrollLoading = false,
   payrollError = '',
   viewPaycheck,
+  uploadEstimate,
 }: {
   data: IncomeData
   members: HouseholdMember[]
@@ -33,10 +35,11 @@ export function IncomeOverview({
   payrollLoading?: boolean
   payrollError?: string
   viewPaycheck?: (t: IncomeTransaction) => void
+  uploadEstimate?: (week: PayrollWeek) => void
 }) {
   const summary = incomeSummary(data.transactions, month, today),
     pay = paycheckOverview(data.transactions, month, today),
-    sourceIds = new Set(data.transactions.map((t) => t.sourceId)),
+    sourceIds = new Set(data.sources.map((s) => s.id)),
     visibleWeeks = weeks.filter((w) => sourceIds.has(w.sourceId)),
     latestWeek = visibleWeeks.find((w) => w.incomeTransactionId === pay.latest?.id),
     latestMonth = summary.monthly[0]?.period,
@@ -92,6 +95,15 @@ export function IncomeOverview({
           />
         </div>
         <div className="min-w-0 space-y-4">
+          <NextPaycheckEstimate
+            weeks={visibleWeeks}
+            sources={data.sources}
+            transactions={data.transactions}
+            today={today}
+            loading={payrollLoading}
+            error={payrollError}
+            upload={uploadEstimate}
+          />
           <IncomeYtd
             weeks={visibleWeeks}
             sources={data.sources.filter((s) => sourceIds.has(s.id))}

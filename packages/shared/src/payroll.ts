@@ -92,6 +92,7 @@ export const weeklyHoursSchema = z
     semiMonthlySplitDay: z.number().int().min(1).max(27).optional(),
     documentOnly: z.boolean().optional(),
     customWorkPeriod: z.boolean().optional(),
+    forecastPeriodReconciled: z.boolean().optional(),
     estimateDeductionsFromHistory: z.boolean().optional(),
     expectedDepositBasis: z.enum(['statement', 'schedule']).optional(),
     periodAnchor: z.iso.date().nullable().optional(),

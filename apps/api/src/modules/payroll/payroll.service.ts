@@ -91,7 +91,7 @@ export function payrollService(
         })
         .strict()
         .parse(body)
-      if (p.values.documentOnly)
+      if (p.values.documentOnly || p.values.forecastPeriodReconciled)
         throw new FinancialError('Upload documented hours through paycheck review', 400)
       return store.atomic(() => {
         const incomeSource = source(user, home, p.values.sourceId, true)

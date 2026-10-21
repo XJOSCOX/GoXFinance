@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import type { IncomeData } from '@goxfinance/shared'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import type { IncomeData, PayrollWeek } from '@goxfinance/shared'
 import { IncomeOverview } from './IncomeOverview'
 afterEach(cleanup)
 const data = {
@@ -20,6 +20,53 @@ const data = {
   ],
   canCreate: true,
 } as IncomeData
+it('shows a future forecast for an employer with no paycheck yet and keeps it out of received totals', () => {
+  render(
+    <IncomeOverview
+      data={{ ...data, sources: [{ ...data.sources[0], status: 'active' }], transactions: [] }}
+      members={[]}
+      month="2026-10"
+      today="2026-10-20"
+      changeMonth={() => {}}
+      weeks={[
+        {
+          id: 'draft',
+          sourceId: 'job',
+          stage: 'hours_draft',
+          statement: null,
+          statementReceivedAt: null,
+          incomeTransactionId: null,
+          workweekStart: '2026-11-11',
+          workweekEnd: '2026-11-15',
+          expectedPayDate: '2026-11-20',
+          regularHundredths: 3857,
+          regularMinutes: 2314,
+          overtimeHundredths: 0,
+          forecasts: [
+            {
+              modelVersion: 1,
+              createdAt: '2026-10-20',
+              result: {
+                grossCents: 96417,
+                netCents: null,
+                workedHundredths: 3857,
+                confidence: 'unknown',
+              },
+            },
+          ],
+        } as unknown as PayrollWeek,
+      ]}
+    />,
+  )
+  expect(screen.getByText('Next estimated paycheck')).toBeTruthy()
+  expect(screen.getByText('Nov 20, 2026')).toBeTruthy()
+  expect(screen.getByText('38h 34min')).toBeTruthy()
+  expect(screen.getByText('$964.17')).toBeTruthy()
+  expect(screen.getByText(/Take-home unknown until deductions/)).toBeTruthy()
+  const totals = within(screen.getByRole('region', { name: 'Monthly income summary' }))
+  expect(totals.getByText('$0.00')).toBeTruthy()
+  expect(totals.queryByText('$964.17')).toBeNull()
+})
 it('shows one weekly paycheck, no fabricated average, and explains a different reporting month', () => {
   const changeMonth = vi.fn()
   render(

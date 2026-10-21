@@ -40,8 +40,8 @@ export function PayrollWeekCard({
       payFrequency: w.payFrequency ?? 'weekly',
     }),
     actual = w.statement ? payrollStatementHours(w.statement) : null,
-    worked = actual?.workedHundredths ?? f?.result.workedHundredths,
-    paid = actual?.paidHundredths ?? f?.result.paidHundredths
+    worked = w.statement ? actual?.workedHundredths : f?.result.workedHundredths,
+    paid = w.statement ? actual?.paidHundredths : f?.result.paidHundredths
   return (
     <Card className="p-4">
       <div className="flex flex-wrap justify-between gap-3">
@@ -51,20 +51,27 @@ export function PayrollWeekCard({
           </h3>
           <p className="mt-1 text-xs text-slate-400">
             {payrollFrequencyLabels[w.payFrequency ?? 'weekly']} · {w.stage.replaceAll('_', ' ')} ·
-            Expected deposit {w.expectedPayDate ?? 'Unknown'}
+            {w.statement ? 'Printed payday' : 'Expected deposit'}{' '}
+            {w.statement?.payDate ?? w.expectedPayDate ?? 'Unknown'}
           </p>
         </div>
         <div className="text-right">
           <p className="text-xs text-slate-400">
-            {f
+            {!w.statement && f
               ? `Estimated net · ${f.result.confidence} confidence`
               : 'Documented net · not deposit confirmation'}
           </p>
           <p className="text-xl font-semibold text-emerald-200">
-            {formatMoney(f ? f.result.netCents : (w.statement?.netCents ?? null))}
+            {formatMoney(w.statement ? w.statement.netCents : (f?.result.netCents ?? null))}
           </p>
         </div>
       </div>
+      {w.forecastPeriodReconciled && (
+        <p className="mt-3 text-xs text-slate-400">
+          Statement dates reconciled with the saved draft. The original forecast is retained but
+          excluded from accuracy comparisons because the period changed.
+        </p>
+      )}
       {!actual && (w.regularMinutes !== undefined || w.overtimeMinutes !== undefined) && (
         <p className="mt-3 text-xs text-slate-400">
           Entered time: regular {payrollHoursText(w.regularHundredths, w.regularMinutes)} / overtime{' '}

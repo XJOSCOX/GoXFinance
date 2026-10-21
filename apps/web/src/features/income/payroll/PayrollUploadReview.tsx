@@ -13,17 +13,21 @@ import { apiRequest } from '../../../lib/api'
 import { payrollBase } from './payrollClient'
 import { PayrollPeriodChoice } from './PayrollPeriodChoice'
 import { suggestPayrollFrequency } from './payroll-frequency'
+import { chooseUploadDraft } from './payroll-upload-draft'
+import { incomeDisplayPeriod } from '../components/income-display'
 const NEW_EMPLOYER = '__new__'
 export function PayrollUploadReview({
   home,
   preview,
   preferredSourceId,
+  preferredWeekId,
   close,
   saved,
 }: {
   home: string
   preview: PayrollUploadPreview
   preferredSourceId?: string
+  preferredWeekId?: string
   close: () => void
   saved: (sourceId: string) => void
 }) {
@@ -33,6 +37,7 @@ export function PayrollUploadReview({
       : (preview.matchedSourceId ??
         (preview.newSourceMember && !preview.matchingSourceIds?.length ? NEW_EMPLOYER : ''))
   const [sourceId, setSourceId] = useState(initialId),
+    [selectedDraft, setSelectedDraft] = useState<string>(),
     [current, setCurrent] = useState(preview.statement),
     [frequency, setFrequency] = useState<PayrollFrequency | ''>(() =>
       suggestPayrollFrequency(
@@ -53,7 +58,8 @@ export function PayrollUploadReview({
         ),
       )
   }, [current, preview.sources, sourceId, touched])
-  const selected = preview.sources.find((s) => s.id === sourceId)
+  const selected = preview.sources.find((s) => s.id === sourceId),
+    draftWeekId = chooseUploadDraft(selected, current, preferredWeekId, selectedDraft)
   return (
     <PayrollReviewForm
       initial={preview.statement}
@@ -65,6 +71,7 @@ export function PayrollUploadReview({
           ? { newSource: { name: String(f.get('sourceName') || '') } }
           : { sourceId }),
         payFrequency: frequency || undefined,
+        draftWeekId,
         semiMonthlySplitDay: split,
       })}
       save={async (raw) => {
@@ -91,6 +98,7 @@ export function PayrollUploadReview({
             required
             onChange={(e) => {
               setSourceId(e.target.value)
+              setSelectedDraft(undefined)
               setTouched(false)
             }}
           >
@@ -139,6 +147,32 @@ export function PayrollUploadReview({
         statement={current}
         source={selected}
       />
+      {Boolean(selected?.drafts?.length) && (
+        <div className="space-y-2 rounded-lg border border-sky-300/15 p-3">
+          <FormField label="Saved estimate">
+            <Select
+              aria-label="Saved estimate"
+              value={draftWeekId ?? ''}
+              onChange={(e) => setSelectedDraft(e.target.value)}
+            >
+              <option value="">New paycheck / no selected estimate</option>
+              {selected!.drafts!.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {incomeDisplayPeriod(d.start, d.end)}
+                  {d.payDate ? ` / expected ${d.payDate}` : ''}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          {draftWeekId && (
+            <p className="text-xs text-sky-200">
+              This statement will reconcile the selected draft. Review the actual dates, hours and
+              amounts below. The original estimate remains in history; no duplicate paycheck is
+              created.
+            </p>
+          )}
+        </div>
+      )}
       {selected?.existingWeek && (
         <p
           role="status"

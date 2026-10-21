@@ -6,11 +6,13 @@ import { useNotify } from '../../../components/ui/useNotify'
 export function PayrollUploadFlow({
   home,
   preferredSourceId,
+  preferredWeekId,
   close,
   saved,
 }: {
   home: string
   preferredSourceId?: string
+  preferredWeekId?: string
   close: () => void
   saved: (sourceId: string) => void
 }) {
@@ -21,6 +23,7 @@ export function PayrollUploadFlow({
       home={home}
       preview={preview}
       preferredSourceId={preferredSourceId}
+      preferredWeekId={preferredWeekId}
       close={close}
       saved={(sourceId) => {
         notify('success', 'Paycheck saved. Confirm the actual deposit separately.')

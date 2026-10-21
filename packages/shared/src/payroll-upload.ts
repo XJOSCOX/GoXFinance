@@ -74,6 +74,7 @@ export type PayrollUploadSource = {
   id: string
   name: string
   profile: PayrollProfile | null
+  drafts?: { id: string; start: string; end: string; payDate: string | null }[]
   existingWeek?: {
     id: string
     stage: string

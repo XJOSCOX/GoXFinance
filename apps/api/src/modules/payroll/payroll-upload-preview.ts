@@ -6,6 +6,7 @@ import { FinancialError } from '../households/financial-access'
 import { localDocumentPreview } from './documents/document.service'
 import { matchPayrollSources } from './payroll-source-matching'
 import { signUploadReceipt } from './payroll-upload-receipt'
+import { isPayrollDraft } from './payroll-draft-reconciliation'
 export function payrollUploadPreview(
   store: PayrollRepository,
   income: IncomeService,
@@ -91,6 +92,14 @@ export function payrollUploadPreview(
         )
         return {
           ...s,
+          drafts: data.weeks
+            .filter((w) => w.sourceId === s.id && isPayrollDraft(w))
+            .map((w) => ({
+              id: w.id,
+              start: w.workweekStart,
+              end: w.workweekEnd,
+              payDate: w.expectedPayDate,
+            })),
           existingWeek: w
             ? {
                 id: w.id,
