@@ -80,28 +80,28 @@ export function IncomeOverview({
         }
       />
       <div className="grid items-start gap-4 2xl:grid-cols-3">
-        <div className="min-w-0 space-y-4">
-          <LatestPaycheck
-            transaction={pay.latest}
-            source={data.sources.find((s) => s.id === pay.latest?.sourceId)}
-            week={latestWeek}
-            member={members.find((m) => m.id === pay.latest?.responsibleMemberId)?.fullName}
-          />
+        <div className="min-w-0 space-y-4 2xl:col-span-2">
+          <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
+            <LatestPaycheck
+              transaction={pay.latest}
+              source={data.sources.find((s) => s.id === pay.latest?.sourceId)}
+              week={latestWeek}
+              member={members.find((m) => m.id === pay.latest?.responsibleMemberId)?.fullName}
+            />
+            <NextPaycheckEstimate
+              weeks={visibleWeeks}
+              sources={data.sources}
+              transactions={data.transactions}
+              today={today}
+              loading={payrollLoading}
+              error={payrollError}
+              upload={uploadEstimate}
+            />
+          </div>
           <RecentPaychecks
             transactions={data.transactions}
             sources={data.sources}
             view={viewPaycheck}
-          />
-        </div>
-        <div className="min-w-0 space-y-4">
-          <NextPaycheckEstimate
-            weeks={visibleWeeks}
-            sources={data.sources}
-            transactions={data.transactions}
-            today={today}
-            loading={payrollLoading}
-            error={payrollError}
-            upload={uploadEstimate}
           />
         </div>
         <div className="min-w-0 border-t border-white/10 pt-4 2xl:border-t-0 2xl:border-l 2xl:pt-0 2xl:pl-4">

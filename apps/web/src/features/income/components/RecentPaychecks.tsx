@@ -18,7 +18,7 @@ export function RecentPaychecks({
     .slice(0, 4)
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/8 px-4 py-4 sm:px-5">
         <h2 className="text-sm font-semibold">Recent paychecks</h2>
         <span className="text-[11px] text-slate-500">Latest 4 / all dates</span>
       </div>
@@ -32,10 +32,10 @@ export function RecentPaychecks({
                 type="button"
                 disabled={!view}
                 onClick={() => view?.(t)}
-                className="flex w-full items-center gap-3 px-5 py-3 text-left transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a9b8a9]"
+                className="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a9b8a9] sm:gap-3 sm:px-5"
               >
                 <span
-                  className={`rounded-full p-2 ${t.status === 'confirmed' ? 'bg-emerald-300/5 text-emerald-300' : 'bg-amber-300/5 text-amber-200'}`}
+                  className={`shrink-0 rounded-full p-2 ${t.status === 'confirmed' ? 'bg-emerald-300/5 text-emerald-300' : 'bg-amber-300/5 text-amber-200'}`}
                 >
                   {t.status === 'confirmed' ? (
                     <Check size={14} aria-hidden="true" />
@@ -52,7 +52,7 @@ export function RecentPaychecks({
                     {t.status === 'confirmed' ? 'Received' : t.status}
                   </span>
                 </span>
-                <span className="text-right">
+                <span className="shrink-0 text-right">
                   <span className="block text-sm font-medium tabular-nums">
                     {formatMoney(t.actualNetCents ?? t.expectedNetCents)}
                   </span>
@@ -60,7 +60,11 @@ export function RecentPaychecks({
                     {t.status === 'confirmed' ? 'Net deposit' : 'Not received'}
                   </span>
                 </span>
-                <ArrowUpRight size={14} className="text-slate-500" aria-hidden="true" />
+                <ArrowUpRight
+                  size={14}
+                  className="hidden shrink-0 text-slate-500 sm:block"
+                  aria-hidden="true"
+                />
               </button>
             </li>
           ))}
