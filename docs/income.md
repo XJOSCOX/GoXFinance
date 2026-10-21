@@ -44,6 +44,16 @@ Paycheck history defaults to **All dates**, independent of the overview reportin
 
 ## Income workspace layout
 
+### Estimate next paycheck
+
+Use Income actions > Estimate next paycheck, select an employer, enter full work-period dates, expected payday, regular/overtime hours and editable rates. PTO and bonuses are optional. The live preview and server use the same integer-cent forecast engine and prior-sample selection. Saving creates an audited draft payroll forecast; it never creates a received Income transaction. Saved forecasts can be revised in Payroll, with duplicate and overlapping periods rejected by the existing transactional API.
+
+Hours support decimal values and Deputy-style time (`38h 34min` or `38:34`). Decimal `38.34` remains 38.34 hours, not 38 hours 34 minutes. Minute inputs are stored as exact integer minutes alongside a validated hundredths display snapshot; earnings use minutes times the saved hourly rate divided by 60, rounded to cents per earnings component. Edits retain the original minute format. Thus 38h 34min at $25/hour estimates $964.17, rather than prematurely rounding hours to 38.57 and estimating $964.25. Invalid minutes and conflicting snapshots are rejected. These optional fields extend existing hours JSON without changing old records or requiring a table migration.
+
+Custom manual work spans may be shorter than a payroll cycle (for example November 11-15 for weekly payroll); the source frequency remains unchanged. Weekly spans are limited to seven days, biweekly to fourteen, semimonthly to sixteen, monthly to thirty-one, and annually/custom to 366. The custom-span flag and optional historical-deduction choice are additive fields in existing payroll hours JSON; no database migration is required. Uploaded statement validation is unchanged.
+
+When explicitly enabled and component rules cannot determine net, historical take-home uses the mean deduction/gross ratio from up to five nearest-gross, reconciled reviewed statements from the same employer and frequency, ending before the selected period. It includes benefits and withholding in aggregate, is labeled low confidence, warns about extrapolation, and is not a tax calculation. No usable history leaves net unknown. Historical total deductions do not populate individual tax or YTD values. Rates, source settings, prior statements, confirmed income and immutable forecast versions remain preserved.
+
 The overview uses one take-home summary strip, a compact period selector and collapsible member/source filters. The latest statement's earnings and deductions are collapsed by default; the four most recent non-cancelled paychecks are directly accessible below it, with YTD and recorded-paycheck statistics stacked alongside on larger screens.
 
 The primary action is Upload Paycheck. The adjacent action menu contains source creation and manual entry. Overview, Sources, Paychecks and Payroll use a slim tab bar. Source and paycheck actions use the shared keyboard-accessible menu, which closes on selection, Escape and outside clicks.

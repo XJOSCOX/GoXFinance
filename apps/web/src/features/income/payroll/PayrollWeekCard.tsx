@@ -2,6 +2,7 @@ import {
   payrollMilestones,
   payrollStatementHours,
   payrollFrequencyLabels,
+  payrollHoursText,
   type PayrollWeek,
   type PayrollProfile,
   type IncomeTransaction,
@@ -64,6 +65,13 @@ export function PayrollWeekCard({
           </p>
         </div>
       </div>
+      {!actual && (w.regularMinutes !== undefined || w.overtimeMinutes !== undefined) && (
+        <p className="mt-3 text-xs text-slate-400">
+          Entered time: regular {payrollHoursText(w.regularHundredths, w.regularMinutes)} / overtime{' '}
+          {payrollHoursText(w.overtimeHundredths, w.overtimeMinutes)}. Pay uses exact entered
+          minutes.
+        </p>
+      )}
       <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
         <p>
           Worked{' '}

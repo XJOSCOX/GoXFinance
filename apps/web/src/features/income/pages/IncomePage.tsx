@@ -24,6 +24,7 @@ import { IncomeSourceForm } from '../components/IncomeSourceForm'
 import { IncomeTransactionForm } from '../components/IncomeTransactionForm'
 import { PayrollPanel } from '../payroll/PayrollPanel'
 import { PayrollUploadFlow } from '../payroll/PayrollUploadFlow'
+import { PaycheckEstimator } from '../payroll/PaycheckEstimator'
 export function IncomePage() {
   const { householdId = '' } = useParams(),
     { households, selected, select } = useHousehold(),
@@ -34,6 +35,7 @@ export function IncomePage() {
     data = useIncome(householdId)
   const payroll = useIncomePayroll(householdId, data.transactions)
   const [uploadPaycheck, setUploadPaycheck] = useState<{ sourceId?: string } | null>(null),
+    [estimatePaycheck, setEstimatePaycheck] = useState(false),
     [payrollRefresh, setPayrollRefresh] = useState(0),
     [payrollSource, setPayrollSource] = useState('')
   const [tab, setTab] = useState('overview'),
@@ -107,6 +109,11 @@ export function IncomePage() {
             <ActionMenu
               label="Income actions"
               items={[
+                {
+                  label: 'Estimate next paycheck',
+                  onSelect: () => setEstimatePaycheck(true),
+                  disabled: data.loading,
+                },
                 {
                   label: 'Add employer / source',
                   onSelect: () => setSource(null),
@@ -292,6 +299,19 @@ export function IncomePage() {
               values.status === 'confirmed' ? 'Deposit confirmed' : 'Income saved',
             )
           }
+        />
+      )}
+      {estimatePaycheck && (
+        <PaycheckEstimator
+          home={householdId}
+          sources={data.sources}
+          close={() => setEstimatePaycheck(false)}
+          saved={(sourceId) => {
+            setPayrollSource(sourceId)
+            setPayrollRefresh((v) => v + 1)
+            setTab('payroll')
+            data.refresh()
+          }}
         />
       )}
       {viewPaycheck && (

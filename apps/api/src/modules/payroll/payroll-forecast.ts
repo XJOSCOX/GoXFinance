@@ -2,8 +2,7 @@ import { randomUUID } from 'node:crypto'
 import {
   payrollProfileSchema,
   payrollForecast,
-  payrollComparison,
-  payrollReconciliation,
+  payrollForecastContext,
   localBillDate,
   type PayrollWeek,
 } from '@goxfinance/shared'
@@ -12,23 +11,7 @@ export function recordPayrollForecast(store: PayrollRepository, home: string, w:
   const raw = store.rawWeek(home, w.id)!,
     p = payrollProfileSchema.parse(JSON.parse(raw.profileSnapshotJson)),
     now = new Date().toISOString(),
-    prior = store
-      .weeks(home)
-      .filter(
-        (v) =>
-          v.sourceId === w.sourceId &&
-          (v.payFrequency ?? 'weekly') === (w.payFrequency ?? 'weekly') &&
-          v.id !== w.id &&
-          v.reviewedAt &&
-          v.reviewedAt < now &&
-          v.workweekEnd < w.workweekStart &&
-          v.statement &&
-          payrollReconciliation(v.statement).length === 0,
-      ),
-    samples = prior.map((v) => ({ statement: v.statement!, reviewedAt: v.reviewedAt! })),
-    errors = prior
-      .map((v) => payrollComparison(v)?.errorCents)
-      .filter((v): v is number => v !== undefined && v !== null),
+    { prior, samples, errors } = payrollForecastContext(store.weeks(home), w, now, w.id),
     result = payrollForecast(p, w, samples, errors),
     version = Math.max(0, ...store.models(home, w.sourceId).map((m) => m.version)) + 1
   store.model({
@@ -46,7 +29,9 @@ export function recordPayrollForecast(store: PayrollRepository, home: string, w:
       })),
       profile: p,
       errors,
-      algorithm: 'nearest-gross-components-v1',
+      algorithm: result.deductions.some((d) => d.code === 'historical_total')
+        ? 'nearest-gross-total-ratio-v1'
+        : 'nearest-gross-components-v1',
     }),
     createdAt: now,
   })

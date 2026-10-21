@@ -91,6 +91,8 @@ export const weeklyHoursSchema = z
     payFrequency: z.enum(payrollFrequencies).optional(),
     semiMonthlySplitDay: z.number().int().min(1).max(27).optional(),
     documentOnly: z.boolean().optional(),
+    customWorkPeriod: z.boolean().optional(),
+    estimateDeductionsFromHistory: z.boolean().optional(),
     expectedDepositBasis: z.enum(['statement', 'schedule']).optional(),
     periodAnchor: z.iso.date().nullable().optional(),
     regularHundredths: hours.nullable(),
@@ -99,6 +101,12 @@ export const weeklyHoursSchema = z
     holidayHundredths: hours.nullable(),
     otherPaidHundredths: hours.nullable(),
     unpaidHundredths: hours.nullable(),
+    regularMinutes: z.number().int().min(0).max(527040).optional(),
+    overtimeMinutes: z.number().int().min(0).max(527040).optional(),
+    ptoMinutes: z.number().int().min(0).max(527040).optional(),
+    holidayMinutes: z.number().int().min(0).max(527040).optional(),
+    otherPaidMinutes: z.number().int().min(0).max(527040).optional(),
+    unpaidMinutes: z.number().int().min(0).max(527040).optional(),
     regularRateCents: money.nullable(),
     overtimeRateCents: money.nullable(),
     bonusCents: cents,
@@ -108,6 +116,11 @@ export const weeklyHoursSchema = z
   })
   .strict()
   .superRefine((v, c) => {
+    for (const kind of ['regular', 'overtime', 'pto', 'holiday', 'otherPaid', 'unpaid'] as const) {
+      const minutes = v[`${kind}Minutes`]
+      if (minutes !== undefined && v[`${kind}Hundredths`] !== Math.floor((minutes * 100 + 30) / 60))
+        c.addIssue({ code: 'custom', message: `${kind} hours and minutes do not match.` })
+    }
     const periodIssue = payrollPeriodIssue(
       v.workweekStart,
       v.workweekEnd,
@@ -115,10 +128,28 @@ export const weeklyHoursSchema = z
       v.semiMonthlySplitDay ?? 15,
       v.periodAnchor,
     )
-    if (periodIssue)
+    const days = payrollPeriodDays(v.workweekStart, v.workweekEnd)
+    const maxDays = {
+      weekly: 7,
+      biweekly: 14,
+      semimonthly: 16,
+      monthly: 31,
+      annually: 366,
+      irregular: 366,
+    }[v.payFrequency ?? 'weekly']
+    if (v.customWorkPeriod ? !Number.isInteger(days) || days < 1 || days > maxDays : periodIssue)
       c.addIssue({
         code: 'custom',
-        message: periodIssue,
+        message: v.customWorkPeriod
+          ? `Choose a work period of 1-${maxDays} days for this pay frequency.`
+          : periodIssue!,
+      })
+    if (v.customWorkPeriod && v.documentOnly)
+      c.addIssue({ code: 'custom', message: 'Custom work periods are for manual forecasts only.' })
+    if (v.customWorkPeriod && v.expectedPayDate && v.expectedPayDate < v.workweekEnd)
+      c.addIssue({
+        code: 'custom',
+        message: 'Expected payday must be on or after the work period ends.',
       })
     if (
       !v.documentOnly &&

@@ -7,6 +7,8 @@ import {
   payrollMilestones,
   payrollGross,
   weeklyHoursSchema,
+  parsePayrollHours,
+  payrollHoursText,
   type PayrollProfile,
   type PayrollWeek,
 } from '@goxfinance/shared'
@@ -41,14 +43,21 @@ export function PayrollHoursForm({
       payFrequency: frequency,
       semiMonthlySplitDay: split,
       periodAnchor: week?.periodAnchor ?? profile.periodAnchor ?? null,
+      customWorkPeriod: week?.customWorkPeriod,
+      estimateDeductionsFromHistory: week?.estimateDeductionsFromHistory,
       workweekStart: f.get('start'),
       workweekEnd: f.get('end'),
       expectedPayDate: f.get('payDate'),
       ...Object.fromEntries(
-        fields.map((k) => [
-          k + 'Hundredths',
-          String(f.get(k) || '') ? bankDecimalCents(String(f.get(k))) : k === 'unpaid' ? null : 0,
-        ]),
+        fields.flatMap<[string, number | null | undefined]>((k) => {
+          const raw = String(f.get(k) || '')
+          if (!raw && k === 'unpaid') return [[k + 'Hundredths', null]]
+          const parsed = parsePayrollHours(raw || (k === 'regular' || k === 'overtime' ? '' : '0'))
+          return [
+            [k + 'Hundredths', parsed.hundredths],
+            [k + 'Minutes', parsed.minutes],
+          ]
+        }),
       ),
       regularRateCents: bankDecimalCents(String(f.get('regularRate'))),
       overtimeRateCents: bankDecimalCents(String(f.get('overtimeRate'))),
@@ -134,14 +143,10 @@ export function PayrollHoursForm({
             >
               <Input
                 name={k}
-                inputMode="decimal"
-                defaultValue={
-                  week?.[(k + 'Hundredths') as keyof PayrollWeek] === undefined
-                    ? ''
-                    : Number(week[(k + 'Hundredths') as keyof PayrollWeek] ?? 0) / 100
-                }
+                inputMode="text"
+                defaultValue={payrollHoursText(week?.[`${k}Hundredths`], week?.[`${k}Minutes`])}
                 required={k === 'regular' || k === 'overtime'}
-                placeholder="Enter actual hours"
+                placeholder="38h 34min, 38:34, or 38.5"
               />
             </FormField>
           ))}

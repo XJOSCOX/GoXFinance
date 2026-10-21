@@ -22,26 +22,16 @@ export function payrollGross(h: WeeklyHoursInput) {
     if (v === null) throw new Error('A documented-only paycheck has no prior hours forecast')
     return v
   }
-  const regular = payrollRound(
-      BigInt(required(h.regularHundredths)) * BigInt(required(h.regularRateCents)),
-      100n,
-    ),
-    overtime = payrollRound(
-      BigInt(required(h.overtimeHundredths)) * BigInt(required(h.overtimeRateCents)),
-      100n,
-    ),
-    pto = payrollRound(
-      BigInt(required(h.ptoHundredths)) * BigInt(required(h.regularRateCents)),
-      100n,
-    ),
-    holiday = payrollRound(
-      BigInt(required(h.holidayHundredths)) * BigInt(required(h.regularRateCents)),
-      100n,
-    ),
-    other = payrollRound(
-      BigInt(required(h.otherPaidHundredths)) * BigInt(required(h.regularRateCents)),
-      100n,
+  const pay = (hundredths: number | null, minutes: number | undefined, rate: number | null) =>
+    payrollRound(
+      BigInt(minutes ?? required(hundredths)) * BigInt(required(rate)),
+      minutes === undefined ? 100n : 60n,
     )
+  const regular = pay(h.regularHundredths, h.regularMinutes, h.regularRateCents),
+    overtime = pay(h.overtimeHundredths, h.overtimeMinutes, h.overtimeRateCents),
+    pto = pay(h.ptoHundredths, h.ptoMinutes, h.regularRateCents),
+    holiday = pay(h.holidayHundredths, h.holidayMinutes, h.regularRateCents),
+    other = pay(h.otherPaidHundredths, h.otherPaidMinutes, h.regularRateCents)
   const earnings = [
     { code: 'regular', amountCents: regular },
     { code: 'overtime', amountCents: overtime },
@@ -219,6 +209,55 @@ export function payrollForecast(
       })
       warnings.push(`${code}: configure the observed deduction.`)
     }
+  if (h.estimateDeductionsFromHistory && deductions.some((d) => d.amountCents === null)) {
+    const peers = samples
+      .filter(
+        (v) =>
+          payrollReconciliation(v.statement).length === 0 &&
+          v.statement.deductionsCents !== null &&
+          v.statement.netCents !== null,
+      )
+      .sort(
+        (a, b) =>
+          Math.abs(a.statement.grossCents! - gross.grossCents) -
+          Math.abs(b.statement.grossCents! - gross.grossCents),
+      )
+      .slice(0, 5)
+    if (peers.length) {
+      const projected = peers.map((p) =>
+        payrollRound(
+          BigInt(gross.grossCents) * BigInt(p.statement.deductionsCents!),
+          BigInt(p.statement.grossCents!),
+        ),
+      )
+      const amountCents = payrollRound(
+        projected.reduce((n, v) => n + BigInt(v), 0n),
+        BigInt(peers.length),
+      )
+      deductions.splice(0, deductions.length, {
+        code: 'historical_total',
+        label: 'Estimated total deductions',
+        amountCents,
+        sampleCount: peers.length,
+        method:
+          'Mean deduction-to-gross ratio from up to five nearest-gross reviewed prior paychecks; not a tax calculation',
+      })
+      for (let i = warnings.length - 1; i >= 0; i--)
+        if (
+          warnings[i].includes('unknown; supply a rule') ||
+          warnings[i].includes('configure the observed deduction')
+        )
+          warnings.splice(i, 1)
+      warnings.push(
+        'Take-home uses historical total deductions, not individual tax rules. Benefits, withholding and hours can change; confirm the actual paystub.',
+      )
+      if (
+        gross.grossCents < Math.min(...peers.map((p) => p.statement.grossCents!)) ||
+        gross.grossCents > Math.max(...peers.map((p) => p.statement.grossCents!))
+      )
+        warnings.push('Estimated gross is outside the historical sample range.')
+    }
+  }
   let netCents = deductions.every((d) => d.amountCents !== null)
     ? payrollSum([gross.grossCents, -payrollSum(deductions.map((d) => d.amountCents!))])
     : null
@@ -227,7 +266,9 @@ export function payrollForecast(
     netCents = null
   }
   const range =
-    netCents !== null && errors.length >= 3
+    netCents !== null &&
+    errors.length >= 3 &&
+    !deductions.some((d) => d.code === 'historical_total')
       ? {
           lowCents: Math.max(0, payrollSum([netCents, Math.min(...errors)])),
           highCents: Math.max(0, payrollSum([netCents, Math.max(...errors)])),
