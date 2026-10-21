@@ -1,21 +1,17 @@
-import { Link } from 'react-router-dom'
 import { useRequestedRecord } from '../../../lib/useRequestedRecord'
 import { useCategories } from '../../categories/hooks/useCategories'
-import { ManageCategoriesButton } from '../../categories/components/ManageCategoriesButton'
+import { CategoryManager } from '../../categories/components/CategoryManager'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   calculateBillSummary,
   billPlanningTotals,
-  sumCents,
   type BillAction,
   type BillView,
 } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
-import { Button, Card, Input } from '../../../components/ui'
-import { Select } from '../../../components/ui/FormField'
-import { SummaryStat } from '../../../components/ui/SummaryStat'
-import { formatMoney } from '../../../lib/money'
+import { Button, Card } from '../../../components/ui'
+import { ActionMenu } from '../../../components/ui/ActionMenu'
 import { useNotify } from '../../../components/ui/useNotify'
 import { useLocalToday } from '../../../lib/useLocalToday'
 import { errorMessage } from '../../../lib/api'
@@ -26,6 +22,8 @@ import { BillList } from '../components/BillList'
 import { BillDetails } from '../components/BillDetails'
 import { useBills } from '../hooks/useBills'
 import { BillApprovals } from '../components/BillApprovals'
+import { BillsToolbar } from '../components/BillsToolbar'
+import { BillsSummary } from '../components/BillsSummary'
 
 export function BillsPage() {
   const today = useLocalToday()
@@ -48,6 +46,7 @@ export function BillsPage() {
   const [form, setForm] = useState<BillView | null | undefined>(undefined),
     [detailId, setDetailId] = useState('')
   const [startPayment, setStartPayment] = useState(false)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
   const [kind, setKind] = useState('recurring'),
     [query, setQuery] = useState(''),
     [member, setMember] = useState(''),
@@ -80,81 +79,31 @@ export function BillsPage() {
   )
   return (
     <WorkspaceLayout title="Bills">
-      <Link
-        to={`/households/${householdId}/planner`}
-        className="mb-4 inline-block rounded-lg border border-white/10 px-3 py-2 text-sm"
-      >
-        Smart Planner · payment priorities
-      </Link>
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Bills</h1>
           <p className="mt-2 text-sm text-slate-400">
             Plan obligations. Record actual bills and payments separately.
           </p>
         </div>
-        {household?.role !== 'viewer' && (
-          <Button variant="primary" onClick={() => setForm(null)}>
-            Add bill
-          </Button>
-        )}
-      </header>
-      <div className="mb-4">
-        <ManageCategoriesButton
-          home={householdId}
-          onChanged={async () => {
-            await refreshCategories()
-            await load()
-          }}
-        />
-      </div>
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <SummaryStat
-          label="Monthly bills"
-          tone="info"
-          amount={formatMoney(planningTotals?.monthlyBillsCents ?? null)}
-          detail="Recurring obligations, including saved variable estimates"
-        />
-        <SummaryStat
-          label="Bills + confirmed debt plans"
-          tone="info"
-          amount={formatMoney(planningTotals?.billsAndConfirmedPlansCents ?? null)}
-          detail="Monthly bill budget + confirmed debt plans due this month; links count once"
-        />
-        <SummaryStat
-          label="Bills remaining incl. estimates"
-          tone="warning"
-          amount={formatMoney(
-            planningTotals
-              ? sumCents([
-                  planningTotals.confirmedRemainingCents,
-                  planningTotals.estimatedRemainingCents,
-                ])
-              : null,
+        <div className="flex items-center gap-2">
+          {household?.role !== 'viewer' && (
+            <Button variant="primary" onClick={() => setForm(null)}>
+              Add bill
+            </Button>
           )}
-          detail={
-            planningTotals
-              ? `Due this month (${today.slice(0, 7)}) · ${formatMoney(planningTotals.confirmedRemainingCents)} actual + ${formatMoney(planningTotals.estimatedRemainingCents)} estimated${planningTotals.unknownCount ? ' · ' + planningTotals.unknownCount + ' unknown' : ''}`
-              : 'Loading bill estimates and actual amounts'
-          }
-        />
-        <SummaryStat
-          label="Upcoming month bills"
-          tone="info"
-          amount={formatMoney(planningTotals?.nextMonthBillsCents ?? null)}
-          detail={
-            planningTotals
-              ? `Due ${planningTotals.nextMonth} · includes saved estimates; excludes carry-forward${planningTotals.nextMonthUnknownCount ? ' · ' + planningTotals.nextMonthUnknownCount + ' unknown' : ''}`
-              : 'Loading upcoming bills'
-          }
-        />
-        <SummaryStat
-          label="Overdue periods"
-          tone={summary.overdueCount > 0 ? 'negative' : 'neutral'}
-          amount={String(summary.overdueCount)}
-          detail={`${summary.unknownRecurringCount} unknown recurring amounts`}
-        />
-      </div>
+          <ActionMenu
+            label="Bill page actions"
+            items={[{ label: 'Manage categories', onSelect: () => setCategoriesOpen(true) }]}
+          />
+        </div>
+      </header>
+      <BillsSummary
+        totals={planningTotals}
+        month={today.slice(0, 7)}
+        overdueCount={summary.overdueCount}
+        unknownRecurringCount={summary.unknownRecurringCount}
+      />
       <div className="mb-5">
         <BillApprovals
           home={householdId}
@@ -165,56 +114,18 @@ export function BillsPage() {
           debts={debts}
         />
       </div>
-      <Card className="mb-4 p-4">
-        <div className="mb-4 flex gap-2">
-          {[
-            ['recurring', 'Recurring bills'],
-            ['one_time', 'One-time bills'],
-          ].map(([value, label]) => (
-            <Button
-              key={value}
-              aria-pressed={kind === value}
-              variant={kind === value ? 'primary' : 'ghost'}
-              onClick={() => setKind(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Input
-            aria-label="Search bills"
-            placeholder="Search bills"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <Select
-            aria-label="Filter member"
-            value={member}
-            onChange={(e) => setMember(e.target.value)}
-          >
-            <option value="">All members</option>
-            {members.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.fullName}
-              </option>
-            ))}
-          </Select>
-          <Select
-            aria-label="Filter category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">All categories</option>
-            {categories.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-                {item.archived ? ' (archived)' : ''}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </Card>
+      <BillsToolbar
+        kind={kind}
+        setKind={setKind}
+        query={query}
+        setQuery={setQuery}
+        member={member}
+        setMember={setMember}
+        category={category}
+        setCategory={setCategory}
+        members={members}
+        categories={categories}
+      />
       {error && (
         <Card className="mb-4 p-5">
           <p role="alert" className="text-rose-300">
@@ -254,6 +165,16 @@ export function BillsPage() {
               void act(bill, { action: 'archive_bill' }).catch((failure) =>
                 notify('error', errorMessage(failure)),
               )
+          }}
+        />
+      )}
+      {categoriesOpen && (
+        <CategoryManager
+          home={householdId}
+          onClose={() => setCategoriesOpen(false)}
+          onChanged={async () => {
+            await refreshCategories()
+            await load()
           }}
         />
       )}
