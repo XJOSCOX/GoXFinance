@@ -129,3 +129,16 @@ Synthetic fixture: ten fictional weekly statements with varying regular wages, a
 ### Verification
 
 Validated on October 20, 2026: lint, typecheck and production build passed; 182 test files / 678 tests passed with two workers and a 30-second test timeout. The production build retains the existing large-chunk advisory. Browser QA at localhost:1421 confirmed a fictional estimate correction, the guarded delete dialog, expanded calculations, desktop header actions and mobile navigation without horizontal overflow. Plaintext/encrypted cancellation, authorization, restart and existing backup/recovery coverage passed. The normal encrypted launcher restarted successfully; no real paycheck, estimate, rules, deposit or bank record was modified during the read-only real-account review.
+
+
+## Comparing an uploaded actual paycheck
+
+After uploading and reviewing a paycheck against its existing draft, the pay-period card shows **Paycheck vs saved estimate** with the frozen take-home forecast, documented paystub net, and a higher/lower/matching difference. The latest-paycheck/details card also shows this comparison when that paycheck is selected. Gross and deduction differences expand separately. A documented paycheck is not treated as a confirmed bank deposit.
+
+The baseline is the latest accuracy-eligible forecast saved before the first statement receipt, with model version resolving timestamp ties. Uploading an actual does not replace that baseline or any previous forecast. A changed/reconciled work period, missing net, or a forecast created after document receipt is not scored as a prior prediction.
+
+Reviewed, reconciled same-source paychecks become observations for subsequently created or revised estimates. Source UUID, pay frequency, earlier work period and review timestamp are checked; military payroll cannot enter another employer's sample pool. Bonus comparisons remain separate from ordinary-pay learning. Existing saved future drafts are not silently rewritten when a new document arrives.
+
+Synthetic regressions cover higher/lower/equal differences, unknowns, post-receipt forecasts, changed periods, same-timestamp versions, matched draft upload, pending deposit status, employer isolation and restart persistence in plaintext and encrypted SQLite. No real paycheck upload is fabricated to demonstrate the comparison.
+
+Verification for the comparison update: 184 test files / 684 tests passed; lint, typecheck and production build passed. The encrypted app restarted successfully. No actual paycheck, confirmed deposit, employer settings or saved estimate was changed while implementing this display.

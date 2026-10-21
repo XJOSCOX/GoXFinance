@@ -6,6 +6,7 @@ import {
   type PayrollWeek,
 } from '@goxfinance/shared'
 import { incomeDisplayDate, incomeDisplayPeriod } from './income-display'
+import { PaycheckEstimateComparison } from '../payroll/PaycheckEstimateComparison'
 import { ReceiptText } from 'lucide-react'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
@@ -104,6 +105,7 @@ export function LatestPaycheck({
           </dd>
         </div>
       </dl>
+      {week && <PaycheckEstimateComparison week={week} />}
       {s && (
         <div className="grid gap-px border-t border-white/8 bg-white/8 sm:grid-cols-2">
           {[

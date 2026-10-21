@@ -17,7 +17,7 @@ export function payrollComparison(
           week.statementReceivedAt &&
           f.createdAt < week.statementReceivedAt,
       )
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.modelVersion - a.modelVersion)[0]
   if (!actual || !forecast) return null
   const predicted = forecast.result,
     actualDed = (codes: string[]) => {

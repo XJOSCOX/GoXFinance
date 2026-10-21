@@ -7,6 +7,7 @@ import {
   type PayrollProfile,
   type IncomeTransaction,
 } from '@goxfinance/shared'
+import { PaycheckEstimateComparison } from './PaycheckEstimateComparison'
 import { Card } from '../../../components/ui'
 import { PayrollDepositConfirmation, type PayrollReceipt } from './PayrollDepositConfirmation'
 import { ActionMenu, type MenuAction } from '../../../components/ui/ActionMenu'
@@ -66,6 +67,7 @@ export function PayrollWeekCard({
           </p>
         </div>
       </div>
+      <PaycheckEstimateComparison week={w} />
       {w.forecastPeriodReconciled && (
         <p className="mt-3 text-xs text-slate-400">
           Statement dates reconciled with the saved draft. The original forecast is retained but
