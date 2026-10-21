@@ -272,3 +272,55 @@ it.each([false, true])(
     expect(after.json().sources[0].incomeType).toBe('salary')
   },
 )
+it.each([false, true])(
+  'allows reconciled salary with unknown tax treatment and preserves that uncertainty; encrypted=%s',
+  async (encrypted) => {
+    const f = await setup(encrypted)
+    const salary = {
+      ...statement,
+      payBasis: 'salary' as const,
+      lines: statement.lines.map((l) => ({
+        ...l,
+        rateCents: null,
+        hoursHundredths: null,
+        worked: null,
+        ...(l.side === 'deduction'
+          ? { code: 'other_deduction' as const, treatment: 'unknown' as const }
+          : {}),
+      })),
+    }
+    const saved = await f.ok('POST', '/income/payroll/upload/save', {
+      receipt: receipt(f),
+      idempotencyKey: randomUUID(),
+      newSource: { name: 'Fictional salary issuer' },
+      statement: salary,
+    })
+    expect(saved.statement.acknowledgement).toBeNull()
+    expect(saved.statement.lines[1].treatment).toBe('unknown')
+    expect((await f.ok('GET', '/income')).transactions[0].status).toBe('pending')
+  },
+)
+it.each(['totals', 'classification'] as const)(
+  'rejects a salary upload with unresolved %s and returns the actual issue',
+  async (problem) => {
+    const f = await setup(false)
+    const invalid =
+      problem === 'totals'
+        ? { ...statement, netCents: 79999 }
+        : { ...statement, lines: statement.lines.map((l) => ({ ...l, code: 'unknown' as const })) }
+    const response = await f.send('POST', '/income/payroll/upload/save', {
+      receipt: receipt(f),
+      idempotencyKey: randomUUID(),
+      newSource: { name: 'Fictional invalid issuer' },
+      statement: invalid,
+    })
+    expect(response.statusCode).toBe(400)
+    expect(response.json().error).toContain(
+      problem === 'totals'
+        ? 'gross minus employee deductions does not equal net'
+        : 'Unrecognized payroll component classification',
+    )
+    expect((await f.ok('GET', '/income')).sources).toEqual([])
+    expect((await f.ok('GET', '/income')).transactions).toEqual([])
+  },
+)

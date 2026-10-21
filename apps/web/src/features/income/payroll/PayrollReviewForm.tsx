@@ -3,6 +3,7 @@ import {
   bankDecimalCents,
   payrollStatementSchema,
   payrollReconciliation,
+  payrollReviewWarnings,
   type PayrollStatement,
   type PayrollWeek,
   type PayrollLine,
@@ -117,6 +118,11 @@ export function PayrollReviewForm({
           </p>
         ))}
         <PayrollReviewSummary statement={summary} />
+        {payrollReviewWarnings(summary).map((warning) => (
+          <p key={warning} role="status" className="text-xs text-amber-200">
+            {warning}
+          </p>
+        ))}
         <PayrollStatementFields initial={initial} />
         <details
           open={initial.lines.some(
@@ -211,6 +217,7 @@ export function PayrollReviewForm({
           <FormField label="Discrepancy acknowledgement (required if issues remain)">
             <Input
               name="acknowledgement"
+              required
               defaultValue={initial.acknowledgement ?? ''}
               maxLength={2000}
               placeholder="Explain the remaining discrepancy; missing tax amounts stay unknown"

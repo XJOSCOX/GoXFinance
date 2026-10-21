@@ -83,8 +83,8 @@ export function payrollReconciliation(s: PayrollStatement) {
     )
       issues.push(`Current-period ${name} lines differ from the statement total.`)
   }
-  if (s.lines.some((l) => l.code === 'unknown' || l.treatment === 'unknown'))
-    issues.push('Unrecognized classification or tax treatment requires review.')
+  if (s.lines.some((l) => l.code === 'unknown'))
+    issues.push('Unrecognized payroll component classification requires review.')
   for (const [label, reported, lines] of [
     ['worked', s.reportedWorkedHundredths, earn.filter((l) => l.worked === true)],
     ['paid', s.reportedPaidHundredths, earn.filter((l) => l.hoursHundredths !== null)],
@@ -99,6 +99,14 @@ export function payrollReconciliation(s: PayrollStatement) {
       issues.push(`Statement ${label} hours differ from extracted line hours.`)
   }
   return issues
+}
+export function payrollReviewWarnings(s: PayrollStatement) {
+  const unknown = s.lines.filter((l) => l.treatment === 'unknown')
+  return unknown.length
+    ? [
+        `Tax treatment is unspecified for: ${unknown.map((l) => l.label).join(', ')}. The recorded amounts can be saved; tax treatment stays unknown.`,
+      ]
+    : []
 }
 export function payrollForecast(
   profile: PayrollProfileInput,

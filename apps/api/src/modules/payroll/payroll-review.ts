@@ -74,7 +74,7 @@ export function reviewPayroll(
       )
     if (issues.length && !v.acknowledgement)
       throw new FinancialError(
-        'Resolve reconciliation issues or enter an explicit discrepancy acknowledgement',
+        `Resolve these issues or enter a discrepancy acknowledgement: ${issues.join(' ')}`,
         400,
       )
     if (p.documentDigest && store.digest(home, p.documentDigest))

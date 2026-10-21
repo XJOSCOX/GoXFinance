@@ -66,3 +66,45 @@ it('saves a reconciled upload with one confirmation, collapsed details and stabl
   await waitFor(() => expect(close).toHaveBeenCalledOnce())
   expect(save.mock.calls[1][0].idempotencyKey).toBe(save.mock.calls[0][0].idempotencyKey)
 })
+it('shows unknown tax treatment as a warning without requiring a discrepancy acknowledgement', async () => {
+  const save = vi.fn().mockResolvedValue(undefined)
+  const initial = {
+    ...statement,
+    lines: statement.lines.map((l) =>
+      l.side === 'deduction'
+        ? { ...l, code: 'other_deduction' as const, treatment: 'unknown' as const }
+        : l,
+    ),
+  }
+  render(<PayrollReviewForm initial={initial} warnings={[]} save={save} close={() => {}} />)
+  expect(screen.getByText(/Tax treatment is unspecified for: Federal/)).toBeTruthy()
+  expect(
+    screen.queryByLabelText('Discrepancy acknowledgement (required if issues remain)'),
+  ).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Save Paycheck' }))
+  await waitFor(() => expect(save).toHaveBeenCalledOnce())
+  expect(save.mock.calls[0][0].values).toMatchObject({
+    acknowledgement: null,
+    lines: initial.lines,
+  })
+})
+it('shows the monetary issue and requires acknowledgement when totals do not match', () => {
+  render(
+    <PayrollReviewForm
+      initial={{ ...statement, netCents: 79999 }}
+      warnings={[]}
+      save={vi.fn()}
+      close={() => {}}
+    />,
+  )
+  expect(
+    screen.getByText('Statement gross minus employee deductions does not equal net.'),
+  ).toBeTruthy()
+  expect(
+    (
+      screen.getByLabelText(
+        'Discrepancy acknowledgement (required if issues remain)',
+      ) as HTMLInputElement
+    ).required,
+  ).toBe(true)
+})

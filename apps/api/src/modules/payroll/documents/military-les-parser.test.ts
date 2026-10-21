@@ -148,9 +148,7 @@ it('reads parallel LES tables and separates current amounts from cumulative tax 
   expect(s.lines.find((l) => l.label === 'State income tax YTD')?.ytdCents).toBe(0)
   expect(s.lines.find((l) => l.label === 'Total entitlements YTD')?.ytdCents).toBe(900000)
   expect(s.lines.every((l) => l.hoursHundredths === null && l.rateCents === null)).toBe(true)
-  expect(payrollReconciliation(s)).toEqual([
-    'Unrecognized classification or tax treatment requires review.',
-  ])
+  expect(payrollReconciliation(s)).toEqual([])
   expect(warnings.some((w) => w.includes('Training units are not hours'))).toBe(true)
   expect(JSON.stringify(s)).not.toMatch(/123456789|987654321/)
 })
