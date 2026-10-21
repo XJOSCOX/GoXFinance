@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react'
 import {
   bankDecimalCents,
-  payrollWorkweek,
+  payrollCurrentPeriod,
+  payrollPeriodEnd,
+  payrollFrequencyLabels,
   payrollMilestones,
-  payrollDateAdd,
   payrollGross,
   weeklyHoursSchema,
   type PayrollProfile,
@@ -25,8 +26,10 @@ export function PayrollHoursForm({
   save: (body: unknown) => Promise<void>
   close: () => void
 }) {
-  const current = payrollWorkweek(new Date(), profile),
-    [start, setStart] = useState(week?.workweekStart ?? current.start),
+  const frequency = week ? (week.payFrequency ?? 'weekly') : (profile.payFrequency ?? 'weekly'),
+    split = week?.semiMonthlySplitDay ?? profile.semiMonthlySplitDay ?? 15,
+    current = payrollCurrentPeriod(new Date(), { ...profile, payFrequency: frequency }),
+    [start, setStart] = useState(week?.workweekStart ?? current?.start ?? ''),
     [estimate, setEstimate] = useState<number | null>(
       week?.forecasts.at(-1)?.result.grossCents ?? null,
     )
@@ -35,6 +38,9 @@ export function PayrollHoursForm({
   const build = (f: FormData) =>
     weeklyHoursSchema.parse({
       sourceId: profile.sourceId,
+      payFrequency: frequency,
+      semiMonthlySplitDay: split,
+      periodAnchor: week?.periodAnchor ?? profile.periodAnchor ?? null,
       workweekStart: f.get('start'),
       workweekEnd: f.get('end'),
       expectedPayDate: f.get('payDate'),
@@ -53,7 +59,7 @@ export function PayrollHoursForm({
     })
   return (
     <FinancialEditor
-      title={week ? 'Revise reported hours' : 'Report weekly hours'}
+      title={week ? 'Revise reported hours' : 'Report pay-period hours'}
       reasonLabel={week ? 'Reason for correction' : 'Hours report note'}
       record={week ?? { revision: 0 }}
       close={close}
@@ -77,9 +83,13 @@ export function PayrollHoursForm({
         }}
         className="space-y-4"
       >
+        <p className="text-xs text-slate-400">
+          {payrollFrequencyLabels[frequency]} · Enter actual hours for this entire period. Overtime
+          is entered explicitly; PTO is not treated as worked overtime.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <DateField
-            label="Workweek start"
+            label="Pay period begins"
             name="start"
             value={start}
             required
@@ -87,9 +97,12 @@ export function PayrollHoursForm({
           />
           <DateField
             key={start}
-            label="Workweek end"
+            label="Pay period ends"
             name="end"
-            value={week?.workweekEnd ?? payrollDateAdd(start, 6)}
+            value={
+              week?.workweekEnd ??
+              payrollPeriodEnd(start, frequency, split, week?.periodAnchor ?? profile.periodAnchor)
+            }
             required
           />
           <DateField
@@ -97,7 +110,18 @@ export function PayrollHoursForm({
             label="Expected pay date (can be changed)"
             name="payDate"
             value={
-              week?.expectedPayDate ?? payrollMilestones(payrollDateAdd(start, 6), profile).deposit
+              week?.expectedPayDate ??
+              (payrollPeriodEnd(start, frequency, split, week?.periodAnchor ?? profile.periodAnchor)
+                ? payrollMilestones(
+                    payrollPeriodEnd(
+                      start,
+                      frequency,
+                      split,
+                      week?.periodAnchor ?? profile.periodAnchor,
+                    )!,
+                    { ...profile, payFrequency: frequency },
+                  ).deposit
+                : null)
             }
             required
           />

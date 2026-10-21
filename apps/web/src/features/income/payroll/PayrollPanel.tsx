@@ -124,7 +124,7 @@ export function PayrollPanel({
               variant={tab === 'weeks' ? 'primary' : 'secondary'}
               onClick={() => setTab('weeks')}
             >
-              Weekly payroll & forecasts
+              Paychecks & forecasts
             </Button>
             <Button
               size="small"
@@ -165,6 +165,31 @@ export function PayrollPanel({
                     })
                   }
                   confirm={() => setDeposit(w)}
+                  receive={async (v) => {
+                    const transaction = transactions.find((t) => t.id === w.incomeTransactionId)
+                    if (!transaction)
+                      throw new Error('Refresh Income before confirming this deposit')
+                    const values = incomeTransactionSchema
+                      .strip()
+                      .parse({
+                        ...transaction,
+                        status: 'confirmed',
+                        depositDate: v.date,
+                        receiptConfirmed: true,
+                        actualNetCents: v.amountCents,
+                      })
+                    await apiRequest(`households/${home}/income/transactions/${transaction.id}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        revision: transaction.revision,
+                        reason: 'User confirmed paycheck received',
+                        values,
+                      }),
+                    })
+                    await refresh()
+                    notify('success', 'Paycheck received')
+                    changed()
+                  }}
                   pending={async () => {
                     if (busy) return
                     setBusy(true)
@@ -192,7 +217,7 @@ export function PayrollPanel({
       )}
       {hours !== undefined && profile && (
         <PayrollHoursForm
-          profile={profile}
+          profile={{ ...profile, payFrequency: profile.payFrequency ?? source?.frequency }}
           week={hours ?? undefined}
           close={() => setHours(undefined)}
           save={async (raw) => {
@@ -246,7 +271,7 @@ export function PayrollPanel({
       )}
       {deposit && (
         <FinancialEditor
-          title="Confirm actual payroll deposit"
+          title="Correct payroll deposit"
           reasonLabel="Deposit confirmation / correction note"
           record={deposit}
           close={() => setDeposit(undefined)}
@@ -255,7 +280,7 @@ export function PayrollPanel({
             amountCents: bankDecimalCents(String(f.get('receivedNet'))),
             reference: String(f.get('reference') || '') || null,
           })}
-          submitLabel="Confirm money received"
+          submitLabel="Save correction"
           save={async (raw) => {
             const b = raw as EditorBody,
               v = b.values as { date: string; reference: string | null; amountCents: number },
@@ -283,7 +308,15 @@ export function PayrollPanel({
             <strong>{formatMoney(deposit.statement?.netCents ?? null)}</strong> actually arrived.
             This is not payment processing.
           </p>
-          <DateField label="Actual deposit date" name="depositDate" required />
+          <DateField
+            label="Actual deposit date"
+            name="depositDate"
+            value={
+              transactions.find((t) => t.id === deposit.incomeTransactionId)?.depositDate ??
+              deposit.statement?.payDate
+            }
+            required
+          />
           <AmountField
             label="Actual net amount received ($)"
             name="receivedNet"
@@ -296,9 +329,6 @@ export function PayrollPanel({
           <FormField label="Reference (optional)">
             <Input name="reference" maxLength={160} />
           </FormField>
-          <label className="flex gap-2 text-sm">
-            <input type="checkbox" required />I verified this net amount was received.
-          </label>
         </FinancialEditor>
       )}
     </section>

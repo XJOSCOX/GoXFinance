@@ -49,6 +49,7 @@ export function PayrollReviewForm({
       periodStart: f.get('periodStart') || null,
       periodEnd: f.get('periodEnd') || null,
       payDate: f.get('payDate') || null,
+      payFrequency: week?.payFrequency ?? initial.payFrequency,
       grossCents: amount('gross'),
       deductionsCents: amount('deductions'),
       netCents: amount('net'),

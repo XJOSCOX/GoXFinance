@@ -8,6 +8,7 @@ export type UploadReceipt = {
   receivedAt: string
   weeks: Record<string, number>
   profiles: Record<string, number>
+  createMemberId?: string
 }
 export function signUploadReceipt(value: UploadReceipt) {
   const data = Buffer.from(JSON.stringify(value)).toString('base64url')

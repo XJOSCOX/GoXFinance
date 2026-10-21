@@ -1,5 +1,6 @@
 import { payrollSum } from './payroll-calculations'
 import type { PayrollStatement, PayrollProfile, WeeklyHoursInput } from './payroll'
+import type { PayrollFrequency } from './payroll-periods'
 export function payrollStatementHours(s: PayrollStatement) {
   const earnings = s.lines.filter((l) => l.side === 'earnings')
   const sum = (lines: typeof earnings) =>
@@ -34,7 +35,10 @@ export function payrollStatementHours(s: PayrollStatement) {
 export function payrollImportedHours(
   s: PayrollStatement,
   sourceId: string,
-  expectedPayDate: string,
+  expectedPayDate: string | null,
+  payFrequency: PayrollFrequency = 'weekly',
+  semiMonthlySplitDay = 15,
+  periodAnchor: string | null = null,
 ): WeeklyHoursInput {
   const h = payrollStatementHours(s),
     amount = (code: string) =>
@@ -46,6 +50,9 @@ export function payrollImportedHours(
   return {
     sourceId,
     documentOnly: true,
+    payFrequency,
+    semiMonthlySplitDay,
+    periodAnchor,
     workweekStart: s.periodStart!,
     workweekEnd: s.periodEnd!,
     expectedPayDate,
@@ -67,7 +74,13 @@ export type PayrollUploadSource = {
   id: string
   name: string
   profile: PayrollProfile | null
-  existingWeek?: { id: string; stage: string }
+  existingWeek?: {
+    id: string
+    stage: string
+    payFrequency?: PayrollFrequency
+    semiMonthlySplitDay?: number
+  }
+  frequency?: PayrollFrequency
 }
 export type PayrollUploadPreview = {
   statement: PayrollStatement
@@ -76,5 +89,7 @@ export type PayrollUploadPreview = {
   receipt: string
   receivedAt: string
   sources: PayrollUploadSource[]
+  matchingSourceIds?: string[]
   matchedSourceId: string | null
+  newSourceMember?: { id: string; name: string }
 }

@@ -168,7 +168,14 @@ export function reviewPayroll(
       statementId,
       stage: transaction.status === 'confirmed' ? 'deposit_confirmed' : 'paystub_reviewed',
       statementReceivedAt:
-        [w.statementReceivedAt, upload?.receivedAt, firstSeen]
+        [
+          w.statementReceivedAt,
+          upload?.receivedAt,
+          firstSeen,
+          p.documentDigest
+            ? store.uploadReceipt(home, user.id, p.documentDigest)?.receivedAt
+            : undefined,
+        ]
           .filter((v): v is string => Boolean(v))
           .sort()[0] ?? now,
       reviewedAt: now,

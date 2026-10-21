@@ -1,11 +1,13 @@
 import {
   payrollMilestones,
   payrollStatementHours,
+  payrollFrequencyLabels,
   type PayrollWeek,
   type PayrollProfile,
   type IncomeTransaction,
 } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
+import { PayrollDepositConfirmation, type PayrollReceipt } from './PayrollDepositConfirmation'
 import { formatMoney } from '../../../lib/money'
 export function PayrollWeekCard({
   week: w,
@@ -14,6 +16,7 @@ export function PayrollWeekCard({
   upload,
   review,
   confirm,
+  receive,
   pending,
   busy,
   transaction,
@@ -23,13 +26,17 @@ export function PayrollWeekCard({
   edit: () => void
   upload: () => void
   review: () => void
+  receive: (values: PayrollReceipt) => Promise<void>
   confirm: () => void
   pending: () => void
   busy: boolean
   transaction?: IncomeTransaction
 }) {
   const f = w.forecasts.at(-1),
-    milestones = payrollMilestones(w.workweekEnd, profile),
+    milestones = payrollMilestones(w.workweekEnd, {
+      ...profile,
+      payFrequency: w.payFrequency ?? 'weekly',
+    }),
     actual = w.statement ? payrollStatementHours(w.statement) : null,
     worked = actual?.workedHundredths ?? f?.result.workedHundredths,
     paid = actual?.paidHundredths ?? f?.result.paidHundredths
@@ -41,7 +48,8 @@ export function PayrollWeekCard({
             {w.workweekStart} — {w.workweekEnd}
           </h3>
           <p className="mt-1 text-xs text-slate-400">
-            {w.stage.replaceAll('_', ' ')} · Expected deposit {w.expectedPayDate}
+            {payrollFrequencyLabels[w.payFrequency ?? 'weekly']} · {w.stage.replaceAll('_', ' ')} ·
+            Expected deposit {w.expectedPayDate ?? 'Unknown'}
           </p>
         </div>
         <div className="text-right">
@@ -93,9 +101,10 @@ export function PayrollWeekCard({
           Forecast details and expected milestones
         </summary>
         <p className="mt-2 text-slate-400">
-          Hours {milestones.hours} · Processing {milestones.processing} · Paystub{' '}
-          {milestones.statement} · Usual deposit {milestones.deposit}. Exceptions use the expected
-          date above.
+          Hours {milestones.hours ?? 'Not configured'} · Processing{' '}
+          {milestones.processing ?? 'Not configured'} · Paystub{' '}
+          {milestones.statement ?? 'Not configured'} · Usual deposit{' '}
+          {milestones.deposit ?? 'Unknown'}. Exceptions use the expected date above.
         </p>
         {w.statement && (
           <p className="mt-2 text-slate-400">
@@ -151,7 +160,7 @@ export function PayrollWeekCard({
           <Button size="small" disabled={busy} onClick={upload}>
             Upload paystub
           </Button>
-          {['paystub_reviewed', 'deposit_confirmed'].includes(w.stage) && (
+          {w.stage === 'deposit_confirmed' && (
             <Button size="small" variant="primary" disabled={busy} onClick={confirm}>
               {w.stage === 'deposit_confirmed'
                 ? 'Correct actual deposit'
@@ -160,6 +169,19 @@ export function PayrollWeekCard({
           )}
         </div>
       )}
+      {w.canManage &&
+        w.statement &&
+        transaction &&
+        transaction.status !== 'confirmed' &&
+        transaction.status !== 'cancelled' &&
+        w.stage === 'paystub_reviewed' && (
+          <PayrollDepositConfirmation
+            date={w.statement.payDate ?? w.expectedPayDate}
+            amountCents={w.statement.netCents}
+            disabled={busy}
+            save={receive}
+          />
+        )}
     </Card>
   )
 }

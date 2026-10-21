@@ -21,7 +21,7 @@ it.each([false, true])(
     expect(saved.forecasts).toEqual([])
     expect(saved.regularHundredths).toBe(4000)
     expect(saved.overtimeHundredths).toBeNull()
-    expect(saved.expectedPayDate).toBe('2026-10-15')
+    expect(saved.expectedPayDate).toBe('2026-10-16')
     expect(saved.statement.payDate).toBe('2026-10-16')
     expect((await f.ok('POST', '/income/payroll/upload/save', body)).id).toBe(saved.id)
     expect(
@@ -279,7 +279,7 @@ it.each(['admin', 'editor', 'viewer'])(
           actor.cookie,
         )
       ).statusCode,
-    ).toBe(403)
+    ).toBe(role === 'viewer' ? 403 : 400)
     expect(
       (
         await f.send(

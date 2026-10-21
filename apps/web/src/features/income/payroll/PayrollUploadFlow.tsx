@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import type { IncomeSource, PayrollUploadPreview } from '@goxfinance/shared'
+import type { PayrollUploadPreview } from '@goxfinance/shared'
 import { PaystubUpload } from './PaystubUpload'
 import { PayrollUploadReview } from './PayrollUploadReview'
 import { useNotify } from '../../../components/ui/useNotify'
 export function PayrollUploadFlow({
   home,
-  sources,
+  preferredSourceId,
   close,
   saved,
 }: {
   home: string
-  sources: IncomeSource[]
+  preferredSourceId?: string
   close: () => void
   saved: (sourceId: string) => void
 }) {
@@ -20,7 +20,7 @@ export function PayrollUploadFlow({
     <PayrollUploadReview
       home={home}
       preview={preview}
-      sources={sources}
+      preferredSourceId={preferredSourceId}
       close={close}
       saved={(sourceId) => {
         notify('success', 'Paycheck saved. Confirm the actual deposit separately.')

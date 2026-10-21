@@ -11,6 +11,7 @@ import { AmountField } from '../../../components/financial/EntryFields'
 import { Button, Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { PayrollRules } from './PayrollRules'
+import { PayrollScheduleFields } from './PayrollScheduleFields'
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 export function PayrollProfileForm({
   source,
@@ -28,6 +29,7 @@ export function PayrollProfileForm({
       sourceId: source.id,
       employer: '',
       assignment: null,
+      payFrequency: source.frequency,
       regularRateCents: source.hourlyRateCents,
       overtimeRateCents: null,
       regularThresholdHundredths: 4000,
@@ -72,9 +74,20 @@ export function PayrollProfileForm({
           sourceId: source.id,
           employer: f.get('employer'),
           assignment: String(f.get('assignment') || '') || null,
-          regularRateCents: bankDecimalCents(String(f.get('regularRate'))),
-          overtimeRateCents: bankDecimalCents(String(f.get('overtimeRate'))),
-          regularThresholdHundredths: bankDecimalCents(String(f.get('threshold'))),
+          regularRateCents: f.get('regularRate')
+            ? bankDecimalCents(String(f.get('regularRate')))
+            : null,
+          overtimeRateCents: f.get('overtimeRate')
+            ? bankDecimalCents(String(f.get('overtimeRate')))
+            : null,
+          payFrequency: f.get('payFrequency'),
+          periodAnchor: f.get('periodAnchor') || null,
+          semiMonthlySplitDay: Number(f.get('semiMonthlySplitDay')),
+          depositOffsetDays: f.get('depositOffsetDays') ? Number(f.get('depositOffsetDays')) : null,
+          regularThresholdHundredths: f.get('threshold')
+            ? bankDecimalCents(String(f.get('threshold')))
+            : null,
+          milestonesConfigured: true,
           timezone: f.get('timezone'),
           ...Object.fromEntries(
             ['workweekStartDay', 'hoursDay', 'processingDay', 'statementDay', 'depositDay'].map(
@@ -90,6 +103,9 @@ export function PayrollProfileForm({
           Use HireArt / Avride settings for review
         </Button>
       )}
+      <PayrollScheduleFields
+        initial={{ ...initial, payFrequency: initial.payFrequency ?? source.frequency }}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Payroll employer">
           <Input name="employer" required maxLength={160} defaultValue={initial.employer} />
@@ -101,19 +117,21 @@ export function PayrollProfileForm({
           label="Regular hourly rate ($)"
           name="regularRate"
           value={initial.regularRateCents}
-          required
         />
         <AmountField
           label="Overtime hourly rate ($)"
           name="overtimeRate"
           value={initial.overtimeRateCents}
-          required
         />
         <FormField label="Regular-hours threshold (reference, not assumed hours)">
           <Input
             name="threshold"
             inputMode="decimal"
-            defaultValue={initial.regularThresholdHundredths / 100}
+            defaultValue={
+              initial.regularThresholdHundredths === null
+                ? ''
+                : initial.regularThresholdHundredths / 100
+            }
             required
           />
         </FormField>

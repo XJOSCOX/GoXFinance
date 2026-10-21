@@ -171,3 +171,17 @@ it('rejects mismatched contents and excessive uploads', () => {
   expect(() => validatePayrollFile(new Uint8Array(16), 'application/pdf')).toThrow()
   expect(() => validatePayrollFile(new Uint8Array(11 * 1024 * 1024), 'image/png')).toThrow()
 })
+
+it('detects explicitly labeled employer and frequency without assuming an employee name is the employer', () => {
+  const parsed = parsePayrollLayout([
+    { page: 1, x: 30, y: 760, text: 'Employer: Fictional Payroll LLC' },
+    { page: 1, x: 30, y: 740, text: 'Pay frequency: Semi-monthly' },
+    { page: 1, x: 30, y: 720, text: 'Employee: Fictional Person' },
+  ])
+  expect(parsed.statement.employer).toBe('Fictional Payroll LLC')
+  expect(parsed.statement.payFrequency).toBe('semimonthly')
+  expect(
+    parsePayrollLayout([{ page: 1, x: 30, y: 760, text: 'Employee: Fictional Person' }]).statement
+      .employer,
+  ).toBeNull()
+})

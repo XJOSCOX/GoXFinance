@@ -28,7 +28,7 @@ export function IncomePage() {
   const today = useIncomeToday()
   const home = households.find((v) => v.id === householdId),
     data = useIncome(householdId)
-  const [uploadPaycheck, setUploadPaycheck] = useState(false),
+  const [uploadPaycheck, setUploadPaycheck] = useState<{ sourceId?: string } | null>(null),
     [payrollRefresh, setPayrollRefresh] = useState(0),
     [payrollSource, setPayrollSource] = useState('')
   const [tab, setTab] = useState('overview'),
@@ -94,15 +94,11 @@ export function IncomePage() {
         </div>
         {data.canCreate && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              disabled={data.loading}
-              onClick={() => setUploadPaycheck(true)}
-            >
+            <Button variant="primary" disabled={data.loading} onClick={() => setUploadPaycheck({})}>
               Upload Paycheck
             </Button>
             <Button disabled={data.loading} onClick={() => setSource(null)}>
-              Add source
+              Add employer / source
             </Button>
             <Button
               disabled={data.loading || !editableSources.length}
@@ -215,6 +211,7 @@ export function IncomePage() {
               sources={filteredSources}
               transactions={data.transactions}
               members={data.members}
+              upload={(s) => setUploadPaycheck({ sourceId: s.id })}
               edit={setSource}
               record={(s, date, existing) => setPaycheck({ sourceId: s.id, date, existing })}
               details={setDetails}
@@ -249,10 +246,10 @@ export function IncomePage() {
       {uploadPaycheck && (
         <PayrollUploadFlow
           home={householdId}
-          sources={data.sources}
-          close={() => setUploadPaycheck(false)}
+          preferredSourceId={uploadPaycheck.sourceId}
+          close={() => setUploadPaycheck(null)}
           saved={(sourceId) => {
-            setUploadPaycheck(false)
+            setUploadPaycheck(null)
             data.refresh()
             setPayrollRefresh((v) => v + 1)
             setPayrollSource(sourceId)

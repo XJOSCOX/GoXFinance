@@ -4,124 +4,43 @@ import {
   payrollProfileSchema,
   payrollStatementSchema,
   payrollImportedHours,
-  payrollMilestones,
   weeklyHoursSchema,
+  payrollFrequencies,
+  payrollPeriodIssue,
+  payrollPeriodCandidates,
+  payrollStatementHours,
+  incomeSourceSchema,
   type PublicUser,
-  type PayrollUploadPreview,
 } from '@goxfinance/shared'
 import type { PayrollRepository } from './payroll.repository'
-import type { PayrollData, IncomeSource } from '@goxfinance/shared'
 import type { IncomeService } from '../income/income.service'
 import { FinancialError } from '../households/financial-access'
 import { reviewPayroll } from './payroll-review'
-import { localDocumentPreview } from './documents/document.service'
-import { readUploadReceipt, signUploadReceipt } from './payroll-upload-receipt'
-import { matchPayrollSources } from './payroll-source-matching'
+import { readUploadReceipt } from './payroll-upload-receipt'
+import { payrollUploadPreview } from './payroll-upload-preview'
+import type { PayrollUploadAccess } from './payroll-upload-access'
+import { automaticPayrollProfile } from './payroll-auto-source'
 export function payrollUploadService(
   store: PayrollRepository,
   income: IncomeService,
-  access: {
-    source: (user: PublicUser, home: string, id: string, write?: boolean) => IncomeSource
-    list: (user: PublicUser, home: string) => PayrollData
-  },
+  access: PayrollUploadAccess,
 ) {
-  function sources(user: PublicUser, home: string) {
-    const data = access.list(user, home)
-    const allowed = income
-      .list(user, home)
-      .sources.filter(
-        (s) =>
-          s.canManage &&
-          !s.isArchived &&
-          s.status === 'active' &&
-          s.incomeType !== 'trading_payout',
-      )
-      .filter((s) => {
-        try {
-          access.source(user, home, s.id, true)
-          return true
-        } catch {
-          return false
-        }
-      })
-    if (!allowed.length)
-      throw new FinancialError(
-        'Add an authorized employment income source before uploading a paycheck',
-        403,
-      )
-    return allowed.map((s) => ({
-      id: s.id,
-      name: s.name,
-      profile: data.profiles.find((p) => p.sourceId === s.id) ?? null,
-    }))
-  }
   return {
-    async preview(user: PublicUser, home: string, body: unknown): Promise<PayrollUploadPreview> {
-      const available = sources(user, home),
-        data = access.list(user, home),
-        receivedAt = new Date().toISOString(),
-        weeks = Object.fromEntries(data.weeks.map((w) => [w.id, w.revision])),
-        profiles = Object.fromEntries(available.map((s) => [s.id, s.profile?.revision ?? 0])),
-        extracted = await localDocumentPreview(user.id, body),
-        duplicate = store.digest(home, extracted.documentDigest)
-      if (duplicate) {
-        access.source(user, home, duplicate.sourceId, true)
-        throw new FinancialError(
-          'This document is already saved. Open its existing paycheck to make a correction.',
-          409,
-        )
-      }
-      const matches = matchPayrollSources(extracted.statement, available, store.aliases(home))
-      // A fingerprint receipt survives cancelled previews without retaining documents.
-      store.atomic(() => {
-        for (const candidate of available) {
-          access.source(user, home, candidate.id, true)
-          if (
-            !store
-              .history(home, candidate.id)
-              .some(
-                (a) =>
-                  a.action === 'upload_preview_received' &&
-                  JSON.parse(a.afterJson).digest === extracted.documentDigest,
-              )
-          )
-            store.audit(home, candidate.id, null, user.id, 'upload_preview_received', null, {
-              digest: extracted.documentDigest,
-              receivedAt,
-            })
-        }
-      })
-      return {
-        ...extracted,
-        sources: available.map((s) => {
-          const w = data.weeks.find(
-            (w) =>
-              w.sourceId === s.id &&
-              w.workweekStart === extracted.statement.periodStart &&
-              w.workweekEnd === extracted.statement.periodEnd,
-          )
-          return { ...s, existingWeek: w ? { id: w.id, stage: w.stage } : undefined }
-        }),
-        matchedSourceId: matches.length === 1 ? matches[0] : null,
-        receivedAt,
-        receipt: signUploadReceipt({
-          home,
-          actor: user.id,
-          digest: extracted.documentDigest,
-          receivedAt,
-          weeks,
-          profiles,
-        }),
-      }
-    },
+    preview: payrollUploadPreview(store, income, access),
     save(user: PublicUser, home: string, body: unknown) {
       const p = z
         .object({
           receipt: z.string().max(256000),
-          sourceId: z.uuid(),
+          sourceId: z.uuid().optional(),
+          newSource: z
+            .object({ name: z.string().trim().min(1).max(160) })
+            .strict()
+            .optional(),
           statement: payrollStatementSchema,
           idempotencyKey: z.uuid(),
           profile: payrollProfileSchema.optional(),
+          payFrequency: z.enum(payrollFrequencies).optional(),
+          semiMonthlySplitDay: z.number().int().min(1).max(27).optional(),
           reason: z.string().trim().min(1).max(2000).default('Reviewed uploaded paycheck'),
         })
         .strict()
@@ -129,30 +48,97 @@ export function payrollUploadService(
       const receipt = readUploadReceipt(p.receipt, home, user.id),
         hash = createHash('sha256').update(JSON.stringify(p)).digest('hex')
       return store.atomic(() => {
-        const source = access.source(user, home, p.sourceId, true)
-        if (source.isArchived || source.status !== 'active')
-          throw new FinancialError('Restore this income source before importing', 409)
         const replay = store.importReplay(home, p.idempotencyKey)
         if (replay) {
+          access.source(user, home, replay.sourceId, true)
           const previous = JSON.parse(replay.afterJson)
           if (
             previous.hash !== hash ||
             replay.actorUserId !== user.id ||
-            replay.sourceId !== p.sourceId
+            (p.sourceId !== undefined && replay.sourceId !== p.sourceId)
           )
             throw new FinancialError('Submission key already used', 409)
           return access.list(user, home).weeks.find((w) => w.id === replay.weekId)!
         }
-        if (!(p.sourceId in receipt.profiles))
+        if (Boolean(p.sourceId) === Boolean(p.newSource))
+          throw new FinancialError(
+            'Choose an existing income source or create one from this employer',
+            400,
+          )
+        const candidateFrequency =
+          p.payFrequency ??
+          p.statement.payFrequency ??
+          (payrollPeriodCandidates(p.statement.periodStart, p.statement.periodEnd).length === 1
+            ? payrollPeriodCandidates(p.statement.periodStart, p.statement.periodEnd)[0]
+            : undefined)
+        let sourceId = p.sourceId
+        if (p.newSource) {
+          const member = access.createMember(user, home)
+          if (!member || member.id !== receipt.createMemberId)
+            throw new FinancialError(
+              'New payroll sources can only be created for your authorized active membership',
+              403,
+            )
+          if (!candidateFrequency)
+            throw new FinancialError('Confirm the pay frequency before creating this source', 400)
+          if (
+            income
+              .list(user, home)
+              .sources.some(
+                (s) =>
+                  s.responsibleMemberId === member.id &&
+                  s.name.toLowerCase().trim() === p.newSource!.name.toLowerCase().trim(),
+              )
+          )
+            throw new FinancialError('This source already exists. Upload again to match it.', 409)
+          const h = payrollStatementHours(p.statement),
+            ratio =
+              h.regularRateCents && h.overtimeRateCents
+                ? String(Math.round((h.overtimeRateCents / h.regularRateCents) * 1000) / 1000)
+                : '1'
+          sourceId = income.createSource(user, home, {
+            idempotencyKey: p.idempotencyKey,
+            values: incomeSourceSchema.parse({
+              responsibleMemberId: member.id,
+              name: p.newSource.name,
+              incomeType: h.regularRateCents !== null ? 'hourly' : 'other',
+              frequency: candidateFrequency,
+              hourlyRateCents: h.regularRateCents,
+              overtimeMultiplier: ratio,
+              expectedGrossCents: null,
+              expectedNetCents: null,
+              payday: p.statement.payDate
+                ? new Date(p.statement.payDate + 'T12:00:00Z').getUTCDay()
+                : null,
+              status: 'active',
+              notes:
+                'Created from a reviewed paycheck. Future income and unconfigured overtime rules are not assumed.',
+            }),
+          }).id
+        }
+        if (!sourceId) throw new FinancialError('Select a payroll source', 400)
+        const source = access.source(user, home, sourceId, true)
+        if (source.isArchived || source.status !== 'active')
+          throw new FinancialError('Restore this income source before importing', 409)
+        if (!p.newSource && !(sourceId in receipt.profiles))
           throw new FinancialError('Source changed. Upload again.', 409)
-        let profile = store.profiles(home).find((v) => v.sourceId === p.sourceId)
-        if ((profile?.revision ?? 0) !== receipt.profiles[p.sourceId])
+        let profile = store.profiles(home).find((v) => v.sourceId === sourceId)
+        if (!p.newSource && (profile?.revision ?? 0) !== receipt.profiles[sourceId])
           throw new FinancialError('Payroll settings changed. Upload again.', 409)
         if (!profile) {
-          if (!p.profile || p.profile.sourceId !== p.sourceId)
-            throw new FinancialError('Confirm payroll settings for this source', 400)
-          profile = store.profile(home, p.sourceId, JSON.stringify(p.profile), 0)
-          store.audit(home, p.sourceId, null, user.id, 'profile_saved', null, {
+          if (p.profile && p.profile.sourceId !== sourceId)
+            throw new FinancialError('Payroll profile source does not match', 400)
+          const initial =
+            p.profile ??
+            automaticPayrollProfile(
+              sourceId,
+              p.statement,
+              candidateFrequency ?? source.frequency,
+              p.semiMonthlySplitDay ?? 15,
+              source.name,
+            )
+          profile = store.profile(home, sourceId, JSON.stringify(initial), 0)
+          store.audit(home, sourceId, null, user.id, 'profile_saved', null, {
             profile,
             reason: 'Confirmed during paycheck import',
           })
@@ -160,14 +146,65 @@ export function payrollUploadService(
         const v = p.statement
         if (!v.periodStart || !v.periodEnd || !v.payDate)
           throw new FinancialError('Confirm the missing pay period and statement date', 400)
-        if (new Date(v.periodStart + 'T12:00:00Z').getUTCDay() !== profile.workweekStartDay)
-          throw new FinancialError(
-            'Pay period begins on a different weekday than this payroll profile. Correct the period or source settings.',
-            400,
-          )
         const existing = store
           .weeks(home)
-          .find((w) => w.sourceId === p.sourceId && w.workweekStart === v.periodStart)
+          .find((w) => w.sourceId === sourceId && w.workweekStart === v.periodStart)
+        const periodProfile = existing
+          ? payrollProfileSchema.parse(
+              JSON.parse(store.rawWeek(home, existing.id)!.profileSnapshotJson),
+            )
+          : profile
+        const frequency =
+            existing?.payFrequency ??
+            (existing
+              ? 'weekly'
+              : (p.payFrequency ?? v.payFrequency ?? profile.payFrequency ?? source.frequency)),
+          split =
+            existing?.semiMonthlySplitDay ??
+            p.semiMonthlySplitDay ??
+            periodProfile.semiMonthlySplitDay ??
+            15,
+          issue = payrollPeriodIssue(
+            v.periodStart,
+            v.periodEnd,
+            frequency,
+            split,
+            existing?.periodAnchor ?? periodProfile.periodAnchor,
+          )
+        if (issue) throw new FinancialError(issue, 400)
+        if (existing && p.payFrequency && p.payFrequency !== frequency)
+          throw new FinancialError(
+            'Keep the existing paycheck schedule when correcting this period.',
+            409,
+          )
+        if (
+          ['weekly', 'biweekly'].includes(frequency) &&
+          new Date(v.periodStart + 'T12:00:00Z').getUTCDay() !== periodProfile.workweekStartDay
+        )
+          throw new FinancialError(
+            'Pay period starts on a different weekday than the source schedule. Correct the dates or payroll settings.',
+            400,
+          )
+        if (
+          !existing &&
+          store
+            .weeks(home)
+            .some(
+              (w) =>
+                w.sourceId === sourceId &&
+                w.workweekStart <= v.periodEnd! &&
+                w.workweekEnd >= v.periodStart!,
+            )
+        )
+          throw new FinancialError(
+            'This period overlaps an existing paycheck. Review the existing record before importing another.',
+            409,
+          )
+        const snapshot = {
+          ...payrollProfileSchema.strip().parse(profile),
+          payFrequency: frequency,
+          semiMonthlySplitDay: split,
+        }
         if (
           existing &&
           (existing.workweekEnd !== v.periodEnd || receipt.weeks[existing.id] !== existing.revision)
@@ -183,28 +220,38 @@ export function payrollUploadService(
           )
         const receivedAt =
           store
-            .history(home, p.sourceId)
+            .history(home, sourceId)
             .filter(
               (a) =>
                 a.action === 'upload_preview_received' &&
                 JSON.parse(a.afterJson).digest === receipt.digest,
             )
             .map((a) => JSON.parse(a.afterJson).receivedAt as string)
-            .sort()[0] ?? receipt.receivedAt
+            .sort()[0] ??
+          store.uploadReceipt(home, user.id, receipt.digest)?.receivedAt ??
+          receipt.receivedAt
         const now = new Date().toISOString(),
           id = existing?.id ?? randomUUID()
         if (!existing) {
-          const values = weeklyHoursSchema.parse(
-            payrollImportedHours(v, p.sourceId, payrollMilestones(v.periodEnd, profile).deposit),
-          )
+          const values = weeklyHoursSchema.parse({
+            ...payrollImportedHours(
+              v,
+              sourceId,
+              v.payDate,
+              frequency,
+              split,
+              profile.periodAnchor ?? null,
+            ),
+            expectedDepositBasis: 'statement',
+          })
           store.insertWeek({
             id,
             householdId: home,
-            sourceId: p.sourceId,
+            sourceId: sourceId,
             workweekStart: v.periodStart,
             workweekEnd: v.periodEnd,
             hoursJson: JSON.stringify(values),
-            profileSnapshotJson: JSON.stringify(payrollProfileSchema.strip().parse(profile)),
+            profileSnapshotJson: JSON.stringify(snapshot),
             stage: 'paystub_received',
             statementReceivedAt: receivedAt,
             createdAt: now,
@@ -212,7 +259,7 @@ export function payrollUploadService(
             idempotencyKey: p.idempotencyKey,
             createdByUserId: user.id,
           })
-          store.audit(home, p.sourceId, id, user.id, 'paystub_received', null, {
+          store.audit(home, sourceId, id, user.id, 'paystub_received', null, {
             receivedAt,
             origin: 'upload_first',
           })
@@ -234,14 +281,14 @@ export function payrollUploadService(
           home,
           id,
           {
-            statement: v,
+            statement: { ...v, payFrequency: frequency },
             documentDigest: receipt.digest,
             revision: existing?.revision ?? 1,
             reason: p.reason,
           },
           { receivedAt, sourceConfirmed: true },
         )
-        store.audit(home, p.sourceId, id, user.id, 'upload_import_saved', null, {
+        store.audit(home, sourceId, id, user.id, 'upload_import_saved', null, {
           idempotencyKey: p.idempotencyKey,
           hash,
           reason: p.reason,

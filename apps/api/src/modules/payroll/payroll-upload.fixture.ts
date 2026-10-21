@@ -33,6 +33,7 @@ export async function uploadFixture(encrypted = false, withProfile = true) {
   async function receipt(digest = randomUUID().replaceAll('-', '').repeat(2)) {
     const data = await f.ok('GET', '/income/payroll')
     return signUploadReceipt({
+      createMemberId: f.member,
       home: f.home,
       actor: f.owner.id,
       digest,

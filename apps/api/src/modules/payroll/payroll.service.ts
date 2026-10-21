@@ -94,7 +94,7 @@ export function payrollService(
       if (p.values.documentOnly)
         throw new FinancialError('Upload documented hours through paycheck review', 400)
       return store.atomic(() => {
-        source(user, home, p.values.sourceId, true)
+        const incomeSource = source(user, home, p.values.sourceId, true)
         const old = id ? week(user, home, id, p.revision) : undefined
         const replay = store
           .weeks(home)
@@ -122,6 +122,28 @@ export function payrollService(
           throw new FinancialError('This workweek already exists. Edit it instead.', 409)
         const profile = store.profiles(home).find((v) => v.sourceId === p.values.sourceId)
         if (!profile) throw new FinancialError('Save payroll settings before reporting hours', 400)
+        const frequency =
+          old?.payFrequency ?? (old ? 'weekly' : (profile.payFrequency ?? incomeSource.frequency))
+        const snapshot = {
+          ...payrollProfileSchema.strip().parse(profile),
+          payFrequency: frequency,
+          periodAnchor: p.values.periodAnchor ?? profile.periodAnchor ?? null,
+          semiMonthlySplitDay: p.values.semiMonthlySplitDay ?? profile.semiMonthlySplitDay ?? 15,
+        }
+        if ((p.values.payFrequency ?? 'weekly') !== frequency)
+          throw new FinancialError('Choose dates for the source’s configured pay frequency.', 400)
+        if (
+          store
+            .weeks(home)
+            .some(
+              (w) =>
+                w.id !== old?.id &&
+                w.sourceId === p.values.sourceId &&
+                w.workweekStart <= p.values.workweekEnd &&
+                w.workweekEnd >= p.values.workweekStart,
+            )
+        )
+          throw new FinancialError('This pay period overlaps an existing payroll record.', 409)
         const now = new Date().toISOString(),
           weekId = old?.id ?? randomUUID(),
           stage = p.submit ? 'hours_submitted' : 'hours_draft'
@@ -130,7 +152,7 @@ export function payrollService(
             hoursJson: JSON.stringify(p.values),
             workweekStart: p.values.workweekStart,
             workweekEnd: p.values.workweekEnd,
-            profileSnapshotJson: JSON.stringify(payrollProfileSchema.strip().parse(profile)),
+            profileSnapshotJson: JSON.stringify(snapshot),
             stage,
             revision: old.revision + 1,
             updatedAt: now,
@@ -143,7 +165,7 @@ export function payrollService(
             workweekStart: p.values.workweekStart,
             workweekEnd: p.values.workweekEnd,
             hoursJson: JSON.stringify(p.values),
-            profileSnapshotJson: JSON.stringify(payrollProfileSchema.strip().parse(profile)),
+            profileSnapshotJson: JSON.stringify(snapshot),
             stage,
             createdAt: now,
             updatedAt: now,
@@ -214,7 +236,15 @@ export function payrollService(
       return store.history(home, id)
     },
   }
-  const upload = payrollUploadService(store, income, actions)
+  const upload = payrollUploadService(store, income, {
+    ...actions,
+    createMember: (user, home) => {
+      const ctx = permissions.context(user, home)
+      return ctx.role !== 'viewer' && ctx.self?.status === 'active'
+        ? { id: ctx.self.id, name: ctx.self.fullName }
+        : undefined
+    },
+  })
   return { ...actions, uploadPreview: upload.preview, uploadSave: upload.save }
 }
 export type PayrollService = ReturnType<typeof payrollService>

@@ -201,3 +201,25 @@ export const payrollAudit = sqliteTable(
     index('payroll_audit_source').on(t.householdId, t.sourceId, t.createdAt),
   ],
 )
+export const payrollUploadReceipts = sqliteTable(
+  'payroll_upload_receipts',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id')
+      .notNull()
+      .references(() => households.id),
+    actorUserId: text('actor_user_id')
+      .notNull()
+      .references(() => users.id),
+    documentDigest: text('document_digest').notNull(),
+    receivedAt: text('received_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('payroll_upload_receipt_document').on(
+      t.householdId,
+      t.actorUserId,
+      t.documentDigest,
+    ),
+    index('payroll_upload_receipt_actor').on(t.householdId, t.actorUserId, t.receivedAt),
+  ],
+)

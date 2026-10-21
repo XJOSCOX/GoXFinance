@@ -47,7 +47,7 @@ export const incomeSourceSchema = z
 const hours = z
   .string()
   .regex(/^\d{1,4}(?:\.\d{1,2})?$/, 'Use up to two decimal places for hours')
-  .refine((v) => Number(v) <= 1000, 'Hours cannot exceed 1,000')
+  .refine((v) => Number(v) <= 9999, 'Hours cannot exceed 9,999')
   .nullable()
 export const incomeTransactionSchema = z
   .object({

@@ -13,6 +13,7 @@ export function IncomeSources({
   sources,
   transactions,
   members,
+  upload,
   edit,
   record,
   details,
@@ -22,6 +23,7 @@ export function IncomeSources({
   sources: IncomeSource[]
   transactions: IncomeTransaction[]
   members: HouseholdMember[]
+  upload: (v: IncomeSource) => void
   edit: (v: IncomeSource) => void
   record: (v: IncomeSource, date?: string, existing?: IncomeTransaction) => void
   details: (v: IncomeSource) => void
@@ -111,6 +113,11 @@ export function IncomeSources({
                         <Button size="small" onClick={() => edit(source)}>
                           Edit
                         </Button>
+                        {source.status === 'active' && source.incomeType !== 'trading_payout' && (
+                          <Button size="small" onClick={() => upload(source)}>
+                            Upload paycheck
+                          </Button>
+                        )}
                         {source.status === 'active' && (
                           <Button size="small" onClick={() => record(source)}>
                             Record income

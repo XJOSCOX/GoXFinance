@@ -94,6 +94,21 @@ export function parsePayrollLayout(tokens: LayoutToken[]): {
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i],
       low = r.text.toLowerCase()
+    if (/pay frequency|payroll frequency|pay cycle/.test(low)) {
+      statement.payFrequency = /semi[ -]?monthly|twice.*month/.test(low)
+        ? 'semimonthly'
+        : /bi[ -]?weekly|every two weeks/.test(low)
+          ? 'biweekly'
+          : /weekly/.test(low)
+            ? 'weekly'
+            : /monthly/.test(low)
+              ? 'monthly'
+              : /annual|yearly/.test(low)
+                ? 'annually'
+                : null
+    }
+    const issuer = r.text.match(/^(?:employer|payroll issuer|payer)\s*:\s*(.+)$/i)
+    if (issuer && !/^tax(?:es)?\b/i.test(issuer[1])) statement.employer = safeLabel(issuer[1])
     const assignmentLabel = r.tokens.findIndex((t) =>
       /^(assignment|client)\s*:?$/i.test(t.text.trim()),
     )

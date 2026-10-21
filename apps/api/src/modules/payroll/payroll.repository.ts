@@ -101,6 +101,42 @@ export function payrollRepository(db: DatabaseConnection) {
     profiles,
     weeks,
     statement,
+    receiveUpload(home: string, actor: string, digest: string, receivedAt: string) {
+      db.insert(s.payrollUploadReceipts)
+        .values({
+          id: randomUUID(),
+          householdId: home,
+          actorUserId: actor,
+          documentDigest: digest,
+          receivedAt,
+        })
+        .onConflictDoNothing()
+        .run()
+      return db
+        .select()
+        .from(s.payrollUploadReceipts)
+        .where(
+          and(
+            eq(s.payrollUploadReceipts.householdId, home),
+            eq(s.payrollUploadReceipts.actorUserId, actor),
+            eq(s.payrollUploadReceipts.documentDigest, digest),
+          ),
+        )
+        .get()!
+    },
+    uploadReceipt(home: string, actor: string, digest: string) {
+      return db
+        .select()
+        .from(s.payrollUploadReceipts)
+        .where(
+          and(
+            eq(s.payrollUploadReceipts.householdId, home),
+            eq(s.payrollUploadReceipts.actorUserId, actor),
+            eq(s.payrollUploadReceipts.documentDigest, digest),
+          ),
+        )
+        .get()
+    },
     aliases(home: string) {
       return db
         .select({ sourceId: s.payrollStatements.sourceId, header: s.payrollStatements.headerJson })

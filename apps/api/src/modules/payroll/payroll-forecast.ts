@@ -17,6 +17,7 @@ export function recordPayrollForecast(store: PayrollRepository, home: string, w:
       .filter(
         (v) =>
           v.sourceId === w.sourceId &&
+          (v.payFrequency ?? 'weekly') === (w.payFrequency ?? 'weekly') &&
           v.id !== w.id &&
           v.reviewedAt &&
           v.reviewedAt < now &&
@@ -57,7 +58,8 @@ export function recordPayrollForecast(store: PayrollRepository, home: string, w:
     modelVersion: version,
     hoursRevision: w.revision,
     resultJson: JSON.stringify(result),
-    eligibleForAccuracy: !w.statementReceivedAt && w.expectedPayDate >= localBillDate(),
+    eligibleForAccuracy:
+      !w.statementReceivedAt && w.expectedPayDate !== null && w.expectedPayDate >= localBillDate(),
     createdAt: now,
   })
 }

@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { payrollFrequencies, payrollPeriodIssue, payrollPeriodDays } from './payroll-periods'
 const cents = z.number().int().min(-Number.MAX_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER)
 const money = cents.nonnegative()
-const hours = z.number().int().min(0).max(16800)
+const hours = z.number().int().min(0).max(878400)
 const text = z.string().trim().max(160)
 export const payrollCodes = [
   'regular',
@@ -53,9 +54,14 @@ export const payrollProfileSchema = z
     sourceId: z.uuid(),
     employer: text.min(1),
     assignment: text.nullable(),
-    regularRateCents: money,
-    overtimeRateCents: money,
-    regularThresholdHundredths: hours,
+    payFrequency: z.enum(payrollFrequencies).optional(),
+    periodAnchor: z.iso.date().nullable().optional(),
+    semiMonthlySplitDay: z.number().int().min(1).max(27).optional(),
+    depositOffsetDays: z.number().int().min(-31).max(60).nullable().optional(),
+    regularRateCents: money.nullable(),
+    overtimeRateCents: money.nullable(),
+    regularThresholdHundredths: hours.max(16800).nullable(),
+    milestonesConfigured: z.boolean().optional(),
     timezone: z.string().refine((v) => {
       try {
         new Intl.DateTimeFormat('en', { timeZone: v })
@@ -81,8 +87,12 @@ export const weeklyHoursSchema = z
     sourceId: z.uuid(),
     workweekStart: z.iso.date(),
     workweekEnd: z.iso.date(),
-    expectedPayDate: z.iso.date(),
+    expectedPayDate: z.iso.date().nullable(),
+    payFrequency: z.enum(payrollFrequencies).optional(),
+    semiMonthlySplitDay: z.number().int().min(1).max(27).optional(),
     documentOnly: z.boolean().optional(),
+    expectedDepositBasis: z.enum(['statement', 'schedule']).optional(),
+    periodAnchor: z.iso.date().nullable().optional(),
     regularHundredths: hours.nullable(),
     overtimeHundredths: hours.nullable(),
     ptoHundredths: hours.nullable(),
@@ -98,14 +108,22 @@ export const weeklyHoursSchema = z
   })
   .strict()
   .superRefine((v, c) => {
-    if (Date.parse(v.workweekEnd) - Date.parse(v.workweekStart) !== 6 * 86400000)
+    const periodIssue = payrollPeriodIssue(
+      v.workweekStart,
+      v.workweekEnd,
+      v.payFrequency ?? 'weekly',
+      v.semiMonthlySplitDay ?? 15,
+      v.periodAnchor,
+    )
+    if (periodIssue)
       c.addIssue({
         code: 'custom',
-        message: 'A workweek must contain seven inclusive calendar dates',
+        message: periodIssue,
       })
     if (
       !v.documentOnly &&
       [
+        v.expectedPayDate,
         v.regularHundredths,
         v.overtimeHundredths,
         v.ptoHundredths,
@@ -116,8 +134,14 @@ export const weeklyHoursSchema = z
       ].some((n) => n === null)
     )
       c.addIssue({ code: 'custom', message: 'Reported hours and rates must be entered explicitly' })
-    if ((v.regularHundredths ?? 0) + (v.overtimeHundredths ?? 0) > 16800)
-      c.addIssue({ code: 'custom', message: 'Worked hours cannot exceed 168 per week' })
+    if (
+      (v.regularHundredths ?? 0) + (v.overtimeHundredths ?? 0) >
+      payrollPeriodDays(v.workweekStart, v.workweekEnd) * 2400
+    )
+      c.addIssue({
+        code: 'custom',
+        message: 'Worked hours exceed the calendar hours in this pay period',
+      })
   })
 export const payrollLineSchema = z
   .object({
@@ -141,6 +165,7 @@ export const payrollStatementSchema = z
     periodStart: z.iso.date().nullable(),
     periodEnd: z.iso.date().nullable(),
     payDate: z.iso.date().nullable(),
+    payFrequency: z.enum(payrollFrequencies).nullable().optional(),
     grossCents: money.nullable(),
     deductionsCents: money.nullable(),
     netCents: money.nullable(),
