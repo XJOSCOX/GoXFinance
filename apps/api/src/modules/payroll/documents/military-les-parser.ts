@@ -69,6 +69,7 @@ export function parseMilitaryLes(rows: Row[]) {
     return null
   }
   const statement: PayrollStatement = {
+    payBasis: 'salary',
     employer: 'Defense Finance and Accounting Service',
     assignment: null,
     periodStart: null,

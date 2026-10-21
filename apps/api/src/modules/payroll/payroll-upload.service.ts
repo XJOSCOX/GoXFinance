@@ -107,9 +107,10 @@ export function payrollUploadService(
             values: incomeSourceSchema.parse({
               responsibleMemberId: member.id,
               name: p.newSource.name,
-              incomeType: h.regularRateCents !== null ? 'hourly' : 'other',
+              incomeType:
+                p.statement.payBasis ?? (h.regularRateCents !== null ? 'hourly' : 'other'),
               frequency: candidateFrequency,
-              hourlyRateCents: h.regularRateCents,
+              hourlyRateCents: p.statement.payBasis === 'salary' ? null : h.regularRateCents,
               overtimeMultiplier: ratio,
               expectedGrossCents: null,
               expectedNetCents: null,

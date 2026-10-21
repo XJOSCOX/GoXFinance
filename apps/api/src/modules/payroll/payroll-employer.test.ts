@@ -227,3 +227,48 @@ it.each([false, true])(
     }
   },
 )
+it.each([false, true])(
+  'imports salary without requiring hours or inventing an hourly rate; encrypted=%s',
+  async (encrypted) => {
+    const f = await setup(encrypted)
+    const salary = {
+      ...statement,
+      payBasis: 'salary' as const,
+      lines: statement.lines.map((l) => ({
+        ...l,
+        rateCents: null,
+        hoursHundredths: null,
+        worked: null,
+      })),
+    }
+    const saved = await f.ok('POST', '/income/payroll/upload/save', {
+      receipt: receipt(f),
+      idempotencyKey: randomUUID(),
+      newSource: { name: 'Fictional salaried employer' },
+      statement: salary,
+    })
+    const data = await f.ok('GET', '/income')
+    expect(data.sources[0]).toMatchObject({
+      incomeType: 'salary',
+      hourlyRateCents: null,
+      expectedGrossCents: null,
+      expectedNetCents: null,
+    })
+    expect(data.transactions[0]).toMatchObject({
+      incomeTypeSnapshot: 'salary',
+      regularHours: null,
+      overtimeHours: null,
+      hourlyRateCents: null,
+      status: 'pending',
+      depositDate: null,
+      actualGrossCents: salary.grossCents,
+      actualNetCents: salary.netCents,
+    })
+    expect(saved.statement.payBasis).toBe('salary')
+    expect(saved.regularHundredths).toBeNull()
+    expect(saved.forecasts).toEqual([])
+    const next = await f.restart()
+    const after = await testRequest(next, 'GET', f.base + '/income', f.owner.cookie)
+    expect(after.json().sources[0].incomeType).toBe('salary')
+  },
+)

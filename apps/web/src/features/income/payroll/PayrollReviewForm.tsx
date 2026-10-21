@@ -43,6 +43,7 @@ export function PayrollReviewForm({
     const amount = (key: string) =>
       String(f.get(key) || '').trim() ? bankDecimalCents(String(f.get(key))) : null
     return payrollStatementSchema.parse({
+      payBasis: f.get('payBasis') || null,
       deductionSign: f.get('deductionSign'),
       employer: String(f.get('employer') || '') || null,
       assignment: String(f.get('assignment') || '') || null,

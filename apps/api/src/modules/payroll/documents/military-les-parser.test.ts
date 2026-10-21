@@ -120,6 +120,7 @@ it('reads parallel LES tables and separates current amounts from cumulative tax 
   const { statement: s, warnings, format } = parsePayrollLayout(fixture())
   expect(format).toContain('DFAS')
   expect(s).toMatchObject({
+    payBasis: 'salary',
     employer: 'Defense Finance and Accounting Service',
     grossCents: 100000,
     deductionsCents: 40000,

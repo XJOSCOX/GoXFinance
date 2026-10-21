@@ -97,3 +97,19 @@ it('uploads under an explicitly selected employer without creating another sourc
   expect(body.sourceId).toBe(sourceId)
   expect(body.newSource).toBeUndefined()
 })
+it('preserves the detected salary basis through paycheck review and saving', async () => {
+  vi.mocked(apiRequest).mockResolvedValue({ sourceId })
+  render(
+    <PayrollUploadReview
+      home={home}
+      preview={{ ...preview, statement: { ...statement, payBasis: 'salary' } }}
+      close={() => {}}
+      saved={() => {}}
+    />,
+  )
+  expect((screen.getByLabelText('Pay basis') as HTMLSelectElement).value).toBe('salary')
+  fireEvent.click(screen.getByRole('button', { name: 'Save Paycheck' }))
+  await waitFor(() => expect(apiRequest).toHaveBeenCalled())
+  const body = JSON.parse(vi.mocked(apiRequest).mock.calls[0][1]!.body as string)
+  expect(body.statement.payBasis).toBe('salary')
+})

@@ -1,6 +1,6 @@
 import type { PayrollStatement } from '@goxfinance/shared'
 import { AmountField, DateField } from '../../../components/financial/EntryFields'
-import { FormField } from '../../../components/ui/FormField'
+import { FormField, Select } from '../../../components/ui/FormField'
 import { Input } from '../../../components/ui'
 export function PayrollStatementFields({ initial: s }: { initial: PayrollStatement }) {
   return (
@@ -18,6 +18,13 @@ export function PayrollStatementFields({ initial: s }: { initial: PayrollStateme
         Correct dates, employer or statement totals
       </summary>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <FormField label="Pay basis">
+          <Select name="payBasis" defaultValue={s.payBasis ?? ''}>
+            <option value="">Not specified</option>
+            <option value="salary">Salary</option>
+            <option value="hourly">Hourly</option>
+          </Select>
+        </FormField>
         <FormField label="Employer">
           <Input
             placeholder="Employer name on the paycheck"
