@@ -77,7 +77,7 @@ it('handles zero allocations, no budget, loading and errors without inventing pl
     actualCents: 0,
     remainingCents: 0,
   })
-  expect(screen.getByText('0%')).toBeTruthy()
+  expect(screen.getByText('Monthly spending remaining').textContent).toContain('$0.00')
   cleanup()
   show({ ...data, budget: null, rows: [], remainingCents: null })
   expect(screen.getByText('Not set')).toBeTruthy()

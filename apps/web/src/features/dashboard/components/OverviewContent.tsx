@@ -62,73 +62,34 @@ export function OverviewContent({
             />
           </div>
         </section>
-        <section
-          aria-label="Monthly spending and obligations"
-          className="col-span-full rounded-xl border border-white/[.07] px-4 py-3"
-        >
-          <dl className="grid grid-cols-3 gap-3 text-xs">
-            <div>
-              <dt className="text-slate-400">Bills remaining</dt>
-              <dd className="mt-1 font-semibold tabular-nums">
-                {formatMoney(
-                  data.payments.billAmounts.confirmedCount === 0 &&
-                    data.payments.billAmounts.unconfirmedCount > 0
-                    ? null
-                    : data.payments.billAmounts.remainingCents,
-                )}
-              </dd>
-              {data.payments.billAmounts.unconfirmedCount > 0 && (
-                <p className="mt-1 text-[10px] text-amber-200">
-                  {data.payments.billAmounts.unconfirmedCount} amounts unconfirmed
-                </p>
-              )}
-            </div>
-            <div>
-              <dt className="text-slate-400">Monthly payment plan</dt>
-              <dd className="mt-1 font-semibold tabular-nums">
-                {formatMoney(data.bills.householdMonthlyObligationsCents)}
-              </dd>
-              <p className="mt-1 text-[10px] text-slate-500">Includes estimates</p>
-            </div>
-            <div>
-              <dt className="text-slate-400">Purchase spending</dt>
-              <dd className="mt-1 font-semibold tabular-nums">
-                {formatMoney(data.actual.spendingCents)}
-              </dd>
-            </div>
-          </dl>
-        </section>
       </div>
       {cashFlowSummary}
+      <OverviewAttention data={data} home={home} />
       <div className="grid items-start gap-3 lg:grid-cols-2">
-        <div className="space-y-3">
-          <OverviewBills data={data} home={home} />
-          <OverviewDetails label="Bill progress & payment activity">
-            <div className="space-y-3">
-              <OverviewProgress data={data} />
-              <OverviewPayments payments={data.payments} home={home} refunds={data.refunds} />
-            </div>
-          </OverviewDetails>
-        </div>
-        <div className="space-y-3">
-          <OverviewAttention data={data} home={home} />
-          {budgetSummary}
-        </div>
+        <OverviewBills data={data} home={home} />
+        {budgetSummary}
       </div>
-      <div className="grid items-start gap-3 lg:grid-cols-3">
-        {tradingSummary}
-        {goalSummary}
-        <div className="space-y-3">
-          <OverviewDebtSnapshot data={data} home={home} />
-          <OverviewDetails label="Debt payoff history">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <OverviewDetails label="Bill progress & payment activity">
+          <div className="space-y-3">
+            <OverviewProgress data={data} />
+            <OverviewPayments payments={data.payments} home={home} refunds={data.refunds} />
+          </div>
+        </OverviewDetails>
+        <OverviewDetails label="Debts & payoff progress">
+          <div className="space-y-3">
+            <OverviewDebtSnapshot data={data} home={home} />
             <OverviewDebtProgress data={data} />
-          </OverviewDetails>
-        </div>
+          </div>
+        </OverviewDetails>
+        {goalSummary && <OverviewDetails label="Goal progress">{goalSummary}</OverviewDetails>}
+        {tradingSummary && (
+          <OverviewDetails label="Trading performance">{tradingSummary}</OverviewDetails>
+        )}
       </div>
       <p className="border-t border-white/[.07] pt-4 text-xs leading-5 text-slate-500">
-        Recorded cash flow is not your bank balance or available cash. Credit-card repayments count
-        as cash paid, not a second purchase. Debt-linked bill payments count once. Pending and
-        scheduled payments are excluded from cash paid.
+        Recorded cash flow is not your bank balance or available cash. Estimates and pending
+        payments stay separate from confirmed activity.
       </p>
     </div>
   )

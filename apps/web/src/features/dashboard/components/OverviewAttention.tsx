@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
-import { CircleCheck, CircleAlert } from 'lucide-react'
+import { CircleAlert } from 'lucide-react'
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
-import { toneStyles } from '../../../components/ui/semantic-tones'
 
 export function OverviewAttention({ data, home }: { data: HouseholdOverview; home: string }) {
   const summary = data.debts.summary
@@ -39,46 +38,24 @@ export function OverviewAttention({ data, home }: { data: HouseholdOverview; hom
         ]
       : []),
   ]
+  if (!alerts.length) return null
   return (
-    <Card
-      className={`min-w-0 border-t-2 p-4 ${alerts.length ? toneStyles.warning.border : toneStyles.positive.border}`}
-    >
-      <h2 className="flex items-center gap-2 font-semibold">
-        <CircleAlert
-          size={16}
-          className={alerts.length ? toneStyles.warning.text : toneStyles.positive.text}
-        />
-        Needs attention
-        {alerts.length > 0 && (
-          <span className="ml-auto text-xs font-normal text-slate-500">{alerts.length}</span>
-        )}
-      </h2>
-      {alerts.length ? (
-        <ul className="mt-3 divide-y divide-white/[.07]">
-          {alerts.map((alert) => (
-            <li key={alert.text}>
-              <Link
-                to={`/households/${home}/${alert.path}`}
-                className="flex items-start justify-between gap-3 py-2 text-sm text-slate-300 hover:text-white"
-              >
-                <span>{alert.text}</span>
-                <span className={`shrink-0 text-xs ${toneStyles.warning.text}`}>Review</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 flex items-center gap-2 text-sm text-slate-400">
-          <CircleCheck size={16} className={toneStyles.positive.text} />
-          No data warnings to review.
-        </p>
-      )}
-      {data.bills.estimatedRecurringCount > 0 && (
-        <p className="mt-3 border-t border-white/[.07] pt-4 text-xs leading-5 text-slate-500">
-          {data.bills.estimatedRecurringCount} variable bills use budget estimates. Confirm each
-          actual bill before recording a payment.
-        </p>
-      )}
+    <Card className="border-amber-300/20 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <h2 className="flex items-center gap-2 text-xs font-semibold text-amber-200">
+          <CircleAlert size={14} />
+          Needs attention <span className="text-slate-500">{alerts.length}</span>
+        </h2>
+        {alerts.map((alert) => (
+          <Link
+            key={alert.text}
+            to={`/households/${home}/${alert.path}`}
+            className="text-xs text-slate-300 hover:text-white hover:underline"
+          >
+            {alert.text}
+          </Link>
+        ))}
+      </div>
     </Card>
   )
 }

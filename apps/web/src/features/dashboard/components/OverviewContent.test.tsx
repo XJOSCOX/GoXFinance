@@ -101,6 +101,8 @@ function show(data = overview()) {
     </MemoryRouter>,
   )
   fireEvent.click(screen.getByText('Bill progress & payment activity'))
+  fireEvent.click(screen.getByText('Debts & payoff progress'))
+  for (const item of data.upcoming.slice(0, 5)) fireEvent.click(screen.getByText(item.billName))
 }
 
 it('keeps confirmed cash flow separate from pending and scheduled activity', () => {
@@ -168,7 +170,7 @@ it('shows actual partial balances, estimates, and unknown bill amounts distinctl
     },
   ]
   show(data)
-  expect(screen.getByText('$142.18')).toBeTruthy()
+  expect(screen.getAllByText('$142.18').length).toBeGreaterThan(0)
   expect(screen.getByText('$200.00')).toBeTruthy()
   expect(screen.getAllByText('Budget estimate').length).toBeGreaterThan(0)
   expect(screen.getAllByText('$300.00')).toHaveLength(3)
@@ -182,7 +184,7 @@ it('keeps useful empty states and household-scoped detail links without duplicat
   show(data)
   expect(screen.getByText('No outstanding bills')).toBeTruthy()
   expect(screen.getByText('No debts recorded.')).toBeTruthy()
-  expect(screen.getByText('No data warnings to review.')).toBeTruthy()
+  expect(screen.queryByText('Needs attention')).toBeNull()
   expect(screen.getByText('No completed payments this month.')).toBeTruthy()
   expect(screen.queryByRole('navigation', { name: 'Manage household finances' })).toBeNull()
   expect(screen.getByRole('link', { name: 'View bills' }).getAttribute('href')).toBe(
@@ -232,4 +234,27 @@ it('shows bill estimates, confirmed totals, completed payments and unknown remai
   expect(amounts.textContent).toContain('$142.18')
   expect(amounts.textContent).toContain('1 bill total unconfirmed')
   expect(amounts.textContent).not.toContain('$99.00')
+})
+
+it('keeps secondary summaries collapsed and the initial view focused', () => {
+  render(
+    <MemoryRouter>
+      <OverviewContent
+        data={overview()}
+        home="example-home"
+        goalSummary={<p>Detailed goal activity</p>}
+        tradingSummary={<p>Detailed trading activity</p>}
+      />
+    </MemoryRouter>,
+  )
+  for (const label of [
+    'Bill progress & payment activity',
+    'Debts & payoff progress',
+    'Goal progress',
+    'Trading performance',
+  ])
+    expect(screen.getByText(label).closest('details')?.open).toBe(false)
+  expect(screen.queryByText('Needs attention')).toBeNull()
+  fireEvent.click(screen.getByText('Trading performance'))
+  expect(screen.getByText('Trading performance').closest('details')?.open).toBe(true)
 })

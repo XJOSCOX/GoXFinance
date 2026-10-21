@@ -60,23 +60,31 @@ export function OverviewBudgets({ home, month }: { home: string; month: string }
               </p>
             </div>
             {budget && (
-              <div className="mt-3 flex items-center gap-4 rounded-xl bg-white/[.025] p-3">
-                <BudgetAllocationRing total={budget.totalCents} allocated={allocated} rows={rows} />
-                <div className="min-w-0 space-y-2 text-xs">
+              <div className="mt-3 border-t border-white/[.07] pt-3">
+                <div className="flex flex-wrap justify-between gap-2 text-xs">
                   <p className="text-slate-400">
                     Actual purchase spending
-                    <strong className="mt-0.5 block text-sm text-white">
-                      {formatMoney(data.actualCents)}
-                    </strong>
+                    <strong className="ml-2 text-slate-200">{formatMoney(data.actualCents)}</strong>
                   </p>
                   <p className="text-slate-400">
                     {data.overCents ? 'Over monthly allocation' : 'Monthly spending remaining'}
                     <strong
-                      className={`mt-0.5 block text-sm ${data.overCents ? 'text-rose-300' : 'text-emerald-300'}`}
+                      className={`ml-2 ${data.overCents ? 'text-rose-300' : 'text-emerald-300'}`}
                     >
                       {formatMoney(data.overCents || data.remainingCents)}
                     </strong>
                   </p>
+                </div>
+                <div
+                  className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"
+                  aria-hidden="true"
+                >
+                  <div
+                    className={`h-full rounded-full ${data.overCents ? 'bg-rose-300' : 'bg-emerald-300'}`}
+                    style={{
+                      width: `${budget.totalCents > 0 ? Math.min(100, Math.max(0, (data.actualCents / budget.totalCents) * 100)) : data.actualCents > 0 ? 100 : 0}%`,
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -89,6 +97,15 @@ export function OverviewBudgets({ home, month }: { home: string; month: string }
             {rows.length > 0 && (
               <div className="mt-3">
                 <OverviewDetails label={`Category performance (${rows.length})`}>
+                  {budget && (
+                    <div className="mb-3 flex justify-center">
+                      <BudgetAllocationRing
+                        total={budget.totalCents}
+                        allocated={allocated}
+                        rows={rows}
+                      />
+                    </div>
+                  )}
                   <div className="flex justify-between text-[10px] uppercase tracking-wider text-slate-500">
                     <span>Category performance</span>
                     <span>Allocated</span>

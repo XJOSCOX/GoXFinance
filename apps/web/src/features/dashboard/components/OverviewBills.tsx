@@ -1,6 +1,6 @@
 import { billPeriodEstimate } from '@goxfinance/shared'
 import { Link } from 'react-router-dom'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, ChevronDown } from 'lucide-react'
 import type { HouseholdOverview } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
@@ -13,31 +13,52 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
           View bills
         </Link>
       </div>
-      <p className="mt-2 text-xs text-slate-500">
-        Next outstanding bills, including overdue periods. Across all months.
+      <p className="mt-1 text-xs text-slate-500">
+        Next outstanding bills, including overdue periods.
       </p>
       {data.upcoming.length ? (
-        <div className="mt-3 max-h-56 divide-y divide-white/[.07] overflow-y-auto">
-          {data.upcoming.map((period) => (
-            <div
-              key={period.id}
-              className="flex flex-col justify-between gap-3 py-3 text-sm sm:flex-row sm:items-start"
-            >
-              <div className="min-w-0">
-                <Link
-                  to={`/households/${home}/bills`}
-                  className="break-words font-medium hover:underline"
-                >
-                  {period.billName}
-                </Link>
-                <p
-                  className={`mt-1 text-xs ${period.overdue ? 'text-amber-200/80' : 'text-slate-500'}`}
-                >
-                  {period.dueDate}
-                  {period.overdue ? ' · Overdue' : ''}
-                </p>
-              </div>
-              <div className="min-w-0 text-right">
+        <div className="mt-2 divide-y divide-white/[.07]">
+          {data.upcoming.slice(0, 5).map((period) => (
+            <details key={period.id} className="group/bill py-2.5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md focus-visible:outline focus-visible:outline-[#a9b8a9] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0">
+                  <span className="block break-words text-sm font-medium">{period.billName}</span>
+                  <span
+                    className={`mt-0.5 block text-[11px] ${period.overdue ? 'text-rose-300' : 'text-slate-500'}`}
+                  >
+                    {period.dueDate}
+                    {period.overdue ? ' · Overdue' : ''}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-right">
+                  <span>
+                    <span
+                      className={`block text-sm font-semibold tabular-nums ${period.overdue ? 'text-rose-200' : 'text-slate-200'}`}
+                    >
+                      {period.amountCents === null
+                        ? billPeriodEstimate(period) === null
+                          ? 'Unknown'
+                          : '≈ ' +
+                            formatMoney(
+                              Math.max(
+                                0,
+                                billPeriodEstimate(period)! - period.paidCents - period.creditCents,
+                              ),
+                            )
+                        : formatMoney(period.remainingCents)}
+                    </span>
+                    <span className="block text-[10px] text-slate-500">
+                      {period.amountCents === null ? 'Estimated remaining' : 'Still owed'}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    size={13}
+                    aria-hidden="true"
+                    className="text-slate-500 transition-transform group-open/bill:rotate-180"
+                  />
+                </span>
+              </summary>
+              <div className="mt-3 rounded-lg bg-white/[.025] p-3">
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
                   {(
                     [
@@ -62,7 +83,7 @@ export function OverviewBills({ data, home }: { data: HouseholdOverview; home: s
                   <p className="mt-2 text-xs text-amber-200/70">Actual bill not confirmed</p>
                 )}
               </div>
-            </div>
+            </details>
           ))}
         </div>
       ) : (
