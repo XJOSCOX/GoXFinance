@@ -80,7 +80,7 @@ export function IncomeOverview({
           ).length
         }
       />
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
+      <div className="grid items-start gap-4 2xl:grid-cols-3">
         <div className="min-w-0 space-y-4">
           <LatestPaycheck
             transaction={pay.latest}
@@ -106,14 +106,14 @@ export function IncomeOverview({
           />
           <IncomePaycheckStats data={data} today={today} />
         </div>
+        <IncomeYtd
+          weeks={visibleWeeks}
+          sources={data.sources.filter((s) => sourceIds.has(s.id))}
+          year={month.slice(0, 4)}
+          loading={payrollLoading}
+          error={payrollError}
+        />
       </div>
-      <IncomeYtd
-        weeks={visibleWeeks}
-        sources={data.sources.filter((s) => sourceIds.has(s.id))}
-        year={month.slice(0, 4)}
-        loading={payrollLoading}
-        error={payrollError}
-      />
       <details className="rounded-xl border border-white/8 px-5 py-3 text-sm">
         <summary className="cursor-pointer text-slate-400">Expected income & data coverage</summary>
         <div className="mt-3 grid gap-3 text-xs text-slate-400 sm:grid-cols-2">
