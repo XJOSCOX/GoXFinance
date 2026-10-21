@@ -7,6 +7,7 @@ import { InfoHint } from '../../../components/ui/InfoHint'
 import { toneStyles } from '../../../components/ui/semantic-tones'
 import { billPeriodStatus } from '../bill-status'
 import { useLocalToday } from '../../../lib/useLocalToday'
+import { categoryAppearance } from '../../categories/category-appearance'
 
 const columns = 'xl:grid-cols-[minmax(12rem,1.1fr)_minmax(0,3fr)_10rem]'
 const shortLabels = ['Monthly', 'Confirmed', 'Paid', 'Past due', 'Next month']
@@ -67,6 +68,7 @@ export function BillList({ bills, categories, ...actions }: Props) {
                 key={bill.id}
                 bill={bill}
                 today={today}
+                categoryIcon={categories.find((category) => category.id === bill.categoryId)?.icon}
                 category={
                   categories.find((category) => category.id === bill.categoryId)?.name ??
                   bill.category
@@ -84,11 +86,18 @@ function BillListItem({
   bill,
   today,
   category,
+  categoryIcon,
   onView,
   onPay,
   onEdit,
   onArchive,
-}: Omit<Props, 'bills' | 'categories'> & { bill: BillView; today: string; category: string }) {
+}: Omit<Props, 'bills' | 'categories'> & {
+  bill: BillView
+  today: string
+  category: string
+  categoryIcon?: string | null
+}) {
+  const { Icon, color } = categoryAppearance(category, categoryIcon)
   const periods = [...bill.periods].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   const outstanding = periods.find(
     (period) => !['paid', 'credited', 'overpaid', 'cancelled'].includes(period.paymentStatus),
@@ -121,29 +130,40 @@ function BillListItem({
       aria-label={bill.name}
       className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 px-4 py-3 transition-colors hover:bg-white/[.025] xl:gap-4 ${columns}`}
     >
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => onView(bill)}
-            className="min-w-0 break-words text-left text-sm font-semibold hover:text-[#b1beb0] focus-visible:outline focus-visible:outline-[#a9b8a9]"
-          >
-            {bill.name}
-          </button>
-          {bill.status !== 'active' ? (
-            <StatusBadge status={bill.status} />
-          ) : status ? (
-            <StatusBadge status={status.label} tone={status.tone} />
-          ) : (
-            <StatusBadge status="No periods" />
-          )}
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[.04]"
+          style={{ color }}
+          role="img"
+          aria-label={category}
+          title={category}
+        >
+          <Icon size={16} aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => onView(bill)}
+              className="min-w-0 break-words text-left text-sm font-semibold hover:text-[#b1beb0] focus-visible:outline focus-visible:outline-[#a9b8a9]"
+            >
+              {bill.name}
+            </button>
+            {bill.status !== 'active' ? (
+              <StatusBadge status={bill.status} />
+            ) : status ? (
+              <StatusBadge status={status.label} tone={status.tone} />
+            ) : (
+              <StatusBadge status="No periods" />
+            )}
+          </div>
+          <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+            <span>{period ? period.dueDate : 'No billing periods'}</span>
+            <InfoHint
+              label={`${bill.name}: bill details`}
+              text={`${category} · ${bill.frequency ?? 'One-time'} · ${bill.amountType}${bill.autoPay ? ' · Auto-pay' : ''}${bill.linkedDebtId ? ' · Linked debt' : ''}. Click the bill name to view its periods and payment history.`}
+            />
+          </p>
         </div>
-        <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-          <span>{period ? period.dueDate : 'No billing periods'}</span>
-          <InfoHint
-            label={`${bill.name}: bill details`}
-            text={`${category} · ${bill.frequency ?? 'One-time'} · ${bill.amountType}${bill.autoPay ? ' · Auto-pay' : ''}${bill.linkedDebtId ? ' · Linked debt' : ''}. Click the bill name to view its periods and payment history.`}
-          />
-        </p>
       </div>
       <dl className="col-span-2 row-start-2 grid grid-cols-3 gap-x-2 gap-y-2 sm:grid-cols-5 xl:col-span-1 xl:row-start-auto xl:gap-3 xl:text-right">
         {labels.map((label, index) => (
@@ -153,14 +173,22 @@ function BillListItem({
               <span aria-hidden="true">{shortLabels[index]}</span>
             </dt>
             <dd
-              className={`mt-1 flex items-center gap-1 tabular-nums xl:mt-0 xl:justify-end ${index === 3 ? `font-semibold ${register.pastDue.amountCents > 0 ? toneStyles.negative.text : 'text-slate-300'}` : index === 2 ? `text-sm ${toneStyles.positive.text}` : index === 0 ? `text-sm ${toneStyles.info.text}` : 'text-sm text-slate-300'}`}
+              className={`mt-1 flex items-center gap-1 tabular-nums xl:mt-0 xl:justify-end ${index === 3 ? `font-semibold ${register.pastDue.amountCents > 0 ? toneStyles.negative.text : 'text-slate-300'}` : index === 2 ? `text-sm ${toneStyles.positive.text}` : index === 0 ? `text-xs xl:text-sm ${toneStyles.info.text}` : 'text-sm text-slate-300'}`}
             >
               {index === 1 && (!register.currentCount || register.confirmedCents === null) ? (
                 <span aria-label={register.currentCount ? 'Not confirmed' : 'Not due this month'}>
                   —
                 </span>
               ) : (
-                formatMoney(amounts[index])
+                <span className="whitespace-nowrap">
+                  {index === 0 && bill.amountType === 'variable' && amounts[index] !== null && (
+                    <>
+                      <span aria-hidden="true">≈ </span>
+                      <span className="sr-only">Estimated </span>
+                    </>
+                  )}
+                  {formatMoney(amounts[index])}
+                </span>
               )}
               <InfoHint label={`${bill.name}: ${label} details`} text={hints[index]} />
             </dd>
