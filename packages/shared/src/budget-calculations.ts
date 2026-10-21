@@ -1,3 +1,4 @@
+import { billPeriodEstimate } from './bill-calculations'
 import type { BillView } from './bills'
 import type { Expense } from './expenses'
 import type { FinancialRefund } from './bank-review'
@@ -121,7 +122,13 @@ export function budgetBillObligations(bills: BillView[], month: string, member: 
           id: p.id,
           name: b.name,
           dueDate: p.dueDate,
-          estimateCents: p.budgetEstimateCents ?? p.estimatedAmountCents,
+          estimateCents:
+            b.amountType === 'fixed'
+              ? p.dueDate.slice(0, 7) >= localBillDate().slice(0, 7)
+                ? b.amountCents
+                : p.amountCents
+              : billPeriodEstimate(p),
+          estimateIsVariable: b.amountType === 'variable',
           billedCents: p.amountCents,
           paidCents: p.paidCents,
           remainingCents: p.remainingCents,

@@ -61,5 +61,30 @@ export function useBills(householdId: string) {
       active = false
     }
   }, [fetchData])
+  useEffect(() => {
+    let active = true
+    const update = () => {
+      void fetchData()
+        .then((result) => {
+          if (active) {
+            setData(result)
+            setError('')
+          }
+        })
+        .catch((failure) => {
+          if (active) setError(errorMessage(failure))
+        })
+    }
+    const visible = () => {
+      if (document.visibilityState === 'visible') update()
+    }
+    window.addEventListener('focus', update)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      active = false
+      window.removeEventListener('focus', update)
+      document.removeEventListener('visibilitychange', visible)
+    }
+  }, [fetchData])
   return { ...data, error, setError, loading, refresh }
 }

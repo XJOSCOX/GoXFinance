@@ -50,9 +50,7 @@ export function billService(
       billPeriodView(period, [], bill.status === 'cancelled', localBillDate()),
       localBillDate(),
     )
-    return period.estimatedAmountCents === null && estimate !== null
-      ? { estimatedAmountCents: estimate }
-      : {}
+    return period.estimatedAmountCents !== estimate ? { estimatedAmountCents: estimate } : {}
   }
   function materialize(bill: Bill) {
     if (bill.status === 'active')

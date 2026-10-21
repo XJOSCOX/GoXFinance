@@ -224,8 +224,22 @@ it('keeps the saved estimate visible on current/future confirmed and paid period
     expect(billBudgetEstimate(bill, { ...open, ...changes }, '2026-10-19')).toBe(30000)
   expect(billBudgetEstimate(bill, { ...open, dueDate: '2026-09-21' }, '2026-10-19')).toBeNull()
   expect(billBudgetEstimate(bill, { ...open, estimatedAmountCents: 25000 }, '2026-10-19')).toBe(
-    25000,
+    30000,
   )
-  expect(billBudgetEstimate(bill, { ...open, estimatedAmountCents: 0 }, '2026-10-19')).toBe(0)
+  expect(billBudgetEstimate({ ...bill, estimatedAmountCents: 0 }, open, '2026-10-19')).toBe(0)
+  expect(
+    billBudgetEstimate(
+      bill,
+      { ...open, estimatedAmountCents: 25000, amountCents: 34218 },
+      '2026-10-19',
+    ),
+  ).toBe(25000)
+  expect(
+    billBudgetEstimate(
+      bill,
+      { ...open, dueDate: '2026-09-21', estimatedAmountCents: 25000 },
+      '2026-10-19',
+    ),
+  ).toBe(25000)
   expect(billBudgetEstimate({ ...bill, estimatedAmountCents: null }, open, '2026-10-19')).toBeNull()
 })

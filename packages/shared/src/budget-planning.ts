@@ -1,3 +1,4 @@
+import { billPeriodEstimate } from './bill-calculations'
 import type { BillView } from './bills'
 import type { FinancialCategory } from './categories'
 import { sumCents } from './outflows'
@@ -60,7 +61,9 @@ export function budgetFromBills(
       const amount =
         p?.amountCents ??
         (bill.amountType === 'variable'
-          ? (p?.budgetEstimateCents ?? p?.estimatedAmountCents ?? bill.estimatedAmountCents)
+          ? p
+            ? billPeriodEstimate(p)
+            : bill.estimatedAmountCents
           : bill.amountCents)
       const categoryId = p ? p.categoryId : bill.categoryId
       const category = categories.find((c) => c.id === categoryId && !c.archived)
@@ -79,7 +82,7 @@ export function budgetFromBills(
                 : 'Fixed bill amount'
       rows.push({
         billId: bill.id,
-        name: p?.name ?? bill.name,
+        name: bill.name,
         dueDate: date,
         amountCents: amount,
         basis,

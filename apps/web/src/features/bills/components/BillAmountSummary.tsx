@@ -1,14 +1,11 @@
+import { billPeriodEstimate } from '@goxfinance/shared'
 import type { BillPeriodView } from '@goxfinance/shared'
 import { formatMoney } from '../../../lib/money'
 
 export function BillAmountSummary({ period }: { period: BillPeriodView }) {
-  const estimate = period.budgetEstimateCents ?? period.estimatedAmountCents
+  const estimate = billPeriodEstimate(period)
   const amounts = [
-    [
-      'Monthly Estimate',
-      period.budgetEstimateCents ?? period.estimatedAmountCents,
-      'For planning only',
-    ],
+    ['Monthly Estimate', billPeriodEstimate(period), 'For planning only'],
     ['Confirmed bill', period.amountCents, 'Amount billed this period'],
     ['Completed payments', period.paidCents, 'Cleared payments only'],
     [

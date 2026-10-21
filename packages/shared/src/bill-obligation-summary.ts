@@ -81,7 +81,7 @@ export function billRegisterAmounts(b: BillView, today: string) {
 export function billPeriodPlannedRemaining(b: BillView, p: BillPeriodView, today: string) {
   if (['paid', 'credited', 'overpaid', 'cancelled'].includes(p.paymentStatus))
     return { amountCents: 0, estimated: false }
-  const estimate = p.budgetEstimateCents ?? billBudgetEstimate(b, p, today)
+  const estimate = billBudgetEstimate(b, p, today)
   const amount = p.amountCents ?? estimate
   return {
     amountCents: amount === null ? null : Math.max(0, amount - p.paidCents - p.creditCents),

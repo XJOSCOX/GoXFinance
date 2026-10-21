@@ -42,7 +42,12 @@ export function BudgetBills({ bills }: { bills: BudgetReport['bills'] }) {
                       {b.name}
                       <span className="block text-slate-500">{b.dueDate}</span>
                     </td>
-                    <td>{b.estimateCents === null ? '—' : '≈ ' + formatMoney(b.estimateCents)}</td>
+                    <td>
+                      {b.estimateCents === null
+                        ? '—'
+                        : (b.estimateIsVariable === false ? '' : '≈ ') +
+                          formatMoney(b.estimateCents)}
+                    </td>
                     <td>{b.billedCents === null ? '—' : formatMoney(b.billedCents)}</td>
                     <td>{formatMoney(b.paidCents)}</td>
                     <td>{b.remainingCents === null ? '—' : formatMoney(b.remainingCents)}</td>

@@ -39,6 +39,18 @@ export function DashboardPage() {
       active = false
     }
   }, [selected, month, reload])
+  useEffect(() => {
+    const update = () => setReload((value) => value + 1)
+    const visible = () => {
+      if (document.visibilityState === 'visible') update()
+    }
+    window.addEventListener('focus', update)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      window.removeEventListener('focus', update)
+      document.removeEventListener('visibilitychange', visible)
+    }
+  }, [])
   return (
     <WorkspaceLayout title="Overview">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-4">

@@ -143,7 +143,7 @@ export function billRepository(db: DatabaseConnection) {
         amountCents: number | null
         creditCents: number
         notes: string | null
-        estimatedAmountCents?: number
+        estimatedAmountCents?: number | null
       },
     ) {
       db.update(billPeriods)

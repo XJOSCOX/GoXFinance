@@ -105,18 +105,33 @@ export function billPeriodView(
       period.dueDate < today,
   }
 }
-// Read-only fallback for current/future periods created before an estimate was entered.
-// Stored snapshots and earlier months remain unchanged.
+/** Current unconfirmed periods follow the saved estimate; confirmed and historical periods retain snapshots. */
 export function billBudgetEstimate(bill: Bill, period: BillPeriodView, today: string) {
-  if (period.estimatedAmountCents !== null) return period.estimatedAmountCents
   if (
-    bill.amountType !== 'variable' ||
-    bill.status !== 'active' ||
-    period.dueDate < today.slice(0, 7) + '-01' ||
-    period.paymentStatus === 'cancelled'
+    bill.amountType === 'variable' &&
+    bill.status === 'active' &&
+    period.dueDate >= today.slice(0, 7) + '-01' &&
+    period.amountCents === null &&
+    period.paymentStatus !== 'cancelled'
   )
-    return null
-  return bill.estimatedAmountCents
+    return bill.estimatedAmountCents
+  if (period.estimatedAmountCents !== null) return period.estimatedAmountCents
+  // Compatibility for confirmed periods saved before estimate snapshots were captured.
+  if (
+    bill.amountType === 'variable' &&
+    bill.status === 'active' &&
+    period.dueDate >= today.slice(0, 7) + '-01' &&
+    period.paymentStatus !== 'cancelled'
+  )
+    return bill.estimatedAmountCents
+  return null
+}
+
+/** An explicit null means the current estimate was cleared, not a request to reuse an old snapshot. */
+export function billPeriodEstimate(period: BillPeriodView) {
+  return period.budgetEstimateCents === undefined
+    ? period.estimatedAmountCents
+    : period.budgetEstimateCents
 }
 
 export function billAverage(periods: BillPeriodView[], count: 3 | 6 | 12) {

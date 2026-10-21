@@ -71,6 +71,7 @@ export type BudgetReport = {
     name: string
     dueDate: string
     estimateCents: number | null
+    estimateIsVariable?: boolean
     billedCents: number | null
     paidCents: number
     remainingCents: number | null

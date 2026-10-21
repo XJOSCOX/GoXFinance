@@ -1,3 +1,4 @@
+import { billPeriodEstimate } from './bill-calculations'
 import { budgetFromBills } from './budget-planning'
 import { sumCents, paymentNetCents } from './outflows'
 import { debtObligationGroups, representativeDebtBalance } from './debt-calculations'
@@ -175,7 +176,7 @@ export function forecastObligations(
         billId: bill.id,
         name: p.name,
         dueDate: p.dueDate,
-        amountCents: p.amountCents ?? p.budgetEstimateCents ?? p.estimatedAmountCents,
+        amountCents: p.amountCents ?? billPeriodEstimate(p),
         basis: 'Overdue',
         included: true,
       })

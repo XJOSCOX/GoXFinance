@@ -1,3 +1,4 @@
+import { billPeriodEstimate } from '@goxfinance/shared'
 import { useState } from 'react'
 import type { BankReviewOptions } from '@goxfinance/shared'
 import { FormField, Select } from '../../../../components/ui/FormField'
@@ -112,9 +113,8 @@ export function BillReviewFields({ data }: { data: BankReviewOptions }) {
       </div>
       {period && (
         <p className="rounded-lg bg-white/5 p-3 text-sm">
-          Budget estimate {formatMoney(period.budgetEstimateCents ?? period.estimatedAmountCents)} ·
-          Actual billed {formatMoney(period.amountCents)} · Still owed{' '}
-          {formatMoney(period.remainingCents)}
+          Budget estimate {formatMoney(billPeriodEstimate(period))} · Actual billed{' '}
+          {formatMoney(period.amountCents)} · Still owed {formatMoney(period.remainingCents)}
         </p>
       )}
       <FormField label="Payment">

@@ -248,3 +248,30 @@ it('does not turn a future obligation estimate into actual spending or calculate
     ),
   ).toEqual([])
 })
+
+it('shows a fixed monthly amount and respects an explicitly cleared variable estimate', () => {
+  const fixed = {
+    ...bill,
+    amountType: 'fixed',
+    amountCents: 66500,
+    periods: [
+      {
+        ...bill.periods[0],
+        amountCents: 66500,
+        estimatedAmountCents: null,
+        budgetEstimateCents: null,
+      },
+    ],
+  } as BillView
+  expect(budgetBillObligations([fixed], '2026-10', null)[0]).toMatchObject({
+    estimateCents: 66500,
+    estimateIsVariable: false,
+    billedCents: 66500,
+  })
+  const cleared = {
+    ...bill,
+    estimatedAmountCents: null,
+    periods: [{ ...bill.periods[0], amountCents: null, budgetEstimateCents: null }],
+  }
+  expect(budgetBillObligations([cleared], '2026-10', null)[0].estimateCents).toBeNull()
+})

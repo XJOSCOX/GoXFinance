@@ -28,5 +28,19 @@ export function useBudgets(home: string, month: string, member = '') {
     void refresh().catch(() => {})
     return invalidate
   }, [refresh, invalidate])
+  useEffect(() => {
+    const update = () => {
+      void refresh().catch(() => {})
+    }
+    const visible = () => {
+      if (document.visibilityState === 'visible') update()
+    }
+    window.addEventListener('focus', update)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      window.removeEventListener('focus', update)
+      document.removeEventListener('visibilitychange', visible)
+    }
+  }, [refresh])
   return { data, error, refresh }
 }
