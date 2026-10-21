@@ -4,6 +4,7 @@ import {
   type PayrollLine,
   type PayrollStatement,
 } from '@goxfinance/shared'
+import { parseMilitaryLes } from './military-les-parser'
 export type LayoutToken = { text: string; x: number; y: number; page: number }
 type Row = { text: string; tokens: LayoutToken[]; y: number; page: number }
 export function layoutRows(tokens: LayoutToken[]): Row[] {
@@ -85,6 +86,8 @@ export function parsePayrollLayout(tokens: LayoutToken[]): {
       lines: [],
       acknowledgement: null,
     }
+  const military = parseMilitaryLes(rows)
+  if (military) return military
   let side: PayrollLine['side'] | null = null,
     currentX: number | null = null,
     ytdX: number | null = null,

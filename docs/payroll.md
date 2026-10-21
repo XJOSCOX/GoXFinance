@@ -9,6 +9,12 @@
 5. Saving a reviewed statement creates or updates **one existing Income transaction**, pending/documented, with actual payroll amounts and historical work/rate fields. It does not confirm receipt. Existing matching work-period income is reused; normal Income uniqueness remains authoritative. A duplicate file/workweek is rejected rather than creating another paycheck.
 6. **Confirm received** once when money arrives, with the printed payday and documented net prefilled. You can change either before submitting; there is no second receipt checkbox or confirmation dialog. Confirmed paychecks show a correction action instead of asking again. Normal Income validation/authorization and bank-reference guards apply. Documented net and actual received cash can differ; correcting a statement never silently changes a confirmed receipt. Correct the actual deposit separately with an audit reason. A reviewed bank deposit can later link/confirm this same transaction through the existing banking workflow.
 
+## Military LES uploads
+
+The local importer recognizes the parallel tables in DFAS military Leave and Earnings Statements (Form 702). It extracts current entitlements, deductions, net amount and explicitly reported YTD values. YTD-only tax, retirement and aggregate amounts stay informational and never become additional current earnings or deductions. Combined current FICA is preserved without guessing its Social Security/Medicare split. Unknown tax treatment still requires review.
+
+The printed direct-deposit date (or `CHK DT`) supplies the suggested payday; service `PAY DATE` and `ETS` are never substituted. Explicit inactive-duty training dates can suggest the work-period span, with a review warning. Training units are not hours, and missing hourly rates stay unknown. The schedule defaults to irregular for review, without inventing future deposits. Saving an upload still creates pending income until receipt is confirmed. No private document or extracted personal fixture is included in source control.
+
 ## Calculations and learning
 
 Hours use integer hundredths; monetary amounts use integer cents. BigInt intermediate arithmetic rounds half away from zero once per earnings line. Worked and paid hours are separate. Negative adjustments remain signed. No unpaid hours are subtracted from already entered worked hours automatically.
