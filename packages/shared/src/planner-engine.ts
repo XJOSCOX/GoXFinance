@@ -107,9 +107,10 @@ export function smartPlanner(
       .filter((e) => !e.estimated && e.date <= today)
       .map((e) => (e.direction === 'in' ? 1 : -1) * (e.amountCents ?? 0)),
   )
-  if (funding.length === 1)
-    funding[0].remainingCents = Math.max(0, sumCents([funding[0].remainingCents, subsequent]))
-  else if (subsequent !== 0) {
+  if (funding.length === 1) {
+    funding[0].amountCents = sumCents([funding[0].amountCents, subsequent])
+    funding[0].remainingCents = Math.max(0, funding[0].amountCents)
+  } else if (subsequent !== 0) {
     warnings.push(
       'Subsequent actual cash activity has no verified account attribution. Update account balances before account-level allocation.',
     )
@@ -156,6 +157,15 @@ export function smartPlanner(
               ? 'forecast_paycheck'
               : 'assumed_paycheck',
     })
+  // A deficit/reserve left by actual cash activity must be covered before
+  // conditional future funds can be recommended for additional obligations.
+  for (const f of [...funding]
+    .filter((f) => f.status !== 'confirmed_cash')
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))) {
+    const held = Math.min(toHold, f.remainingCents)
+    f.remainingCents -= held
+    toHold -= held
+  }
   for (const r of reserves.filter((a) => a.fundingEventId)) {
     const lot = funding.find((f) => f.id === r.fundingEventId && f.date <= r.date)
     const available = lot ? Math.min(lot.remainingCents, r.amountCents) : 0
@@ -208,6 +218,8 @@ export function smartPlanner(
     })
   items.sort(
     (a, b) =>
+      (a.constraint === 'court_order' ? 0 : a.constraint === 'verified_consequence' ? 1 : 2) -
+        (b.constraint === 'court_order' ? 0 : b.constraint === 'verified_consequence' ? 1 : 2) ||
       plannerPriorities.indexOf(a.priority) - plannerPriorities.indexOf(b.priority) ||
       a.date.localeCompare(b.date) ||
       Number(a.id.startsWith('hypothetical')) - Number(b.id.startsWith('hypothetical')) ||
@@ -358,6 +370,12 @@ export function smartPlanner(
           'No new borrowing is automatically recommended',
         ],
       })
+  insights.push({
+    title: 'Deterministic priority and deadline allocation',
+    reason:
+      'This heuristic protects configured reserves and verified legal or essential consequences before other commitments. It is not a globally optimal solution; conditional deposits and partial reserves do not guarantee provider acceptance.',
+    actions: ['Review competing critical deadlines and any funding gaps before acting'],
+  })
   return {
     forecast: report,
     items,

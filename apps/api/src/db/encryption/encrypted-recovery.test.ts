@@ -144,4 +144,6 @@ it('rejects a corrupt encrypted backup before cutover and preserves existing dat
   await expect(restoreQueuedSnapshot(f.path, f.security)).rejects.toThrow()
   expect(readFileSync(f.path)).toEqual(before)
   expect(existsSync(join(f.dir, 'backups/restore.json'))).toBe(true)
-})
+  // This path performs several full-strength password derivations and verified
+  // copies, just like the interrupted-restore cases above. Keep assertions intact.
+}, 20000)

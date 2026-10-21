@@ -321,6 +321,7 @@ export type PlannerFunding = {
   remainingCents: number
 }
 export type PlannerItem = {
+  constraint?: 'court_order' | 'verified_consequence' | null
   id: string
   name: string
   target: PlannerTarget | null

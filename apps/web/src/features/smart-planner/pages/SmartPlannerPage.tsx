@@ -263,7 +263,10 @@ function Planner({ home }: { home: string }) {
           {report.warnings.length > 0 && (
             <details className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
               <summary className="cursor-pointer text-sm text-amber-200">
-                {report.warnings.length} items need verification · known amounts only
+                {report.warnings.length} planning notes
+                {report.forecast.incomplete
+                  ? ' · unresolved information; known amounts only'
+                  : ' · assumptions and cautions'}
               </summary>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-xs text-slate-400">
                 {report.warnings.map((w, i) => (

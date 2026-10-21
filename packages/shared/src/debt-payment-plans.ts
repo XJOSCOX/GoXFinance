@@ -1,3 +1,4 @@
+import type { ForecastWarnings } from './forecast-warnings'
 import type { ForecastSources, ForecastEvent, ForecastInput } from './forecasts'
 import type { PlannerInput } from './planner'
 import { paymentNetCents, sumCents } from './outflows'
@@ -78,7 +79,7 @@ export function addDebtPlanGoals(
   v: ForecastInput,
   today: string,
   events: ForecastEvent[],
-  warnings: string[],
+  warnings: ForecastWarnings,
   add: (e: ForecastEvent) => void,
 ) {
   for (const record of s.planner?.records ?? []) {

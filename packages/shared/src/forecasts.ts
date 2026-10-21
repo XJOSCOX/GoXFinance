@@ -200,6 +200,7 @@ export type ForecastReport = {
   }
   events: ForecastEvent[]
   warnings: string[]
+  notices?: import('./forecast-warnings').ForecastNotice[]
   days: {
     date: string
     netChangeCents: number

@@ -1,3 +1,4 @@
+import type { ForecastWarnings } from './forecast-warnings'
 import { billPeriodEstimate } from './bill-calculations'
 import { budgetFromBills } from './budget-planning'
 import { sumCents, paymentNetCents } from './outflows'
@@ -9,12 +10,29 @@ export function forecastObligations(
   today: string,
   months: string[],
   add: (e: ForecastEvent) => void,
-  warnings: string[],
+  warnings: ForecastWarnings,
 ) {
   const inside = (d: string) => d >= v.startDate && d <= v.endDate
   const plannedDate = (date: string) => (v.smart && date < v.startDate ? v.startDate : date)
   const plannerCovered = (id: string, date: string) =>
     (s.plannerCoveredDebts ?? []).some((c) => c.debtId === id && date >= c.start && date <= c.end)
+  const originalRanges = [
+    ...(s.plannerCoveredDebts ?? []),
+    ...(v.includeSettlements
+      ? s.offers
+          .filter((o) => o.status === 'accepted' && o.writtenConfirmed && o.schedule.length)
+          .map((o) => ({
+            debtId: o.debtId,
+            start: o.offerDate,
+            end: o.schedule
+              .map((i) => i.dueDate)
+              .sort()
+              .at(-1)!,
+          }))
+      : []),
+  ]
+  const originalCovered = (id: string, date: string) =>
+    originalRanges.some((c) => c.debtId === id && date >= c.start && date <= c.end)
   const confirmedBillSchedule = (id: string, date: string) =>
     (s.plannerBillSchedules ?? []).some((c) => c.debtId === id && date >= c.start && date <= c.end)
   const debtGroups = debtObligationGroups(s.debts),
@@ -78,7 +96,7 @@ export function forecastObligations(
         !group.every((d) => s.plannerUnconfirmedDebtIds?.includes(d.id)) &&
         d.currentBalanceCents !== 0 &&
         !group.some(
-          (d) => plannerCovered(d.id, v.startDate) || confirmedBillSchedule(d.id, v.startDate),
+          (d) => originalCovered(d.id, v.startDate) || confirmedBillSchedule(d.id, v.startDate),
         )
       ) {
         requireDebt(d.id, v.startDate, pastDue, d.accountNickname || d.creditorName)
@@ -92,9 +110,20 @@ export function forecastObligations(
       const d = representativeDebtBalance(group)
       if (group.every((d) => s.plannerUnconfirmedDebtIds?.includes(d.id))) continue
       if (d.currentBalanceCents === 0) continue
+      const monthEnd = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+        .toISOString()
+        .slice(0, 10)
+      const from = month + '-01' < v.startDate ? v.startDate : month + '-01',
+        through = monthEnd > v.endDate ? v.endDate : monthEnd
+      if (
+        group.some((d) =>
+          [...originalRanges, ...(s.plannerBillSchedules ?? [])].some(
+            (c) => c.debtId === d.id && c.start <= from && c.end >= through,
+          ),
+        )
+      )
+        continue
       const day = d.dueDay ?? (d.nextDueDate ? Number(d.nextDueDate.slice(-2)) : null)
-      if (group.every((r) => r.minimumPaymentCents === null))
-        warnings.push(`Missing contractual minimum: ${d.creditorName}`)
       if (day === null) {
         warnings.push(`Missing debt due date: ${d.creditorName}`)
         continue
@@ -115,11 +144,13 @@ export function forecastObligations(
       if (
         group.some(
           (d) =>
-            plannerCovered(d.id, plannedDate(date)) ||
+            originalCovered(d.id, plannedDate(date)) ||
             confirmedBillSchedule(d.id, plannedDate(date)),
         )
       )
         continue
+      if (group.every((r) => r.minimumPaymentCents === null))
+        warnings.push(`Missing contractual minimum: ${d.creditorName}`)
       requireDebt(
         d.id,
         plannedDate(date),
@@ -187,7 +218,7 @@ export function forecastObligations(
       if (
         !inside(date) ||
         (p && s.plannerSuppressedPeriods?.includes(p.id)) ||
-        (link && plannerCovered(link, date))
+        (link && originalCovered(link, date))
       )
         continue
       if (link) {

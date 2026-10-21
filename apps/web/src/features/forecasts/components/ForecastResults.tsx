@@ -1,4 +1,5 @@
 import type { ForecastReport } from '@goxfinance/shared'
+import { ForecastNotes } from './ForecastNotes'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
 export function ForecastResults({
@@ -68,16 +69,7 @@ export function ForecastResults({
           </div>
         </Card>
       )}
-      {report.warnings.length > 0 && (
-        <Card className="space-y-1 p-4">
-          <h2 className="font-semibold text-amber-200">Missing information</h2>
-          {report.warnings.map((w) => (
-            <p key={w} className="text-xs text-slate-400">
-              {w}
-            </p>
-          ))}
-        </Card>
-      )}
+      <ForecastNotes report={report} />
       <Card className="p-4">
         <h2 className="font-semibold">Potential shortfalls</h2>
         {report.shortfalls.length ? (

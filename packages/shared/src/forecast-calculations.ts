@@ -1,3 +1,4 @@
+import { ForecastWarnings } from './forecast-warnings'
 import { plannerCashFlow } from './planner-cash-flow'
 import { addDebtPlanGoals } from './debt-payment-plans'
 import { smartForecastInflows } from './smart-forecast-inflows'
@@ -13,7 +14,7 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
   const planning = v.smart && s.planner ? plannerCashFlow(s, v, today) : null
   if (planning) s = planning.sources
   const events: ForecastEvent[] = [],
-    warnings: string[] = planning?.warnings ?? [],
+    warnings = planning?.warnings ?? new ForecastWarnings(),
     seen = new Set<string>(),
     inside = (d: string) => d >= v.startDate && d <= v.endDate
   const add = (raw: ForecastEvent) => {
@@ -69,6 +70,10 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
         estimated: false,
       })
   if (v.smart) {
+    if (v.smart.opening)
+      warnings.informational(
+        'Opening cash is a user-reported dated balance, not a live bank verification.',
+      )
     if (!v.smart.opening)
       warnings.push('Opening cash balance required for a complete cash projection.')
     if (s.privacyLimited)
@@ -76,7 +81,11 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
         'This projection covers only financial sources you are permitted to view. Household totals may be incomplete.',
       )
     smartForecastInflows(s, v, today, add, warnings)
-  } else forecastInflows(s, v, today, add, warnings)
+  } else {
+    if (v.startingCents === null)
+      warnings.push('Opening cash balance required for a complete cash projection.')
+    forecastInflows(s, v, today, add, warnings)
+  }
   for (const e of s.expenses.filter((e) => !e.voided && e.transactionDate > today))
     add({
       id: 'future-expense:' + e.id,
@@ -134,7 +143,16 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
       a.direction.localeCompare(b.direction) ||
       a.id.localeCompare(b.id),
   )
-  const incomplete = events.some((e) => e.amountCents === null) || warnings.length > 0,
+  if (events.some((e) => e.kind === 'expected_income' && e.amountCents !== null))
+    warnings.caution('Expected paychecks remain conditional until their deposits are confirmed.')
+  if (events.some((e) => e.kind === 'advance_receipt'))
+    warnings.informational(
+      'Advance receipts are borrowed or accelerated cash, not additional earned Income.',
+    )
+  const incomplete =
+      events.some((e) => e.amountCents === null) ||
+      warnings.blocking ||
+      (v.smart ? !v.smart.opening : v.startingCents === null),
     days: ForecastReport['days'] = [],
     shortfalls: ForecastReport['shortfalls'] = []
   let change = 0
@@ -172,7 +190,8 @@ export function forecast(s: ForecastSources, v: ForecastInput, today: string): F
     ...(s.planner ? { borrowedCents } : {}),
     spendingCents: sumCents(events.map((e) => e.spendingCents ?? 0)),
     events,
-    warnings: [...new Set(warnings)],
+    warnings: warnings.messages,
+    notices: warnings.details,
     days,
     incomeCents,
     outflowCents,

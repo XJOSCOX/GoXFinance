@@ -1,6 +1,7 @@
 import type { ForecastReport, ForecastInput } from './forecasts'
 import type { ForecastRisk } from './smart-forecast-settings'
 import { sumCents } from './outflows'
+import { forecastNotices } from './forecast-warnings'
 export function enrichSmartForecast(report: ForecastReport, v: ForecastInput): ForecastReport {
   const smart = v.smart!,
     buffer = smart.bufferCents,
@@ -177,13 +178,14 @@ export function enrichSmartForecast(report: ForecastReport, v: ForecastInput): F
         'Confirm the amount before relying on cash availability',
       ],
     })
-  if (report.warnings.length)
+  const blocking = forecastNotices(report).filter((n) => n.severity === 'blocking')
+  if (blocking.length)
     risks.push({
       id: 'missing-context',
       date: v.startDate,
       amountCents: null,
       kind: 'missing',
-      reason: report.warnings.join(' '),
+      reason: blocking.map((n) => n.message).join(' '),
       confidence: 'incomplete',
       eventIds: [],
       actions: ['Review missing dates, amounts or cash timing', 'Confirm opening cash if needed'],

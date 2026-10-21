@@ -1,3 +1,5 @@
+import type { ForecastWarnings } from './forecast-warnings'
+import { paycheckAssumptionOverlap } from './forecast-paycheck-overlap'
 import { estimatedHourlyGross } from './income-calculations'
 import type { ForecastSources, ForecastInput, ForecastEvent } from './forecasts'
 const addDays = (date: string, n: number) =>
@@ -7,7 +9,7 @@ export function forecastInflows(
   v: ForecastInput,
   today: string,
   add: (e: ForecastEvent) => void,
-  warnings: string[],
+  warnings: ForecastWarnings,
 ) {
   for (const t of s.income.transactions)
     if (t.status === 'confirmed' && t.depositDate && t.depositDate <= today)
@@ -71,6 +73,23 @@ export function forecastInflows(
       const recorded = s.income.transactions.find(
         (t) => t.sourceId === source.id && t.payDate === date && t.status !== 'cancelled',
       )
+      const actualDates = s.income.transactions
+        .filter(
+          (t) =>
+            t.sourceId === source.id &&
+            t.status === 'confirmed' &&
+            t.depositDate &&
+            t.depositDate <= today,
+        )
+        .flatMap((t) => [t.payDate, t.depositDate!])
+      const overlap = paycheckAssumptionOverlap(source.frequency, actualDates, date)
+      if (overlap === 'exact') continue
+      if (overlap === 'ambiguous') {
+        warnings.push(
+          `Ambiguous recurring paycheck assumption for ${source.name} (${date}): a nearby confirmed deposit has a different date. Confirm its work period before including this assumption.`,
+        )
+        continue
+      }
       if (recorded?.status === 'confirmed' && recorded.depositDate && recorded.depositDate <= today)
         continue
       add({

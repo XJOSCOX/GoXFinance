@@ -1,3 +1,4 @@
+import type { ForecastWarnings } from './forecast-warnings'
 import { cashOutflows, sumCents } from './outflows'
 import { payrollRound } from './payroll-arithmetic'
 import type { ForecastEvent, ForecastInput, ForecastSources } from './forecasts'
@@ -102,7 +103,7 @@ export function traceForecastEvent(e: ForecastEvent, s: ForecastSources): Foreca
 export function prepareSmartEvent(
   e: ForecastEvent,
   v: ForecastInput,
-  warnings: string[],
+  warnings: ForecastWarnings,
 ): ForecastEvent | null {
   const smart = v.smart!
   let event = { ...e }

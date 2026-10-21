@@ -2,7 +2,7 @@
 
 ## Current status and compatibility
 
-Encryption is implemented **as an opt-in mode**. The existing live database, its WAL/SHM files, existing plaintext backups, and local `.env` have not been converted or removed. Existing installations continue using their configured plaintext database until a separately authorized cutover. Installing this change does not encrypt existing data by itself.
+Encryption is implemented **as an opt-in mode**. Each installation uses its configured `DATABASE_FILE` and `DATABASE_ENCRYPTION`; an installation that has completed an authorized cutover operates in encrypted mode. Existing plaintext installations stay plaintext until their own separately authorized cutover. Installing source updates does not convert any database, remove old backups, change a passphrase or update local `.env` automatically.
 
 Selected driver: **`better-sqlite3-multiple-ciphers` 13.0.3**, pinned exactly in the lockfile. Its packaged engine is **SQLite3 Multiple Ciphers 2.4.0 / SQLite 3.53.4**. It exposes the synchronous interface required by the repositories and Drizzle's better-sqlite3 adapter. Ordinary better-sqlite3 is retained for explicit legacy plaintext mode; it is never tried as an encrypted-mode fallback.
 
@@ -152,4 +152,4 @@ Set `DATABASE_PASSPHRASE` in the ignored repository-root `.env` to the **existin
 
 This is a convenience tradeoff: `.env` is plaintext. Anyone who obtains it together with the database or an encrypted backup can unlock those files. Keep it private on the local machine and exclude it from shared backups. Keep a separately secured recovery record; deleting or losing `.env` does not change the key. Removing the value restores interactive unlocking, and editing it does not rotate the database key.
 
-The backend consumes the exact UTF-8 value, enforces the existing 16–1024-byte limits, removes it from the API process environment after reading, and keeps it out of public configuration objects and responses. Incorrect/nonempty invalid values fail closed without plaintext fallback or a second prompt. JavaScript strings, the launcher environment and on-disk `.env` cannot be securely erased by clearing the API's Buffer. These limitations are not a replacement for Windows account and file protections.
+The backend consumes the exact UTF-8 value, enforces the existing 16â€“1024-byte limits, removes it from the API process environment after reading, and keeps it out of public configuration objects and responses. Incorrect/nonempty invalid values fail closed without plaintext fallback or a second prompt. JavaScript strings, the launcher environment and on-disk `.env` cannot be securely erased by clearing the API's Buffer. These limitations are not a replacement for Windows account and file protections.

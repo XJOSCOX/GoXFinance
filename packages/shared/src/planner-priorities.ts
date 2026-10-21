@@ -94,6 +94,12 @@ export function plannerPriority(e: ForecastEvent, s: ForecastSources, today: str
       'A collection is not automatically low priority; legal deadlines must be verified.',
     )
   return {
+    constraint:
+      valid && policy?.legalOrder
+        ? ('court_order' as const)
+        : valid && policy?.consequence !== 'none' && policy?.consequence
+          ? ('verified_consequence' as const)
+          : null,
     target,
     priority,
     reason: reasons,

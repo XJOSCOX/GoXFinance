@@ -14,6 +14,7 @@ import { OpeningCashForm } from './OpeningCashForm'
 import { SmartTimeline } from './SmartTimeline'
 import { SmartEvents } from './SmartEvents'
 import { SmartWhatIf } from './SmartWhatIf'
+import { ForecastNotes } from './ForecastNotes'
 
 export function SmartForecastDashboard({
   home,
@@ -97,6 +98,7 @@ export function SmartForecastDashboard({
           Opening cash balance required for a complete cash projection.
         </p>
       )}
+      <ForecastNotes report={report} />
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-6">
         {[
           [

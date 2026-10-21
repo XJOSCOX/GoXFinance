@@ -1,3 +1,4 @@
+import { ForecastWarnings } from './forecast-warnings'
 import { plannerMoney } from './planner-display'
 import type { ForecastSources, ForecastInput, ForecastEvent } from './forecasts'
 import {
@@ -12,7 +13,7 @@ import type { PlannerInput } from './planner'
 import { debtPlanProblem, debtPlanIds } from './debt-payment-plans'
 export function plannerCashFlow(s: ForecastSources, v: ForecastInput, today: string) {
   const records = s.planner?.records ?? [],
-    warnings: string[] = [],
+    warnings = new ForecastWarnings(),
     events: ForecastEvent[] = [],
     covered: { debtId: string; start: string; end: string }[] = [],
     periods: string[] = [],
@@ -121,7 +122,7 @@ export function plannerCashFlow(s: ForecastSources, v: ForecastInput, today: str
     if (activeAdvance(p) && p.kind === 'advance') {
       covered.push({ debtId: p.target.id, start: v.startDate, end: v.endDate })
       if (!p.received) {
-        warnings.push(
+        warnings.caution(
           `Advance receipt is not confirmed: ${p.name}. No borrowed cash is available from this arrangement.`,
         )
       }
