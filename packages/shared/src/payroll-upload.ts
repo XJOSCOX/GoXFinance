@@ -1,4 +1,4 @@
-import { payrollSum } from './payroll-calculations'
+import { payrollSum } from './payroll-arithmetic'
 import type { PayrollStatement, PayrollProfile, WeeklyHoursInput } from './payroll'
 import type { PayrollFrequency } from './payroll-periods'
 export function payrollStatementHours(s: PayrollStatement) {

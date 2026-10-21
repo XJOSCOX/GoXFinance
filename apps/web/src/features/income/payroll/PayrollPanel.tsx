@@ -142,7 +142,7 @@ export function PayrollPanel({
             ))}
           </div>
           {tab === 'tax' ? (
-            <PayrollReports weeks={weeks} />
+            <PayrollReports weeks={weeks} profile={profile} />
           ) : (
             <>
               {!weeks.length && (
@@ -214,6 +214,7 @@ export function PayrollPanel({
       )}
       {settings && source && (
         <PayrollProfileForm
+          weeks={data.weeks}
           source={source}
           profile={profile}
           close={() => setSettings(false)}

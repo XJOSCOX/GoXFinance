@@ -63,6 +63,7 @@ export function PaycheckEstimator({
   if (settings && source)
     return (
       <PayrollProfileForm
+        weeks={data?.weeks}
         source={source}
         profile={profile}
         close={() => setSettings(false)}

@@ -65,3 +65,6 @@ export * from './payroll-periods'
 
 export * from './income-paycheck-statistics'
 export * from './payroll-ytd-totals'
+
+export * from './payroll-learning'
+export * from './payroll-backtest'

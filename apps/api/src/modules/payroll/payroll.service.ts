@@ -38,7 +38,7 @@ export function payrollService(
   }
   function week(user: PublicUser, home: string, id: string, revision?: number) {
     const w = store.weeks(home).find((w) => w.id === id)
-    if (!w) throw new FinancialError('Payroll week not found', 404)
+    if (!w || w.estimateCancelled) throw new FinancialError('Payroll week not found', 404)
     source(user, home, w.sourceId, true)
     if (revision !== undefined) stale(w.revision, revision)
     return w
@@ -61,7 +61,7 @@ export function payrollService(
         profiles: store.profiles(home).filter((p) => ids.has(p.sourceId)),
         weeks: store
           .weeks(home)
-          .filter((w) => ids.has(w.sourceId))
+          .filter((w) => ids.has(w.sourceId) && !w.estimateCancelled)
           .map((w) => view(user, home, w)),
         canManage: ctx.role !== 'viewer',
       }
@@ -91,11 +91,24 @@ export function payrollService(
         })
         .strict()
         .parse(body)
-      if (p.values.documentOnly || p.values.forecastPeriodReconciled)
+      if (
+        p.values.estimateCancelled !== undefined ||
+        p.values.documentOnly ||
+        p.values.forecastPeriodReconciled
+      )
         throw new FinancialError('Upload documented hours through paycheck review', 400)
       return store.atomic(() => {
         const incomeSource = source(user, home, p.values.sourceId, true)
-        const old = id ? week(user, home, id, p.revision) : undefined
+        const old = id
+          ? week(user, home, id, p.revision)
+          : store
+              .weeks(home)
+              .find(
+                (w) =>
+                  w.estimateCancelled &&
+                  w.sourceId === p.values.sourceId &&
+                  w.workweekStart === p.values.workweekStart,
+              )
         const replay = store
           .weeks(home)
           .find((w) => store.rawWeek(home, w.id)?.idempotencyKey === p.idempotencyKey)
@@ -137,6 +150,7 @@ export function payrollService(
             .weeks(home)
             .some(
               (w) =>
+                !w.estimateCancelled &&
                 w.id !== old?.id &&
                 w.sourceId === p.values.sourceId &&
                 w.workweekStart <= p.values.workweekEnd &&
@@ -188,6 +202,32 @@ export function payrollService(
           home,
           store.weeks(home).find((w) => w.id === weekId)!,
         )
+      })
+    },
+    cancel(user: PublicUser, home: string, id: string, body: unknown) {
+      const p = change.strict().parse(body)
+      return store.atomic(() => {
+        const w = week(user, home, id, p.revision)
+        if (
+          w.statementReceivedAt ||
+          w.statement ||
+          w.incomeTransactionId ||
+          store.rawWeek(home, id)?.statementId
+        )
+          throw new FinancialError(
+            'Only an estimate without a paycheck or income record can be deleted',
+            409,
+          )
+        store.patch(home, id, {
+          hoursJson: JSON.stringify({
+            ...weeklyHoursSchema.strip().parse(w),
+            estimateCancelled: true,
+          }),
+          revision: w.revision + 1,
+          updatedAt: new Date().toISOString(),
+        })
+        store.audit(home, w.sourceId, id, user.id, 'estimate_deleted', w, { reason: p.reason })
+        return { deleted: true }
       })
     },
     pending(user: PublicUser, home: string, id: string, revision: number) {

@@ -5,6 +5,8 @@ import {
   type IncomeSource,
   type PayrollProfile,
   type PayrollProfileInput,
+  type PayrollWeek,
+  payrollLearningSuggestions,
 } from '@goxfinance/shared'
 import { FinancialEditor } from '../../../components/financial/FinancialEditor'
 import { AmountField } from '../../../components/financial/EntryFields'
@@ -12,20 +14,23 @@ import { Button, Input } from '../../../components/ui'
 import { FormField, Select } from '../../../components/ui/FormField'
 import { PayrollRules } from './PayrollRules'
 import { PayrollScheduleFields } from './PayrollScheduleFields'
+import { PayrollRecurringEarnings } from './PayrollRecurringEarnings'
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 export function PayrollProfileForm({
   source,
   profile,
   save,
   close,
+  weeks = [],
 }: {
   source: IncomeSource
   profile?: PayrollProfile
   save: (body: unknown) => Promise<void>
   close: () => void
+  weeks?: PayrollWeek[]
 }) {
   const [preset, setPreset] = useState(false),
-    base = profile ?? {
+    base: PayrollProfileInput = profile ?? {
       sourceId: source.id,
       employer: '',
       assignment: null,
@@ -60,6 +65,19 @@ export function PayrollProfileForm({
           overtimeRateCents: 3750,
         }
       : base
+  const learning = payrollLearningSuggestions(
+    weeks
+      .filter(
+        (w) =>
+          w.sourceId === source.id &&
+          w.reviewedAt &&
+          w.reviewedAt < new Date().toISOString() &&
+          w.statement &&
+          (w.payFrequency ?? 'weekly') === (initial.payFrequency ?? 'weekly'),
+      )
+      .map((w) => ({ statement: w.statement!, reviewedAt: w.reviewedAt!, sourceId: w.sourceId })),
+    initial,
+  )
   return (
     <FinancialEditor
       key={String(preset)}
@@ -95,6 +113,7 @@ export function PayrollProfileForm({
             ),
           ),
           rules: JSON.parse(String(f.get('rules'))),
+          recurringEarnings: JSON.parse(String(f.get('recurringEarnings') || '[]')),
         })
       }
     >
@@ -177,9 +196,13 @@ export function PayrollProfileForm({
           Deduction forecast rules (advanced)
         </summary>
         <div className="mt-4">
-          <PayrollRules initial={initial.rules} />
+          <PayrollRules initial={initial.rules} suggestions={learning.deductions} />
         </div>
       </details>
+      <PayrollRecurringEarnings
+        initial={initial.recurringEarnings}
+        suggestions={learning.recurring}
+      />
       <label className="flex gap-2 text-sm">
         <input type="checkbox" required />I reviewed these source-specific rates, dates and
         deduction assumptions.

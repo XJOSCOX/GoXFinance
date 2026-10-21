@@ -31,6 +31,10 @@ export function registerPayrollRoutes(
     const p = params.parse(r.params)
     return service.hours(user(r), p.householdId, r.body, p.id!)
   })
+  app.post(base + '/weeks/:id/cancel', (r) => {
+    const p = params.parse(r.params)
+    return service.cancel(user(r), p.householdId, p.id!, r.body)
+  })
   app.post(base + '/weeks/:id/pending', (r) => {
     const p = params.parse(r.params)
     return service.pending(

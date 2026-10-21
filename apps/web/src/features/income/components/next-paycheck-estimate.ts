@@ -16,7 +16,7 @@ export function nextPaycheckEstimate(
   return weeks
     .filter(
       (w) =>
-        active.has(w.sourceId) &&
+        !w.estimateCancelled && active.has(w.sourceId) &&
         ['hours_draft', 'hours_submitted', 'payroll_pending'].includes(w.stage) &&
         !w.statementReceivedAt &&
         !w.statement &&

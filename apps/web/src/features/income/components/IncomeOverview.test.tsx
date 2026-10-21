@@ -51,6 +51,17 @@ it('shows a future forecast for an employer with no paycheck yet and keeps it ou
                 netCents: null,
                 workedHundredths: 3857,
                 confidence: 'unknown',
+                earnings: [{ code: 'regular', amountCents: 96417 }],
+                deductions: [
+                  {
+                    code: 'federal',
+                    label: 'Federal',
+                    amountCents: null,
+                    method: 'Unknown',
+                    sampleCount: 0,
+                  },
+                ],
+                warnings: [],
               },
             },
           ],
@@ -61,8 +72,9 @@ it('shows a future forecast for an employer with no paycheck yet and keeps it ou
   expect(screen.getByText('Next estimated paycheck')).toBeTruthy()
   expect(screen.getByText('Nov 20, 2026')).toBeTruthy()
   expect(screen.getByText('38h 34min')).toBeTruthy()
-  expect(screen.getByText('$964.17')).toBeTruthy()
-  expect(screen.getByText(/Take-home unknown until deductions/)).toBeTruthy()
+  expect(screen.getByText('$964.17', { selector: 'dd' })).toBeTruthy()
+  expect(screen.getByText('How this estimate is calculated')).toBeTruthy()
+  expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
   const totals = within(screen.getByRole('region', { name: 'Monthly income summary' }))
   expect(totals.getByText('$0.00')).toBeTruthy()
   expect(totals.queryByText('$964.17')).toBeNull()

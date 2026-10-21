@@ -24,6 +24,8 @@ import { IncomeSourceForm } from '../components/IncomeSourceForm'
 import { IncomeTransactionForm } from '../components/IncomeTransactionForm'
 import { PayrollPanel } from '../payroll/PayrollPanel'
 import { PayrollUploadFlow } from '../payroll/PayrollUploadFlow'
+import { EstimateManager } from '../payroll/EstimateManager'
+import type { PayrollWeek } from '@goxfinance/shared'
 import { PaycheckEstimator } from '../payroll/PaycheckEstimator'
 export function IncomePage() {
   const { householdId = '' } = useParams(),
@@ -38,6 +40,7 @@ export function IncomePage() {
       sourceId?: string
       draftWeekId?: string
     } | null>(null),
+    [managedEstimate, setManagedEstimate] = useState<PayrollWeek>(),
     [estimatePaycheck, setEstimatePaycheck] = useState(false),
     [payrollRefresh, setPayrollRefresh] = useState(0),
     [payrollSource, setPayrollSource] = useState('')
@@ -210,6 +213,7 @@ export function IncomePage() {
               payrollLoading={payroll.loading}
               payrollError={payroll.error}
               viewPaycheck={setViewPaycheck}
+              manageEstimate={setManagedEstimate}
               uploadEstimate={(w) => setUploadPaycheck({ sourceId: w.sourceId, draftWeekId: w.id })}
               month={month}
               changeMonth={setMonth}
@@ -305,6 +309,14 @@ export function IncomePage() {
               values.status === 'confirmed' ? 'Deposit confirmed' : 'Income saved',
             )
           }
+        />
+      )}
+      {managedEstimate && (
+        <EstimateManager
+          home={householdId}
+          week={managedEstimate}
+          close={() => setManagedEstimate(undefined)}
+          changed={data.refresh}
         />
       )}
       {estimatePaycheck && (

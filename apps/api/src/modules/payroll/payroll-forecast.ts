@@ -29,9 +29,11 @@ export function recordPayrollForecast(store: PayrollRepository, home: string, w:
       })),
       profile: p,
       errors,
-      algorithm: result.deductions.some((d) => d.code === 'historical_total')
-        ? 'nearest-gross-total-ratio-v1'
-        : 'nearest-gross-components-v1',
+      algorithm:
+        result.explanation?.algorithm ??
+        (result.deductions.some((d) => d.code === 'historical_total')
+          ? 'nearest-gross-total-ratio-v1'
+          : 'nearest-gross-components-v1'),
     }),
     createdAt: now,
   })

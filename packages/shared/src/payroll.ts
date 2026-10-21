@@ -30,10 +30,13 @@ export const deductionRuleSchema = z
     code: z.enum(payrollCodes),
     label: text.min(1),
     applicable: z.boolean(),
-    mode: z.enum(['unknown', 'fixed', 'rate', 'history']),
+    mode: z.enum(['unknown', 'fixed', 'rate', 'history', 'payroll_tax']),
     fixedCents: money.nullable(),
     rateBps: z.number().int().min(0).max(10000).nullable(),
-    basis: z.enum(['gross', 'gross_less_pretax']),
+    basis: z.enum(['gross', 'gross_less_pretax', 'gross_less_recurring', 'explicit']),
+    taxableWagesCents: money.nullable().optional(),
+    taxYear: z.number().int().min(2020).max(2100).optional(),
+    priorWagesForPayDate: z.iso.date().optional(),
     annualWageCapCents: money.nullable(),
     priorTaxableWagesCents: money.nullable(),
   })
@@ -43,6 +46,25 @@ export const deductionRuleSchema = z
       c.addIssue({ code: 'custom', message: 'Enter a fixed deduction amount' })
     if (v.mode === 'rate' && v.rateBps === null)
       c.addIssue({ code: 'custom', message: 'Enter a configured rate' })
+    if (
+      v.mode === 'payroll_tax' &&
+      (!['social_security', 'medicare'].includes(v.code) ||
+        !['gross', 'explicit'].includes(v.basis) ||
+        !v.taxYear ||
+        !v.priorWagesForPayDate ||
+        v.priorTaxableWagesCents === null)
+    )
+      c.addIssue({
+        code: 'custom',
+        message:
+          'Payroll tax rules require Social Security or Medicare, a tax year, target payday and explicit prior employer taxable wages.',
+      })
+    if (
+      (v.mode === 'rate' || v.mode === 'payroll_tax') &&
+      v.basis === 'explicit' &&
+      v.taxableWagesCents == null
+    )
+      c.addIssue({ code: 'custom', message: 'Enter the explicit taxable wages for this forecast.' })
     if (v.annualWageCapCents !== null && v.priorTaxableWagesCents === null)
       c.addIssue({
         code: 'custom',
@@ -76,11 +98,39 @@ export const payrollProfileSchema = z
     statementDay: z.number().int().min(0).max(6),
     depositDay: z.number().int().min(0).max(6),
     rules: z.array(deductionRuleSchema).max(40),
+    recurringEarnings: z
+      .array(
+        z
+          .object({
+            code: z.enum(['disability', 'insurance', 'other_earning', 'pretax_benefit']),
+            label: text.min(1),
+            amountCents: money,
+            enabled: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(30)
+      .optional(),
   })
   .strict()
   .superRefine((v, c) => {
     if (new Set(v.rules.map((r) => r.code)).size !== v.rules.length)
       c.addIssue({ code: 'custom', message: 'Use one forecast rule per payroll component' })
+    if (
+      new Set(v.recurringEarnings?.map((r) => r.label.toLowerCase().trim())).size !==
+      (v.recurringEarnings?.length ?? 0)
+    )
+      c.addIssue({ code: 'custom', message: 'Recurring earning labels must be unique.' })
+    if (
+      v.rules.some(
+        (r) => r.applicable && r.mode === 'rate' && r.basis === 'gross_less_recurring',
+      ) &&
+      !v.recurringEarnings?.some((r) => r.enabled)
+    )
+      c.addIssue({
+        code: 'custom',
+        message: 'Approve the recurring additions before using them as a deduction-base exclusion.',
+      })
   })
 export const weeklyHoursSchema = z
   .object({
@@ -91,6 +141,7 @@ export const weeklyHoursSchema = z
     payFrequency: z.enum(payrollFrequencies).optional(),
     semiMonthlySplitDay: z.number().int().min(1).max(27).optional(),
     documentOnly: z.boolean().optional(),
+    estimateCancelled: z.boolean().optional(),
     customWorkPeriod: z.boolean().optional(),
     forecastPeriodReconciled: z.boolean().optional(),
     estimateDeductionsFromHistory: z.boolean().optional(),
@@ -229,7 +280,13 @@ export type PayrollForecast = {
   grossCents: number
   workedHundredths: number
   paidHundredths: number
-  earnings: { code: string; amountCents: number }[]
+  earnings: {
+    code: string
+    amountCents: number
+    label?: string
+    method?: string
+    sampleCount?: number
+  }[]
   deductions: {
     code: string
     label: string
@@ -241,6 +298,14 @@ export type PayrollForecast = {
   range: { lowCents: number; highCents: number; sampleCount: number } | null
   confidence: 'unknown' | 'low' | 'medium'
   warnings: string[]
+  explanation?: {
+    algorithm: string
+    sampleCount: number
+    totalDeductionsCents: number | null
+    excludedBonusSamples: number
+    asOf: string
+    timeBasis: string
+  }
 }
 export type PayrollWeek = WeeklyHoursInput & {
   id: string

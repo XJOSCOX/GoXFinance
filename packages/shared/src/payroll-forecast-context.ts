@@ -19,7 +19,11 @@ export function payrollForecastContext(
   )
   return {
     prior,
-    samples: prior.map((v) => ({ statement: v.statement!, reviewedAt: v.reviewedAt! })),
+    samples: prior.map((v) => ({
+      statement: v.statement!,
+      reviewedAt: v.reviewedAt!,
+      sourceId: v.sourceId,
+    })),
     errors: prior
       .map((v) => payrollComparison(v)?.errorCents)
       .filter((v): v is number => v !== undefined && v !== null),

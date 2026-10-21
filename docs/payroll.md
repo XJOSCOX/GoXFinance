@@ -90,3 +90,42 @@ The module is ready for acceptance testing, not marked stable until this review 
 Migration 0032 adds a household/user-scoped fingerprint receipt table. It records first document receipt across cancelled previews and restarts, without retaining file bytes or extracted raw text. UUID foreign keys, a document uniqueness index and UTC receipt timestamps preserve audit/forecast timing. Existing payroll tables and financial records are unchanged. The startup migration gate creates and verifies a safety backup before applying pending migrations. Employer creation, statement review, pending Income and audit commit together or roll back together.
 
 The printed payday is an expected date, not proof of receipt. Only backend-confirmed deposits enter cash totals. Missing rates and deduction assumptions stay unknown. Monthly and irregular pay do not manufacture weekly processing milestones. Detection is a local extraction suggestion; review employer identity, dates, frequency and money before saving. Ambiguous fourteen-day versus twice-monthly dates require a schedule choice.
+
+## Forecasting v2 (Phase 16)
+
+The shared pipeline is split into arithmetic, forecast calculation, source-specific learning, payroll tax rules, and a separate read-only backtest. Existing saved model/forecast JSON remains readable. No migration, actual paycheck correction, confirmed-deposit rewrite, or bank configuration change is needed.
+
+### Automatic calculations versus approved settings
+
+- Exact clock minutes and decimal hundredths remain distinct. Hour classifications, pay dates and rates are explicit inputs.
+- Historical deductions use reviewed, reconciled, earlier-period observations from the same source and frequency. Bonus and ordinary samples are separated. Federal withholding interpolates between comparable bracketing gross amounts, uses exact-gross observations where available, and otherwise falls back to up to five nearest-gross samples. Extreme effective-rate outliers are flagged. Fewer than three observations retain the legacy total-ratio estimate when the user selected historical estimation and no explicit deduction rule would be overridden.
+- Component history estimates only the deductions actually observed; it does not assert that every possible tax or benefit applies. New or changed benefit elections can make that assumption wrong. Confidence is unknown/low/medium; the application never guarantees a paycheck.
+- Three consistent ordinary observations can suggest fixed earnings additions, fixed benefit deductions or a contribution rate. These are proposals only. In Payroll settings, approve additions and deduction rules, then save explicitly. Disable an approved addition with its checkbox. User-entered additional earnings suppress approved additions to avoid counting the same amount twice; review the explanation.
+- A configured contribution can use gross less approved recurring additions. Pretax treatment and FICA taxable wages are different assumptions. Payroll tax mode accepts only explicitly confirmed gross-as-taxable or explicit taxable wages, prior employer taxable wages, tax year and the target payday. Missing/stale/unsupported inputs remain unknown. No W-4 tax-table engine is claimed.
+- Official employee payroll-tax mode currently supports 2026 only: Social Security 6.2% up to $184,500, Medicare 1.45%, and Additional Medicare withholding 0.9% over $200,000 of employer wages. Sources: [IRS Topic 751](https://www.irs.gov/taxtopics/tc751), [SSA wage bases](https://www.ssa.gov/OACT/cola/cbb.html), [IRS Publication 15](https://www.irs.gov/publications/p15). Employer contributions are not employee deductions.
+
+### Saved estimates and history
+
+The Next estimated paycheck card exposes Upload paycheck and Edit / delete estimate in its top-right action area. Editing appends a forecast and preserves previous versions. Deleting hides only an estimate with no statement receipt, reviewed document or linked Income record; it retains the hours, immutable forecasts and audit event in SQLite. A new estimate for the same period can reactivate that draft with a new revision. Revision checks and household/earner authorization run inside the transaction. Paychecks and deposits cannot be deleted through this endpoint. Recent paychecks show at most five rows with Previous/Next navigation.
+
+Expand How this estimate is calculated for earnings, methods, deductions, sample counts, confidence and the exact gross/deductions/net reconciliation. Older forecasts retain their original amounts and methods. Editing hours can refresh the estimate using current approved settings; opening a card does not recalculate history.
+
+### Historical backtest
+
+Payroll → Taxes & comparison → Historical forecast backtest is read-only. The exported `payrollBacktest` utility sorts same-source observations chronologically, assumes each was available on its printed payday, and trains strictly on earlier paydays. It uses the target's actual reported hours and explicit one-time earnings as conditional inputs. Later-approved rules are excluded. Incomplete hours/rates/earnings are skipped. This is not evidence of a forecast saved before receiving the statement.
+
+Synthetic fixture: ten fictional weekly statements with varying regular wages, a $3 earnings/premium pair, 7% retirement contributions and a separate one-time award. Eight ordinary periods have evaluable net forecasts; the first ordinary period and the first bonus lack comparable prior observations. Net MAE is **$36.75**, median absolute net error **$20.79**. The bonus has no evaluated net prediction, not zero error. These numbers describe this small synthetic baseline, not the user's payroll accuracy. Per-period gross, each deduction, net, absolute/percentage errors and sample-size groups are available in the report. No private document amounts are used in these fixtures.
+
+### Manual review
+
+1. Open Income and inspect the saved estimate; expand its calculation and verify gross minus deductions equals take-home.
+2. Use Edit / delete estimate → Edit, change hours/minutes or payday, and save a correction note. Refresh and verify the latest estimate; prior forecasts remain under Payroll history.
+3. In Payroll settings, review employer-specific suggestions. Approve additions/rules deliberately and save; report revised hours to create a new snapshot. Another employer must retain its own settings.
+4. Upload the actual paystub against the draft and review it. The actual totals remain separate until confirmed received; the draft is then no longer editable/deletable through estimate actions.
+5. In disposable QA, delete an estimate and refresh. Verify it disappears from upcoming estimates without changing confirmed income. Recreate its period if needed; audit history remains.
+6. Browse recent-paycheck pages and check the mobile navigation drawer. No browser storage is used for financial records.
+
+
+### Verification
+
+Validated on October 20, 2026: lint, typecheck and production build passed; 182 test files / 678 tests passed with two workers and a 30-second test timeout. The production build retains the existing large-chunk advisory. Browser QA at localhost:1421 confirmed a fictional estimate correction, the guarded delete dialog, expanded calculations, desktop header actions and mobile navigation without horizontal overflow. Plaintext/encrypted cancellation, authorization, restart and existing backup/recovery coverage passed. The normal encrypted launcher restarted successfully; no real paycheck, estimate, rules, deposit or bank record was modified during the read-only real-account review.

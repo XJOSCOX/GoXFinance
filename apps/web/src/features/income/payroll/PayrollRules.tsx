@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { payrollCodes, bankDecimalCents, type PayrollProfileInput } from '@goxfinance/shared'
 import { Button, Input } from '../../../components/ui'
 import { Select, FormField } from '../../../components/ui/FormField'
-export function PayrollRules({ initial }: { initial: PayrollProfileInput['rules'] }) {
+import { PayrollTaxRuleFields } from './PayrollTaxRuleFields'
+export function PayrollRules({
+  initial,
+  suggestions = [],
+}: {
+  initial: PayrollProfileInput['rules']
+  suggestions?: PayrollProfileInput['rules']
+}) {
   const [rules, setRules] = useState(initial)
   return (
     <fieldset className="space-y-3">
@@ -12,6 +19,22 @@ export function PayrollRules({ initial }: { initial: PayrollProfileInput['rules'
         rate is your assumption, not an official tax-table calculation.
       </p>
       <input type="hidden" name="rules" value={JSON.stringify(rules)} />
+      {suggestions
+        .filter((s) => !rules.some((r) => r.code === s.code))
+        .map((s) => (
+          <div key={s.code} className="rounded-lg border border-sky-300/20 p-3 text-xs">
+            <p>
+              Observed pattern: {s.label} ·{' '}
+              {s.mode === 'fixed'
+                ? `fixed $${((s.fixedCents ?? 0) / 100).toFixed(2)}`
+                : `${(s.rateBps ?? 0) / 100}% of gross less recurring additions`}
+              . This is a suggestion, not a configured rule.
+            </p>
+            <Button type="button" size="small" onClick={() => setRules([...rules, s])}>
+              Use suggested rule
+            </Button>
+          </div>
+        ))}
       {rules.map((r, i) => (
         <div key={i} className="rounded-lg border border-white/10 p-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -59,12 +82,30 @@ export function PayrollRules({ initial }: { initial: PayrollProfileInput['rules'
                 onChange={(e) =>
                   setRules(
                     rules.map((v, n) =>
-                      n === i ? { ...v, mode: e.target.value as typeof r.mode } : v,
+                      n === i
+                        ? {
+                            ...v,
+                            mode: e.target.value as typeof r.mode,
+                            basis:
+                              e.target.value === 'payroll_tax' &&
+                              !['gross', 'explicit'].includes(v.basis)
+                                ? 'gross'
+                                : e.target.value === 'rate' && v.basis === 'explicit'
+                                  ? 'gross'
+                                  : v.basis,
+                          }
+                        : v,
                     ),
                   )
                 }
               >
-                {['unknown', 'fixed', 'rate', 'history'].map((m) => (
+                {[
+                  'unknown',
+                  'fixed',
+                  'rate',
+                  'history',
+                  ...(['social_security', 'medicare'].includes(r.code) ? ['payroll_tax'] : []),
+                ].map((m) => (
                   <option key={m} value={m}>
                     {m}
                   </option>
@@ -129,6 +170,9 @@ export function PayrollRules({ initial }: { initial: PayrollProfileInput['rules'
                     <option value="gross_less_pretax">
                       Gross less configured pretax benefits/retirement
                     </option>
+                    <option value="gross_less_recurring">
+                      Gross less approved recurring earnings additions
+                    </option>
                   </Select>
                 </FormField>
                 <FormField label="Annual wage cap ($), optional">
@@ -186,6 +230,14 @@ export function PayrollRules({ initial }: { initial: PayrollProfileInput['rules'
               </>
             )}
           </div>
+          {r.mode === 'payroll_tax' && (
+            <PayrollTaxRuleFields
+              rule={r}
+              change={(values) =>
+                setRules(rules.map((v, n) => (n === i ? { ...v, ...values } : v)))
+              }
+            />
+          )}
           <div className="mt-3 flex flex-wrap justify-between gap-2">
             <label className="flex items-center gap-2 text-xs">
               <input

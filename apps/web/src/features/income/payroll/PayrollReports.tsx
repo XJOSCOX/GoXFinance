@@ -1,10 +1,19 @@
+import { PayrollBacktest } from './PayrollBacktest'
+import type { PayrollProfile } from '@goxfinance/shared'
 import { payrollComparison, payrollTaxReport, type PayrollWeek } from '@goxfinance/shared'
 import { Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
-export function PayrollReports({ weeks }: { weeks: PayrollWeek[] }) {
+export function PayrollReports({
+  weeks,
+  profile,
+}: {
+  weeks: PayrollWeek[]
+  profile?: PayrollProfile
+}) {
   const report = payrollTaxReport(weeks)
   return (
     <div className="space-y-4">
+      {profile && <PayrollBacktest weeks={weeks} profile={profile} />}
       <div className="grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
           <p className="text-xs text-slate-400">Reviewed gross compensation</p>

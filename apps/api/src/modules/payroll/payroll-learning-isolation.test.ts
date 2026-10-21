@@ -69,7 +69,10 @@ it.each([false, true])(
       '/income/payroll/weeks',
       forecastBody('2026-11-09', '2026-11-15', '2026-11-20'),
     )
-    expect(after.forecasts[0].result).toEqual(before.forecasts[0].result)
+    expect(after.forecasts[0].result).toEqual({
+      ...before.forecasts[0].result,
+      explanation: { ...before.forecasts[0].result.explanation, asOf: expect.any(String) },
+    })
     const payroll = await f.ok('GET', '/income/payroll')
     expect(
       payroll.profiles.find((p: { sourceId: string }) => p.sourceId === f.source.id)

@@ -10,6 +10,7 @@ import type { PayrollRepository } from './payroll.repository'
 import { FinancialError } from '../households/financial-access'
 export function isPayrollDraft(w: PayrollWeek) {
   return (
+    !w.estimateCancelled &&
     ['hours_draft', 'hours_submitted', 'payroll_pending'].includes(w.stage) &&
     !w.statementReceivedAt &&
     !w.statement &&

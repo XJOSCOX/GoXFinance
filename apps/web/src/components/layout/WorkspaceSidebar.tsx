@@ -55,7 +55,7 @@ export function WorkspaceSidebar({
   return (
     <>
       <aside
-        className={`app-sidebar fixed inset-y-0 left-0 z-30 w-[216px] border-r border-white/10 p-4 transition-transform md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`app-sidebar fixed inset-y-0 left-0 z-30 w-[216px] flex flex-col border-r border-white/10 p-4 transition-transform md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-between">
           <Brand />
@@ -63,7 +63,7 @@ export function WorkspaceSidebar({
             <X size={18} />
           </button>
         </div>
-        <div className="mt-8 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-xs text-slate-300">
+        <div className="mt-6 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-xs text-slate-300">
           <Home size={15} className="shrink-0 text-[#adbcad]" />
           {households.length > 1 ? (
             <select
@@ -86,25 +86,55 @@ export function WorkspaceSidebar({
             <span className="truncate">{household.name}</span>
           )}
         </div>
-        <p className="mb-2 mt-10 px-2 text-[10px] font-semibold uppercase tracking-[.2em] text-slate-500">
-          Workspace
-        </p>
-        <nav>
-          {navigation.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={close}
-              aria-current={pathname === item.href ? 'page' : undefined}
-              className={`flex w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-sm ${
-                pathname === item.href
-                  ? 'border-[#aab9aa] bg-white/[.07] font-medium text-[#e9ebe7]'
-                  : 'border-transparent text-slate-400 hover:bg-white/[.04] hover:text-white'
-              }`}
-            >
-              <item.icon size={16} />
-              {item.label}
-            </Link>
+        <nav
+          aria-label="Workspace navigation"
+          className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+        >
+          {[
+            { label: 'Workspace', items: ['Overview', 'Household'] },
+            {
+              label: 'Everyday money',
+              items: ['Bank accounts', 'Transactions', 'Income', 'Bills', 'Expenses'],
+            },
+            {
+              label: 'Plan & build',
+              items: [
+                'Budgets',
+                'Debts',
+                'Debt planning',
+                'Cash flow forecast',
+                'Assets & net worth',
+                'Goals',
+              ],
+            },
+            { label: 'Activity & insights', items: ['Trading', 'Reports'] },
+          ].map((group) => (
+            <section key={group.label} className="mb-4">
+              <h2 className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[.13em] text-slate-500">
+                {group.label}
+              </h2>
+              {group.items
+                .map((label) => navigation.find((item) => item.label === label)!)
+                .map((item) => {
+                  const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={close}
+                      aria-current={active ? 'page' : undefined}
+                      className={`my-0.5 flex min-h-10 w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#adbcad] ${active ? 'border-[#aab9aa] bg-white/[.07] font-medium text-[#e9ebe7]' : 'border-transparent text-slate-400 hover:bg-white/[.04] hover:text-white'}`}
+                    >
+                      <item.icon
+                        size={16}
+                        className={active ? 'shrink-0 text-[#adbcad]' : 'shrink-0'}
+                        aria-hidden="true"
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+            </section>
           ))}
         </nav>
       </aside>

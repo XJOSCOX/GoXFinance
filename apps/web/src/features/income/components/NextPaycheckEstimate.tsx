@@ -2,6 +2,7 @@ import { CalendarClock } from 'lucide-react'
 import type { IncomeSource, IncomeTransaction, PayrollWeek } from '@goxfinance/shared'
 import { Button, Card } from '../../../components/ui'
 import { formatMoney } from '../../../lib/money'
+import { PayrollForecastExplanation } from '../payroll/PayrollForecastExplanation'
 import { incomeDisplayDate, incomeDisplayPeriod } from './income-display'
 import {
   estimatedWorkedTime,
@@ -16,6 +17,7 @@ export function NextPaycheckEstimate({
   loading,
   error,
   upload,
+  manage,
 }: {
   weeks: PayrollWeek[]
   sources: IncomeSource[]
@@ -23,15 +25,33 @@ export function NextPaycheckEstimate({
   today: string
   loading: boolean
   error: string
+  manage?: (week: PayrollWeek) => void
   upload?: (week: PayrollWeek) => void
 }) {
   const week = nextPaycheckEstimate(weeks, sources, transactions, today),
     forecast = week ? latestPaycheckForecast(week) : undefined
   return (
     <Card className="border-sky-300/15 bg-sky-300/[0.025] p-5">
-      <div className="flex items-center gap-2 text-sky-200">
-        <CalendarClock size={17} aria-hidden="true" />
-        <h2 className="text-sm font-semibold">Next estimated paycheck</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-2 text-sky-200">
+          <CalendarClock size={17} aria-hidden="true" />
+          <h2 className="text-sm font-semibold">Next estimated paycheck</h2>
+        </div>
+        {!loading && !error && week && forecast && (
+          <div className="ml-auto flex flex-wrap justify-end gap-2">
+            {' '}
+            {week.canManage && upload && (
+              <Button size="small" onClick={() => upload(week)}>
+                Upload paycheck
+              </Button>
+            )}
+            {week.canManage && manage && (
+              <Button size="small" onClick={() => manage(week)}>
+                Edit / delete estimate
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {loading ? (
         <p role="status" className="mt-3 text-xs text-slate-400">
@@ -80,11 +100,7 @@ export function NextPaycheckEstimate({
               </dd>
             </div>
           </dl>
-          {week.canManage && upload && (
-            <Button className="mt-4" size="small" onClick={() => upload(week)}>
-              Upload paycheck
-            </Button>
-          )}
+          <PayrollForecastExplanation forecast={forecast} hours={week} />
         </>
       )}
     </Card>

@@ -24,6 +24,7 @@ export function IncomeOverview({
   payrollError = '',
   viewPaycheck,
   uploadEstimate,
+  manageEstimate,
 }: {
   data: IncomeData
   members: HouseholdMember[]
@@ -34,6 +35,7 @@ export function IncomeOverview({
   payrollLoading?: boolean
   payrollError?: string
   viewPaycheck?: (t: IncomeTransaction) => void
+  manageEstimate?: (week: PayrollWeek) => void
   uploadEstimate?: (week: PayrollWeek) => void
 }) {
   const summary = incomeSummary(data.transactions, month, today),
@@ -96,6 +98,7 @@ export function IncomeOverview({
               loading={payrollLoading}
               error={payrollError}
               upload={uploadEstimate}
+              manage={manageEstimate}
             />
           </div>
           <RecentPaychecks
