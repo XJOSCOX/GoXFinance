@@ -104,16 +104,16 @@ export function IncomeOverview({
             error={payrollError}
             upload={uploadEstimate}
           />
-          <IncomeYtd
-            weeks={visibleWeeks}
-            sources={data.sources.filter((s) => sourceIds.has(s.id))}
-            year={month.slice(0, 4)}
-            loading={payrollLoading}
-            error={payrollError}
-          />
           <IncomePaycheckStats data={data} today={today} />
         </div>
       </div>
+      <IncomeYtd
+        weeks={visibleWeeks}
+        sources={data.sources.filter((s) => sourceIds.has(s.id))}
+        year={month.slice(0, 4)}
+        loading={payrollLoading}
+        error={payrollError}
+      />
       <details className="rounded-xl border border-white/8 px-5 py-3 text-sm">
         <summary className="cursor-pointer text-slate-400">Expected income & data coverage</summary>
         <div className="mt-3 grid gap-3 text-xs text-slate-400 sm:grid-cols-2">
