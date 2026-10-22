@@ -43,8 +43,8 @@ function Planner({ home }: { home: string }) {
       record?: PlannerRecord
       initial?: Partial<Extract<PlannerInput, { kind: 'allocation' }>>
     }>(),
-    [balance, setBalance] = useState(false),
-    [opening, setOpening] = useState(false),
+    [balance, setBalance] = useState(search.get('action') === 'balance'),
+    [opening, setOpening] = useState(search.get('action') === 'cash'),
     [draft, setDraft] = useState<ForecastInput | null>(null),
     [history, setHistory] = useState(''),
     [busy, setBusy] = useState(false),
@@ -470,7 +470,7 @@ function Planner({ home }: { home: string }) {
               }}
             />
           )}
-          {balance && (
+          {balance && data.owner && (
             <AvailableBalanceForm
               home={home}
               accounts={data.sources.cashAccounts ?? []}
@@ -485,7 +485,7 @@ function Planner({ home }: { home: string }) {
               }}
             />
           )}
-          {opening && (
+          {opening && data.canManage && (
             <OpeningCashForm
               home={home}
               data={{ ...data, canSave: data.canManage, scenarios: [] }}

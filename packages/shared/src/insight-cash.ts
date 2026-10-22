@@ -3,13 +3,15 @@ import type { ForecastInput } from './forecasts'
 import { smartPlanner } from './planner-engine'
 import { dayOffset } from './insight-statistics'
 import { sumCents } from './outflows'
+import type { PlannerReport } from './planner'
 export function cashInsights(
   s: InsightSources,
   input: ForecastInput,
   today: string,
   emit: InsightSink,
+  prepared?: PlannerReport,
 ) {
-  const plan = smartPlanner(s, input, today),
+  const plan = prepared ?? smartPlanner(s, input, today),
     report = plan.forecast
   const base = {
     area: 'cash_flow' as const,

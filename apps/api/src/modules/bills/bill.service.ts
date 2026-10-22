@@ -216,6 +216,27 @@ export function billService(
     view,
     apply,
     validateAction,
+    analysis(user: PublicUser, householdId: string) {
+      permissions.context(user, householdId)
+      const periods = store.allPeriods(householdId),
+        payments = store.payments(householdId),
+        today = localBillDate()
+      return store.list(householdId).map((bill) => {
+        const own = payments.filter((p) => p.billId === bill.id)
+        return {
+          ...bill,
+          canManage: false,
+          requiresApproval: false,
+          payments: own,
+          periods: periods
+            .filter((p) => p.billId === bill.id)
+            .map((p) => {
+              const result = billPeriodView(p, own, bill.status === 'cancelled', today)
+              return { ...result, budgetEstimateCents: billBudgetEstimate(bill, result, today) }
+            }),
+        }
+      })
+    },
     list(user: PublicUser, householdId: string) {
       permissions.context(user, householdId)
       return store.list(householdId).map((bill) => view(user, bill))

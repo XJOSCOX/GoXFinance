@@ -10,12 +10,14 @@ import { budgetFromBills } from './budget-planning'
 import { sumCents } from './outflows'
 import { netWorth } from './net-worth'
 import { insightPriorities } from './insights'
+import type { PlannerReport } from './planner'
 /** Read-only composition. No financial records, balances or schedules are mutated. */
 export function financialInsights(
   s: InsightSources,
   input: ForecastInput,
   now: string,
   localToday = now.slice(0, 10),
+  preparedPlan?: PlannerReport,
 ): InsightReport {
   const today = localToday,
     window = insightPeriods(today),
@@ -26,7 +28,7 @@ export function financialInsights(
   spendingInsights(s, today, emit)
   incomeInsights(s, today, emit)
   debtInsights(s, today, emit)
-  const plan = cashInsights(s, input, today, emit),
+  const plan = cashInsights(s, input, today, emit, preparedPlan),
     forecast = plan.forecast
   const forecastRefs: InsightRef[] = [
     ...(s.settingsId

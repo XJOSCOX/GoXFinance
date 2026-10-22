@@ -59,13 +59,31 @@ export function expenseRepository(db: DatabaseConnection) {
       categoryRepository(db).initialize(home)
     },
     list(home: string) {
+      const allocations = db
+        .select()
+        .from(expenseAllocations)
+        .where(eq(expenseAllocations.householdId, home))
+        .orderBy(asc(expenseAllocations.categoryId))
+        .all()
+      const grouped = allocations.reduce((m, a) => {
+        const list = m.get(a.expenseId) ?? []
+        list.push(a)
+        m.set(a.expenseId, list)
+        return m
+      }, new Map<string, typeof allocations>())
       return db
         .select()
         .from(expenses)
         .where(eq(expenses.householdId, home))
         .orderBy(asc(expenses.id))
         .all()
-        .map(hydrate)
+        .map((row) => ({
+          ...row,
+          allocations: (grouped.get(row.id) ?? []).map((a) => ({
+            categoryId: a.categoryId,
+            amountCents: a.amountCents,
+          })),
+        }))
     },
     find(home: string, id: string) {
       const row = db.select().from(expenses).where(key(home, id)).get()

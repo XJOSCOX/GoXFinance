@@ -1,6 +1,6 @@
 import { useRequestedRecord } from '../../../lib/useRequestedRecord'
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { localBillDate, type IncomeSource, type IncomeTransaction } from '@goxfinance/shared'
 import { WorkspaceLayout } from '../../../components/layout/WorkspaceLayout'
 import { Button, Card } from '../../../components/ui'
@@ -37,6 +37,8 @@ export function IncomePage() {
   const home = households.find((v) => v.id === householdId),
     data = useIncome(householdId)
   const payroll = useIncomePayroll(householdId, data.transactions)
+  const [search] = useSearchParams()
+  const openedAction = useRef('')
   const [uploadPaycheck, setUploadPaycheck] = useState<{
       sourceId?: string
       draftWeekId?: string
@@ -66,6 +68,17 @@ export function IncomePage() {
     if (home && selected?.id !== householdId) select(householdId)
   }, [home, selected?.id, householdId, select])
   useRequestedRecord(data.transactions, setViewPaycheck)
+  useEffect(() => {
+    const action = search.get('action'),
+      key = `${householdId}:${search.toString()}`
+    if (!data.canCreate || data.loading || payroll.loading || openedAction.current === key) return
+    if (action === 'upload') {
+      const week = payroll.weeks.find((w) => w.id === search.get('payroll'))
+      setUploadPaycheck(week ? { sourceId: week.sourceId, draftWeekId: week.id } : {})
+    } else if (action === 'estimate') setEstimatePaycheck(true)
+    else return
+    openedAction.current = key
+  }, [householdId, search, data.canCreate, data.loading, payroll.loading, payroll.weeks])
   useRequestedRecord(data.sources, setDetails, 'source')
   useRequestedRecord(
     payroll.weeks,

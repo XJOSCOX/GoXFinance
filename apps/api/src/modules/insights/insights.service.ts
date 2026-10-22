@@ -4,6 +4,7 @@ import {
   financialInsights,
   insightInteractionSchema,
   smartForecastInput,
+  smartPlanner,
   forecast,
   spendingEvidence,
   localBillDate,
@@ -52,9 +53,10 @@ export function insightsService(
     s.settingsIds = history.map((v) => v.id)
     s.settingsId = preferences?.id
     const fingerprint = hash({ s, input, date: today }),
-      report = financialInsights(s, input, now, today)
+      plan = smartPlanner(s, input, today),
+      report = financialInsights(s, input, now, today, plan)
     report.insights = report.insights.filter((i) => i.refs.every((r) => authorizedInsightRef(r, s)))
-    return { ctx, s, today, input, fingerprint, report, now }
+    return { ctx, s, today, input, fingerprint, report, plan, now }
   }
   function simulate(
     c: ReturnType<typeof context>,
@@ -100,6 +102,25 @@ export function insightsService(
     }
   }
   return {
+    command(user: PublicUser, home: string) {
+      const c = context(user, home)
+      for (const row of store.records(home, user.id)) {
+        const values = insightInteractionSchema.parse(JSON.parse(row.valuesJson)),
+          saved = JSON.parse(row.snapshotJson) as Snapshot
+        if (
+          values.kind !== 'feedback' ||
+          (saved.ownerOnly && c.ctx.role !== 'owner') ||
+          !saved.scopeRefs.every((ref) => authorizedInsightRef(ref, c.s))
+        )
+          continue
+        const i = c.report.insights.find((i) => i.id === values.insightId)
+        if (i && values.status !== 'reset') i.feedback = values.status
+      }
+      c.report.insights = c.report.insights.filter(
+        (i) => i.feedback !== 'dismissed' || ['urgent', 'important'].includes(i.priority),
+      )
+      return c
+    },
     list(user: PublicUser, home: string): InsightsData {
       const c = context(user, home),
         rows = store.records(home, user.id),

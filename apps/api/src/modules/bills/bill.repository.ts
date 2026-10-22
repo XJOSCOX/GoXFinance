@@ -1,5 +1,5 @@
 import { categoryRepository } from '../categories/category.repository'
-import { billPaymentRefunds } from '../banking/reconciliation/refund-source'
+import { financialRefunds } from '../banking/reconciliation/refund-source'
 import { guardBankReference } from '../../db/financial-reference-guard'
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, sql } from 'drizzle-orm'
@@ -56,13 +56,25 @@ export function billRepository(db: DatabaseConnection) {
       return db.transaction(operation, { behavior: 'immediate' })
     },
     list(householdId: string) {
+      const assignments = db
+        .select()
+        .from(billMembers)
+        .where(eq(billMembers.householdId, householdId))
+        .orderBy(asc(billMembers.memberId))
+        .all()
       return db
         .select()
         .from(bills)
         .where(eq(bills.householdId, householdId))
         .orderBy(asc(bills.id))
         .all()
-        .map(hydrate)
+        .map(
+          (row) =>
+            ({
+              ...row,
+              memberIds: assignments.filter((m) => m.billId === row.id).map((m) => m.memberId),
+            }) as Bill,
+        )
     },
     find(householdId: string, id: string) {
       const row = db.select().from(bills).where(key(householdId, id)).get()
@@ -101,6 +113,14 @@ export function billRepository(db: DatabaseConnection) {
         .set({ revision: sql`${bills.revision} + 1`, updatedAt: new Date().toISOString() })
         .where(key(householdId, id))
         .run()
+    },
+    allPeriods(householdId: string) {
+      return db
+        .select()
+        .from(billPeriods)
+        .where(eq(billPeriods.householdId, householdId))
+        .orderBy(asc(billPeriods.dueDate), asc(billPeriods.id))
+        .all()
     },
     periods(householdId: string, billId: string) {
       return db
@@ -158,6 +178,15 @@ export function billRepository(db: DatabaseConnection) {
         .run()
     },
     payments(householdId: string, billId?: string): BillPayment[] {
+      const linkedPayments = new Map(
+        db
+          .select()
+          .from(debtPayments)
+          .where(eq(debtPayments.householdId, householdId))
+          .all()
+          .map((p) => [p.id, p]),
+      )
+      const refunds = financialRefunds(db, householdId)
       return db
         .select()
         .from(billPayments)
@@ -170,21 +199,21 @@ export function billRepository(db: DatabaseConnection) {
         .orderBy(asc(billPayments.id))
         .all()
         .map((row) => {
-          const linked = row.debtPaymentId
-            ? db
-                .select()
-                .from(debtPayments)
-                .where(
-                  and(
-                    eq(debtPayments.householdId, householdId),
-                    eq(debtPayments.id, row.debtPaymentId),
-                  ),
-                )
-                .get()
-            : undefined
+          const linked = row.debtPaymentId ? linkedPayments.get(row.debtPaymentId) : undefined
           return {
             ...row,
-            refunds: billPaymentRefunds(db, householdId, row.id, row.debtPaymentId),
+            refunds: refunds
+              .filter((r) =>
+                row.debtPaymentId
+                  ? r.debtPaymentId === row.debtPaymentId
+                  : r.billPaymentId === row.id,
+              )
+              .map((r) => ({
+                id: r.id,
+                amountCents: r.amountCents,
+                date: r.date,
+                status: r.status,
+              })),
             ...(linked
               ? {
                   amountCents: linked.amountCents,

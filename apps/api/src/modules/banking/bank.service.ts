@@ -23,8 +23,15 @@ export function bankService(
     user: PublicUser,
     home: string,
     row: ReturnType<BankRepository['accounts']>[number],
+    cached?: {
+      connections: ReturnType<BankRepository['connections']>
+      balances: ReturnType<BankRepository['balances']>
+      owner: boolean
+    },
   ): BankAccount {
-    const connection = store.connections(home).find((c) => c.id === row.connectionId),
+    const connection = (cached?.connections ?? store.connections(home)).find(
+        (c) => c.id === row.connectionId,
+      ),
       profile = bankAccountSchema.parse(rowProfile(row))
     return {
       ...profile,
@@ -36,8 +43,10 @@ export function bankService(
       updatedAt: row.updatedAt,
       connectionStatus: connection?.status ?? 'manual',
       lastSyncAt: connection?.lastSyncAt ?? null,
-      balance: store.balances(home, row.id)[0] ?? null,
-      canManage: access.context(user, home).role === 'owner',
+      balance: cached
+        ? (cached.balances.find((b) => b.accountId === row.id) ?? null)
+        : (store.balances(home, row.id)[0] ?? null),
+      canManage: cached ? cached.owner : access.context(user, home).role === 'owner',
     }
   }
   function rowProfile(row: ReturnType<BankRepository['accounts']>[number]) {
@@ -47,6 +56,18 @@ export function bankService(
   }
   return {
     view,
+    cashAccounts(user: PublicUser, home: string) {
+      const ctx = access.context(user, home),
+        cache = {
+          connections: store.connections(home),
+          balances: store.balances(home),
+          owner: ctx.role === 'owner',
+        }
+      return store
+        .accounts(home)
+        .filter((a) => ctx.role === 'owner' || a.memberIds.includes(ctx.self!.id))
+        .map((a) => view(user, home, a, cache))
+    },
     list(user: PublicUser, home: string): BankingData {
       const ctx = access.context(user, home),
         accounts = store

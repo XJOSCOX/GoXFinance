@@ -1,4 +1,7 @@
 import { registerInsightsRoutes } from './modules/insights/insights.routes'
+import { registerCommandRoutes } from './modules/command-center/command.routes'
+import { commandService } from './modules/command-center/command.service'
+import { commandRepository } from './modules/command-center/command.repository'
 import { insightsService } from './modules/insights/insights.service'
 import { insightsRepository } from './modules/insights/insights.repository'
 import { plannerRepository } from './modules/smart-planner/planner.repository'
@@ -216,7 +219,7 @@ export async function buildApp(options: AppOptions) {
     results: trading.results(user, home),
     ...copier.list(user, home),
     income: income.list(user, home).transactions,
-    bills: bills.list(user, home),
+    bills: bills.analysis(user, home),
     expenses: expenses.list(user, home).expenses,
     debts: debts.list(user, home).debts,
     balances: overviewRepository(db).balances(home),
@@ -247,11 +250,11 @@ export async function buildApp(options: AppOptions) {
     const ctx = incomeAccess.context(user, home)
     const raw = {
       refunds: overviewRepository(db).refunds(home),
-      bills: bills.list(user, home),
-      debts: debts.list(user, home).debts,
+      bills: bills.analysis(user, home),
+      debts: debts.analysis(user, home),
       payments: overviewRepository(db).payments(home),
-      income: income.list(user, home),
-      expenses: expenses.list(user, home).expenses,
+      income: income.analysis(user, home),
+      expenses: expenses.analysis(user, home),
       categories: categoryService(
         categoryRepository(db),
         financialAccess(householdStore, memberStore),
@@ -276,14 +279,29 @@ export async function buildApp(options: AppOptions) {
         transactions: raw.income.transactions.filter((t) => ids.has(t.sourceId)),
       },
       payroll: payrollStore.weeks(home).filter((w) => ids.has(w.sourceId)),
-      cashAccounts: banks.list(user, home).accounts,
+      cashAccounts: banks.cashAccounts(user, home),
       privacyLimited: ids.size < raw.income.sources.length,
     }
     const stored = plannerStore.records(home)
     visible.planner = {
       records: [],
       goals: goals
-        .list(user, home)
+        .list(
+          user,
+          home,
+          () => ({
+            accounts: trading.accounts(user, home),
+            results: trading.results(user, home),
+            ...copier.list(user, home),
+            income: raw.income.transactions,
+            bills: raw.bills,
+            expenses: raw.expenses,
+            debts: raw.debts,
+            balances: overviewRepository(db).balances(home),
+            refunds: raw.refunds,
+          }),
+          true,
+        )
         .goals.filter((g) => ctx.role === 'owner' || g.responsibleMemberId === ctx.self?.id),
     }
     visible.planner.records = stored.filter((r) => plannerAccess.visible(r.values, visible))
@@ -326,28 +344,35 @@ export async function buildApp(options: AppOptions) {
   const bankStore = bankRepository(db),
     bankAccess = bankPermissions(financialAccess(householdStore, memberStore), bankStore),
     banks = bankService(bankStore, bankAccess, assetRepository(db), debts)
-  registerInsightsRoutes(
+  const insightEngine = insightsService(
+    insightsRepository(db),
+    financialAccess(householdStore, memberStore),
+    (user, home) => {
+      const base = forecastSources(user, home),
+        balances = overviewRepository(db).balances(home),
+        assets = assetRepository(db)
+      return {
+        ...base,
+        balances,
+        assets: {
+          assets: assets.all(home).map((a) => ({ ...a, canManage: false })),
+          valuations: assets.values(home),
+          debts: base.debts,
+          balances,
+        },
+      }
+    },
+    (home) => forecastRepository(db).settings(home),
+  )
+  registerInsightsRoutes(app, auth, insightEngine)
+  registerCommandRoutes(
     app,
     auth,
-    insightsService(
-      insightsRepository(db),
+    commandService(
+      commandRepository(db),
       financialAccess(householdStore, memberStore),
-      (user, home) => {
-        const base = forecastSources(user, home),
-          balances = overviewRepository(db).balances(home),
-          assets = assetRepository(db)
-        return {
-          ...base,
-          balances,
-          assets: {
-            assets: assets.all(home).map((a) => ({ ...a, canManage: false })),
-            valuations: assets.values(home),
-            debts: base.debts,
-            balances,
-          },
-        }
-      },
-      (home) => forecastRepository(db).settings(home),
+      insightEngine,
+      (home) => payrollStore.profiles(home),
     ),
   )
   registerBankRoutes(app, auth, banks)

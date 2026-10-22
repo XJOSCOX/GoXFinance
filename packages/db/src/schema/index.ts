@@ -32,3 +32,4 @@ export * from './payroll'
 export * from './smart-planner'
 
 export * from './insights'
+export * from './command-center'

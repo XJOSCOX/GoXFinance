@@ -6,8 +6,10 @@ import type { DatabaseConnection } from '../../db/connection'
 import { debtBalanceHistory, debtMembers, debts } from '../../../../../packages/db/src/schema'
 
 export function debtRepository(db: DatabaseConnection) {
-  function hydrate(row: typeof debts.$inferSelect): Debt {
-    const members = db.select().from(debtMembers).where(eq(debtMembers.debtId, row.id)).all()
+  function hydrate(
+    row: typeof debts.$inferSelect,
+    members = db.select().from(debtMembers).where(eq(debtMembers.debtId, row.id)).all(),
+  ): Debt {
     return {
       ...row,
       memberAssignments: members.map((member) => ({
@@ -31,7 +33,20 @@ export function debtRepository(db: DatabaseConnection) {
   return {
     validateCategory: categoryRepository(db).assign,
     list(householdId: string) {
-      return db.select().from(debts).where(eq(debts.householdId, householdId)).all().map(hydrate)
+      const rows = db.select().from(debts).where(eq(debts.householdId, householdId)).all()
+      const assignments = db
+        .select()
+        .from(debtMembers)
+        .innerJoin(debts, eq(debts.id, debtMembers.debtId))
+        .where(eq(debts.householdId, householdId))
+        .all()
+        .map((r) => r.debt_members)
+      return rows.map((row) =>
+        hydrate(
+          row,
+          assignments.filter((m) => m.debtId === row.id),
+        ),
+      )
     },
     find(householdId: string, id: string) {
       const row = db.select().from(debts).where(key(householdId, id)).get()

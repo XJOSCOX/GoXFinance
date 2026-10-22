@@ -185,6 +185,10 @@ export function debtService(
     return values
   }
   return {
+    analysis(user: PublicUser, householdId: string) {
+      context(user, householdId)
+      return repository.list(householdId)
+    },
     list(user: PublicUser, householdId: string) {
       context(user, householdId)
       const items = repository.list(householdId)

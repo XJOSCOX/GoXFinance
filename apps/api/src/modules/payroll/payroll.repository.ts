@@ -25,20 +25,32 @@ export function payrollRepository(db: DatabaseConnection) {
         updatedAt: r.updatedAt,
       }))
   }
-  function statement(home: string, id: string | null) {
+  function statement(
+    home: string,
+    id: string | null,
+    cache?: {
+      statements: (typeof s.payrollStatements.$inferSelect)[]
+      lines: (typeof s.payrollLines.$inferSelect)[]
+    },
+  ) {
     if (!id) return null
-    const row = db
-      .select()
-      .from(s.payrollStatements)
-      .where(and(eq(s.payrollStatements.householdId, home), eq(s.payrollStatements.id, id)))
-      .get()
+    const row = cache
+      ? cache.statements.find((r) => r.id === id)
+      : db
+          .select()
+          .from(s.payrollStatements)
+          .where(and(eq(s.payrollStatements.householdId, home), eq(s.payrollStatements.id, id)))
+          .get()
     if (!row) return null
-    const lines = db
-      .select()
-      .from(s.payrollLines)
-      .where(and(eq(s.payrollLines.householdId, home), eq(s.payrollLines.statementId, id)))
-      .all()
-      .sort((a, b) => a.position - b.position)
+    const lines = (
+      cache
+        ? cache.lines.filter((l) => l.statementId === id)
+        : db
+            .select()
+            .from(s.payrollLines)
+            .where(and(eq(s.payrollLines.householdId, home), eq(s.payrollLines.statementId, id)))
+            .all()
+    ).sort((a, b) => a.position - b.position)
     return payrollStatementSchema.parse({
       ...JSON.parse(row.headerJson),
       grossCents: row.grossCents,
@@ -62,6 +74,14 @@ export function payrollRepository(db: DatabaseConnection) {
     })
   }
   function weeks(home: string): PayrollWeek[] {
+    const cache = {
+      statements: db
+        .select()
+        .from(s.payrollStatements)
+        .where(eq(s.payrollStatements.householdId, home))
+        .all(),
+      lines: db.select().from(s.payrollLines).where(eq(s.payrollLines.householdId, home)).all(),
+    }
     const forecasts = db
       .select()
       .from(s.payrollForecasts)
@@ -83,7 +103,7 @@ export function payrollRepository(db: DatabaseConnection) {
         reviewedAt: r.reviewedAt,
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,
-        statement: statement(home, r.statementId),
+        statement: statement(home, r.statementId, cache),
         forecasts: forecasts
           .filter((f) => f.weekId === r.id)
           .map((f) => ({

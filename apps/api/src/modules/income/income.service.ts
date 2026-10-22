@@ -25,17 +25,23 @@ export function incomeService(
     after: (user: PublicUser, home: string, row: IncomeTransaction) => void
   },
 ) {
-  const sourceView = (user: PublicUser, home: string, row: SourceRow): IncomeSource => ({
+  const sourceView = (
+    user: PublicUser,
+    home: string,
+    row: SourceRow,
+    readOnly = false,
+  ): IncomeSource => ({
     ...row,
     incomeType: row.incomeType as IncomeSource['incomeType'],
     frequency: row.frequency as IncomeSource['frequency'],
     status: row.status as IncomeSource['status'],
-    canManage: permissions.canManage(user, home, row.responsibleMemberId),
+    canManage: !readOnly && permissions.canManage(user, home, row.responsibleMemberId),
   })
   const transactionView = (
     user: PublicUser,
     home: string,
     row: TransactionRow,
+    readOnly = false,
   ): IncomeTransaction => ({
     ...row,
     ...incomeTransactionSchema.parse(
@@ -45,7 +51,7 @@ export function incomeService(
     ),
     incomeTypeSnapshot: row.incomeTypeSnapshot as IncomeTransaction['incomeTypeSnapshot'],
     frequencySnapshot: row.frequencySnapshot as IncomeTransaction['frequencySnapshot'],
-    canManage: permissions.canManage(user, home, row.responsibleMemberId),
+    canManage: !readOnly && permissions.canManage(user, home, row.responsibleMemberId),
   })
   function source(user: PublicUser, home: string, id: string) {
     permissions.context(user, home)
@@ -64,6 +70,14 @@ export function incomeService(
       throw new FinancialError('This record changed. Refresh before correcting it.', 409)
   }
   return {
+    analysis(user: PublicUser, home: string) {
+      permissions.context(user, home)
+      return {
+        sources: store.sources(home).map((r) => sourceView(user, home, r, true)),
+        transactions: store.transactions(home).map((r) => transactionView(user, home, r, true)),
+        canCreate: false,
+      }
+    },
     list(user: PublicUser, home: string) {
       const ctx = permissions.context(user, home)
       return {

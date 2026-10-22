@@ -48,20 +48,34 @@ export function goalService(
     return true
   }
   return {
-    list(user: PublicUser, home: string) {
+    list(
+      user: PublicUser,
+      home: string,
+      prepared?: () => Omit<GoalSources, 'contributions'>,
+      ownScope = false,
+    ) {
       const ctx = permissions.context(user, home),
-        data = sources(user, home),
+        rows = store
+          .goals(home)
+          .filter(
+            (g) => !ownScope || ctx.role === 'owner' || g.responsibleMemberId === ctx.self?.id,
+          ),
+        data = rows.length ? (prepared ? prepared() : sources(user, home)) : null,
         today = localBillDate()
-      const contributions = store.contributions(home).map((c) => ({
-        ...c,
-        canManage: permissions.canManage(
-          user,
-          home,
-          find(user, home, c.goalId).responsibleMemberId,
-        ),
-      })) as GoalContribution[]
+      const contributions = store
+        .contributions(home)
+        .filter((c) => !ownScope || rows.some((g) => g.id === c.goalId))
+        .map((c) => ({
+          ...c,
+          canManage: permissions.canManage(
+            user,
+            home,
+            find(user, home, c.goalId).responsibleMemberId,
+          ),
+        })) as GoalContribution[]
       return {
-        goals: store.goals(home).map((row) => {
+        goals: rows.map((row) => {
+          if (!data) throw new Error('Goal source context unavailable')
           const goal = row as typeof row & GoalInput
           const reported = data.results.some(
             (r) =>

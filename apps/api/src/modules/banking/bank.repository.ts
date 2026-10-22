@@ -37,14 +37,14 @@ export function bankRepository(db: DatabaseConnection) {
     connections(home: string) {
       return db.select().from(bankConnections).where(eq(bankConnections.householdId, home)).all()
     },
-    balances(home: string, accountId: string) {
+    balances(home: string, accountId?: string) {
       return db
         .select()
         .from(bankBalanceObservations)
         .where(
           and(
             eq(bankBalanceObservations.householdId, home),
-            eq(bankBalanceObservations.accountId, accountId),
+            accountId ? eq(bankBalanceObservations.accountId, accountId) : undefined,
           ),
         )
         .orderBy(
@@ -52,7 +52,7 @@ export function bankRepository(db: DatabaseConnection) {
           desc(bankBalanceObservations.createdAt),
           desc(bankBalanceObservations.id),
         )
-        .all() as BankBalance[]
+        .all() as (BankBalance & { accountId: string })[]
     },
     transactions(home: string) {
       return db.select().from(bankTransactions).where(eq(bankTransactions.householdId, home)).all()

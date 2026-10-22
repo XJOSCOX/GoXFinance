@@ -85,6 +85,10 @@ export function expenseService(
   const view = (user: PublicUser, home: string, row: ReturnType<typeof find>) =>
     ({ ...row, ...flags(user, home, row) }) as Expense
   return {
+    analysis(user: PublicUser, home: string) {
+      permissions.context(user, home)
+      return store.list(home).map((row) => ({ ...row, canManage: false }) as Expense)
+    },
     list(user: PublicUser, home: string) {
       permissions.context(user, home)
       return {
