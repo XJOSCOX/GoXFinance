@@ -92,6 +92,12 @@ it.each([false, true])(
       revision: 1,
       values: { ...read.plans[0].values, status: 'completed' },
     })
+    const audit = await f.ok('GET', `/insights/actions/${saved.id}/audit`)
+    expect(
+      audit.history.map(
+        (event: { details: { after: { revision: number } } }) => event.details.after.revision,
+      ),
+    ).toEqual([1, 2])
     expect(
       (
         await f.send('POST', '/insights/actions', {

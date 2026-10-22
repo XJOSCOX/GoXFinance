@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import {
-  forecast,
+  smartPlanner,
+  sumCents,
   smartForecastInput,
   type ForecastData,
   type ForecastInput,
@@ -50,8 +51,8 @@ export function SmartForecastDashboard({
     : base
   let report, baseline
   try {
-    baseline = forecast(data.sources, base, today)
-    report = forecast(data.sources, input, today)
+    baseline = smartPlanner(data.sources, base, today).forecast
+    report = smartPlanner(data.sources, input, today).forecast
   } catch (failure) {
     return (
       <p role="alert" className="text-rose-300">
@@ -60,6 +61,7 @@ export function SmartForecastDashboard({
     )
   }
   const smart = report.smart!
+  const outstanding = report.events.filter((e) => e.direction === 'out' && e.estimated)
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -115,7 +117,7 @@ export function SmartForecastDashboard({
           ],
           [
             'Upcoming cash requirements',
-            `${formatMoney(report.outflowCents)}${report.events.some((e) => e.direction === 'out' && e.amountCents === null) ? ' + unknown' : ''}`,
+            `${formatMoney(sumCents(outstanding.map((e) => e.amountCents ?? 0)))}${outstanding.some((e) => e.amountCents === null) ? ' + unknown' : ''}`,
             'Known amounts · not completed payments',
           ],
           [

@@ -14,6 +14,7 @@ export function enrichSmartForecast(report: ForecastReport, v: ForecastInput): F
   const outBefore = report.events.filter(
       (e) =>
         e.direction === 'out' &&
+        e.estimated &&
         [
           'bill',
           'debt_repayment',
@@ -73,15 +74,16 @@ export function enrichSmartForecast(report: ForecastReport, v: ForecastInput): F
           ],
         })
     }
-    if (out.filter((e) => e.amountCents !== 0).length >= 3)
+    const obligations = out.filter((e) => e.estimated && e.amountCents !== 0)
+    if (obligations.length >= 3)
       risks.push({
         id: 'concentration:' + d.date,
         date: d.date,
-        amountCents: total,
+        amountCents: sumCents(obligations.map((e) => e.amountCents ?? 0)),
         kind: 'concentration',
         reason: 'Three or more outgoing obligations are concentrated on this date.',
         confidence,
-        eventIds: out.map((e) => e.id),
+        eventIds: obligations.map((e) => e.id),
         actions: [
           'Review timing with the relevant providers',
           'Simulate postponing an optional payment',

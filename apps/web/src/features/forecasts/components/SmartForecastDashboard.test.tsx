@@ -9,6 +9,7 @@ import {
 } from '../../../../../../packages/shared/src/smart-forecast.fixture'
 import { SmartForecastDashboard } from './SmartForecastDashboard'
 import { OpeningCashForm } from './OpeningCashForm'
+import { fictionalBill, fictionalDebt } from '../../../../../../packages/shared/src/planner.fixture'
 const mocks = vi.hoisted(() => ({ api: vi.fn(), notify: vi.fn() }))
 vi.mock('../../../lib/api', () => ({
   apiRequest: mocks.api,
@@ -32,6 +33,36 @@ const data = (): ForecastData => ({
     bufferCents: 25000,
   },
   scenarios: [],
+})
+it('shows unpaid requirements without completed bills or unconfirmed debt balances', () => {
+  const d = data(),
+    paid = fictionalBill('Fictional paid rent', 194720, '2026-10-20')
+  paid.payments = [
+    {
+      id: 'paid',
+      periodId: paid.periods[0].id,
+      amountCents: 194720,
+      status: 'completed',
+      paymentDate: '2026-10-20',
+      method: 'cash',
+      debtPaymentId: null,
+    } as never,
+  ]
+  paid.periods[0].paidCents = 194720
+  paid.periods[0].paymentStatus = 'paid'
+  d.sources.planner = { records: [] }
+  d.sources.bills = [paid, fictionalBill('Fictional utility', 30000, '2026-10-21')]
+  d.sources.debts = [{ ...fictionalDebt(), pastDueAmountCents: 4417700 }]
+  render(
+    <MemoryRouter>
+      <SmartForecastDashboard home="fictional" data={{ ...d, settings: null }} refresh={vi.fn()} />
+    </MemoryRouter>,
+  )
+  expect(screen.getByText('Upcoming cash requirements').parentElement?.textContent).toContain(
+    '$300.00',
+  )
+  expect(screen.getByText('Bills / debt payments').parentElement?.textContent).toContain('$300.00')
+  expect(screen.getByText('Completed bill payment', { exact: false })).toBeTruthy()
 })
 it('shows missing cash without fabricating a balance, supports 90 days and hides Viewer mutation controls', () => {
   render(

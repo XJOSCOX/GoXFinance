@@ -157,3 +157,26 @@ Existing integration files modified:
 - After QA completed, the normal encrypted launcher was restarted without requesting or displaying the passphrase. Startup created and verified one new encrypted pre-migration backup before applying the additive metadata tables. Website returned HTTP 200; the new Insights endpoint returned HTTP 401 without a session, confirming it is present and protected. No real financial records were seeded, reset, restored or edited.
 
 For review, open **Financial insights** in the normal app's sidebar. Use the fictional QA site for experiments and follow the manual checklist above. No subsequent feature phase was started.
+
+## Manual acceptance follow-up — October 21, 2026
+
+**10/10 checklist areas passed.** Existing imported payroll and source totals were inspected read-only in the normal app. All feedback, plan, progress and restart experiments used a separate fictional household on localhost:1423 with its own database and session cookie. No real financial records were edited.
+
+| Check                     | Evidence                                                                                                                                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source totals             | Received income, monthly essential bills and known debt minimums reconcile with source modules; expected payroll stays separate.                                                                                                                  |
+| Paycheck trends           | Independently recalculated the median, mean absolute deviation and equal-half means from seven reviewed employer-specific statements.                                                                                                             |
+| Payroll deductions        | Current federal, Social Security, Medicare and retirement amounts match reviewed lines; printed signs are normalized, YTD is not summed, and employers remain separate.                                                                           |
+| Missing expense history   | Missing discretionary history remains Unknown; an empty fixture does not invent spending or savings.                                                                                                                                              |
+| Recurrence and duplicates | Three distinct weekly fictional charges yield one weekly recurrence; two matching same-day purchases yield a review candidate, without deleting either.                                                                                           |
+| Debt balance evidence     | Added explicit regression evidence that completed payments and manual balance adjustments do not establish verified principal reduction.                                                                                                          |
+| Cash-flow consistency     | Dashboard smart forecasts use the Planner's confirmed-debt-plan policy. Completed cash history is excluded from unpaid before-payday/concentration totals. Unconfirmed debt balances do not become scheduled payments.                            |
+| Plan preview              | A fictional $50 allowance reduction changed modeled minimum cash from -$436 to -$386; preview did not write a plan or financial rows.                                                                                                             |
+| Plan lifecycle and audit  | Significant dismissal stays visible. Planned, in-progress and completed revisions persist. A deliberately added fictional $15 purchase is tracked as spending, never achieved savings. Source changes preserve and label the historical scenario. |
+| Refresh and restart       | Browser reload and isolated server restart preserve the dismissal, completed plan, observed purchase and audit entries. Plaintext/encrypted persistence and disposable restore regressions also passed.                                           |
+
+Read-only hashes across **86 non-Insights tables** were unchanged after preview/dismissal and after plan acceptance/status changes. After the one intentional fictional purchase, a new baseline was recorded; further status changes and restart again left all 86 tables unchanged. Audit metadata was the only action-plan persistence.
+
+One issue was found and fixed: audit rows had no guaranteed revision order. The read-only history response now sorts by immutable revision, and browser verification showed 1 (planned), 2 (in progress), 3 (completed). Audit rows themselves were not modified. Added assertions cover ordered history in both database modes.
+
+Final targeted acceptance run: **30 tests across 5 files passed**. Lint, typecheck and production build passed. Existing dependency-annotation and bundle-size notices remain. Fictional screenshots and local fixture data are outside tracked application records; no private payroll amounts are included in this report.

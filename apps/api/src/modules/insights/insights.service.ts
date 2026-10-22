@@ -277,7 +277,8 @@ export function insightsService(
         history: store
           .audit(home, user.id)
           .filter((a) => a.targetId === id)
-          .map((a) => ({ id: a.id, createdAt: a.createdAt, details: JSON.parse(a.detailsJson) })),
+          .map((a) => ({ id: a.id, createdAt: a.createdAt, details: JSON.parse(a.detailsJson) }))
+          .sort((a, b) => a.details.after.revision - b.details.after.revision),
       }
     },
   }

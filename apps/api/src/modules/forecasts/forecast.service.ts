@@ -5,6 +5,7 @@ import {
   forecastPreferencesSchema,
   confirmedForecastActivity,
   smartForecastInput,
+  smartPlanner,
   forecast,
   localBillDate,
   type ForecastSources,
@@ -65,7 +66,7 @@ export function forecastService(
         input = smartForecastInput(settings, localBillDate(), days)
       return {
         input,
-        report: forecast(data, input, localBillDate()),
+        report: smartPlanner(data, input, localBillDate()).forecast,
         fingerprint: hash(data, home),
         settings,
       }
@@ -198,7 +199,9 @@ export function forecastService(
           user.id,
           p.values,
           data,
-          forecast(data, p.values, localBillDate()),
+          p.values.smart
+            ? smartPlanner(data, p.values, localBillDate()).forecast
+            : forecast(data, p.values, localBillDate()),
           p.idempotencyKey,
         )
         return { id: saved.id, createdAt: saved.createdAt }

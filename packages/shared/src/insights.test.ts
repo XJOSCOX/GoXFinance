@@ -208,11 +208,23 @@ it('uses only verified balance observations, never assumes principal from paymen
     insightBalance(d.id, '2026-09-01', 50000),
     { ...insightBalance(d.id, '2026-10-01', 40000), source: 'manual_adjustment' },
   ]
+  s.payments = ['2026-10-05', '2026-10-10'].map((paymentDate, n) => ({
+    id: `fictional-payment-${n}`,
+    debtId: d.id,
+    amountCents: 20000,
+    paymentDate,
+    paymentStatus: 'completed',
+    paymentMethod: 'cash',
+    principalAmountCents: null,
+    interestAmountCents: null,
+    feesAmountCents: null,
+  })) as never
   expect(
     financialInsights(s, insightInput(), now).insights.some(
       (i) => i.type === 'verified_debt_trend',
     ),
   ).toBe(false)
+  expect(d.currentBalanceCents).toBe(50000)
   s.balances.push(insightBalance(d.id, '2026-10-10', 55000))
   d.interestRateApr = '25'
   d.confidence = 'confirmed'
